@@ -57,6 +57,31 @@ Flight uses one Newtonian physics model with a flight assist toggle. It should n
 - **Velocity marker:** a cockpit indicator showing where the ship is actually moving versus where it points.
 - **Cruise drive:** compressed distances plus a fast travel mode that drops out when something interesting is nearby.
 
+**How it flies (first values, to be tuned with the owner)**
+
+- Flight assist on: W and S change the ship's set speed; let go and it holds that speed along the nose. A, D, Space and Ctrl slide sideways, up and down; let go and the thrusters cancel the slide. The mouse is a stick that eases back to the centre: move it to turn, stop and the turn settles. Q and E roll.
+- Every correction uses the same limited thrusters, so a hard turn at speed slides before the ship lines up again. That slide is the ship's weight.
+- Flight assist off (Z, switchable mid-flight): nothing is cancelled. The ship keeps its speed, direction and spin until the player counters them.
+- X is a full stop: it turns flight assist on and brings the ship to rest.
+- The velocity marker sits where the ship is really going; when it is going backwards a crossed marker shows where it is moving away from.
+
+**Flight tuning**
+
+The values live in `game/ship/greybox_ship_tuning.tres` (per ship) and `game/flight/flight_controls.tres` (mouse). Change them here and there together.
+
+| Value | Greybox ship | What it does |
+| --- | --- | --- |
+| Main engine | 40 m/s² | Forward push: 0 to top speed in 5 s |
+| Braking | 25 m/s² | Backward push |
+| Side and vertical thrusters | 30 m/s² | Sliding, and cancelling drift |
+| Top speed | 200 m/s | Normal flight; the cruise drive goes beyond it |
+| Top reverse speed | 50 m/s | With flight assist on |
+| Turn rates | pitch 50°/s, yaw 35°/s, roll 100°/s | Full stick |
+| Turn acceleration | pitch 120°/s², yaw 90°/s², roll 250°/s² | How heavy turns feel to start and stop |
+| Assist response | 0.35 s (speed), 0.12 s (turning) | How eagerly assist corrects, within the thruster limits |
+| Mouse | 250 px for a full stick, eases back at 3 per second | Shared by every ship |
+| Floating origin | Re-centres beyond 2048 m | Technical, not feel |
+
 **Camera**
 
 - First person is the main view, from a full cockpit.
@@ -201,6 +226,8 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-24: Until the owner's flight verdict (build step 4), flight works as described in "How it flies": assist holds a set speed rather than braking when W is released, the mouse is a self-centring stick, assist off lets spin drift too, and X is a full stop. Keys: W/S, A/D, Space/Ctrl (or C), Q/E, Z, X, Esc (default, Claude).
+- 2026-10-24: The floating origin re-centres the world when the ship is 2048 m from it; true positions are kept in 64-bit (default, Claude).
 - 2026-10-24: Stack fixed: Godot 4.7.2-stable (standard build), typed GDScript, Forward+, Blender models exported as glTF. Desktop only, Windows first, single player, offline (owner, project instructions).
 - 2026-10-24: Large-world precision uses a floating origin, not the double-precision build, until the owner decides otherwise (project instructions).
 - 2026-10-24: Until the owner decides, losing the ship respawns the player at the last base with a small towing fee (project instructions).

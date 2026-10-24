@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="FlightControls" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/flight/flight_controls.gd" id="1_controls"]
+
+[resource]
+script = ExtResource("1_controls")
+mouse_gain = 0.004
+stick_return = 3.0
+invert_pitch = false

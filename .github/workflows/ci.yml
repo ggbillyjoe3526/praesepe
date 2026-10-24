@@ -49,6 +49,7 @@ jobs:
           path: |
             import.log
             smoke.log
+            smoke.log.again
             unit.log
           if-no-files-found: ignore
           retention-days: 14

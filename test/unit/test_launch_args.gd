@@ -15,3 +15,8 @@ func test_bad_seeds_are_ignored() -> void:
 func test_smoke_flag() -> void:
 	assert_true(LaunchArgs.parse(PackedStringArray(["--seed", "3", "--smoke"])).smoke)
 	assert_false(LaunchArgs.parse(PackedStringArray(["--seed", "3"])).smoke)
+
+
+func test_perf_flag() -> void:
+	assert_true(LaunchArgs.parse(PackedStringArray(["--perf"])).perf)
+	assert_false(LaunchArgs.parse(PackedStringArray(["--smoke"])).perf)

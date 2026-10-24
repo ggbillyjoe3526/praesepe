@@ -1,12 +1,32 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://game/ship/greybox_ship.tscn" id="2_ship"]
+[ext_resource type="Shader" path="res://game/world/starfield.gdshader" id="3_sky"]
+[ext_resource type="PackedScene" path="res://game/world/buoy.tscn" id="4_buoy"]
+[ext_resource type="Script" path="res://game/world/floating_origin.gd" id="5_origin"]
+[ext_resource type="Script" path="res://game/world/space_dust.gd" id="6_dust"]
+[ext_resource type="Shader" path="res://game/world/space_dust.gdshader" id="7_dust_shader"]
+[ext_resource type="Script" path="res://game/flight/pilot_controls.gd" id="8_pilot"]
+[ext_resource type="Resource" path="res://game/flight/flight_controls.tres" id="9_controls"]
+[ext_resource type="Script" path="res://game/hud/flight_hud.gd" id="10_hud"]
+[ext_resource type="Script" path="res://game/ui/pause_screen.gd" id="11_pause"]
+[ext_resource type="Script" path="res://game/debug/debug_perf.gd" id="12_perf"]
+
+[sub_resource type="ShaderMaterial" id="Mat_sky"]
+shader = ExtResource("3_sky")
+
+[sub_resource type="Sky" id="Sky_stars"]
+sky_material = SubResource("Mat_sky")
 
 [sub_resource type="Environment" id="Environment_space"]
-background_mode = 1
-background_color = Color(0.01, 0.01, 0.03, 1)
+background_mode = 2
+sky = SubResource("Sky_stars")
 ambient_light_source = 2
 ambient_light_color = Color(0.25, 0.27, 0.35, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_dust"]
+shader = ExtResource("7_dust_shader")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_plate"]
 bg_color = Color(0.03, 0.04, 0.08, 0.92)
@@ -14,10 +34,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-content_margin_left = 24.0
-content_margin_top = 16.0
-content_margin_right = 24.0
-content_margin_bottom = 16.0
+content_margin_left = 28.0
+content_margin_top = 14.0
+content_margin_right = 28.0
+content_margin_bottom = 14.0
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
@@ -25,23 +45,151 @@ script = ExtResource("1_main")
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_space")
 
-[node name="Camera3D" type="Camera3D" parent="."]
-current = true
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.25, 0.433013, 0, 0.866025, 0.5, -0.5, -0.433013, 0.75, 0, 0, 0)
+light_color = Color(1, 0.95, 0.88, 1)
+light_energy = 1.2
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="Ship" parent="World" instance=ExtResource("2_ship")]
+
+[node name="Buoys" type="Node3D" parent="World"]
+
+[node name="Buoy1" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, -15, -350)
+
+[node name="Buoy2" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 10, -700)
+
+[node name="Buoy3" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, -10, -1050)
+
+[node name="Buoy4" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 30, -1400)
+
+[node name="Buoy5" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, -25, -1750)
+
+[node name="Buoy6" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2165, -150, 1250)
+
+[node name="Buoy7" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 150, 2500)
+
+[node name="Buoy8" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2165, -150, 1250)
+
+[node name="Buoy9" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2165, 150, -1250)
+
+[node name="Buoy10" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -150, -2500)
+
+[node name="Buoy11" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2165, 150, -1250)
+
+[node name="Buoy12" parent="World/Buoys" instance=ExtResource("4_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 300, -8000)
+
+[node name="FloatingOrigin" type="Node" parent="." node_paths=PackedStringArray("world", "focus")]
+script = ExtResource("5_origin")
+world = NodePath("../World")
+focus = NodePath("../World/Ship")
+
+[node name="SpaceDust" type="MultiMeshInstance3D" parent="." node_paths=PackedStringArray("origin", "ship")]
+material_override = SubResource("Mat_dust")
+cast_shadow = 0
+script = ExtResource("6_dust")
+origin = NodePath("../FloatingOrigin")
+ship = NodePath("../World/Ship")
+
+[node name="PilotControls" type="Node" parent="." node_paths=PackedStringArray("ship")]
+script = ExtResource("8_pilot")
+ship = NodePath("../World/Ship")
+controls = ExtResource("9_controls")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
-[node name="Plate" type="PanelContainer" parent="Hud"]
-anchors_preset = 2
-anchor_top = 1.0
+[node name="FlightHud" type="Control" parent="Hud" node_paths=PackedStringArray("ship", "camera", "controls")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_top = -160.0
-offset_right = 640.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("10_hud")
+ship = NodePath("../../World/Ship")
+camera = NodePath("../../World/Ship/PilotCamera")
+controls = NodePath("../../PilotControls")
+
+[node name="Readout" type="PanelContainer" parent="Hud/FlightHud"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -330.0
+offset_top = -190.0
+offset_right = 330.0
 offset_bottom = -32.0
+grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_plate")
 
-[node name="Status" type="Label" parent="Hud/Plate"]
+[node name="Lines" type="VBoxContainer" parent="Hud/FlightHud/Readout"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Speed" type="Label" parent="Hud/FlightHud/Readout/Lines"]
 unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "0 m/s"
+horizontal_alignment = 1
+
+[node name="Assist" type="Label" parent="Hud/FlightHud/Readout/Lines"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "FLIGHT ASSIST ON"
+horizontal_alignment = 1
+
+[node name="Keys" type="Label" parent="Hud/FlightHud/Readout/Lines"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.76, 0.86, 1)
+theme_override_font_sizes/font_size = 18
+text = "W/S speed · A/D/Space/Ctrl slide · Mouse steer · Q/E roll · Z assist · X stop · Esc pause"
+horizontal_alignment = 1
+
+[node name="ToastPlate" type="PanelContainer" parent="Hud/FlightHud"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -420.0
+offset_top = 180.0
+offset_right = 420.0
+offset_bottom = 240.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_plate")
+
+[node name="Toast" type="Label" parent="Hud/FlightHud/ToastPlate"]
+unique_name_in_owner = true
+layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "Project Praesepe"
+horizontal_alignment = 1
+
+[node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls")]
+script = ExtResource("11_pause")
+controls = NodePath("../PilotControls")
+
+[node name="DebugPerf" type="CanvasLayer" parent="." node_paths=PackedStringArray("ship", "origin")]
+script = ExtResource("12_perf")
+ship = NodePath("../World/Ship")
+origin = NodePath("../FloatingOrigin")
