@@ -10,7 +10,8 @@ extends Node
 ##
 ## It checks the cameras on the way: the dashboard shows the speed, the pilot's head sways back and the engines rumble
 ## while speeding up, the chase camera lags behind a turn and settles straight behind again, leans toward the drift
-## with flight assist off, and pulls in when a wall is put behind the ship (and eases out once it is gone).
+## with flight assist off, and pulls in when a wall is put behind the ship (and eases out once it is gone). At top
+## speed the ship flies under a bar that crosses the line out to the chase camera, which must never end up inside it.
 ##
 ## Ticks are physics ticks at 60 Hz. tools/smoke_test.sh runs with `--fixed-fps 60`, so a run is the same every time
 ## and finishes as fast as the machine allows.
@@ -31,6 +32,10 @@ const SWAY_CHECK := 120
 const WALL_DISTANCE := 11.0
 const WALL_TICKS := 30
 const CLEAR_TICKS := 150
+## The bar flown under at top speed: how far ahead it goes (m), how high above the ship's centre and how thick.
+const BAR_AHEAD := 200.0
+const BAR_HEIGHT := 2.8
+const BAR_SIZE := Vector3(40.0, 0.4, 0.4)
 ## How far apart (m) the ship's true movement and its velocity may be in one tick.
 const STEP_SLACK := 0.05
 
@@ -53,6 +58,8 @@ var _paused_clock: float = 0.0
 var _paused_frames: int = 0
 var _wall: StaticBody3D
 var _check_eye_on_frame: bool = false
+var _bar: StaticBody3D
+var _bar_reach: float = 1.0
 
 
 func _ready() -> void:
@@ -80,15 +87,21 @@ func _physics_process(_delta: float) -> void:
 				_expect(absf(ship.speed() - ship.tuning.max_speed) < 0.5, "reaches the top speed (%.2f m/s)" % ship.speed())
 				_check_dashboard()
 				_next()
-		1: # Let go: assist holds the speed.
+		1: # Let go: assist holds the speed. Watched from the chase camera, under a bar across the way.
+			if _phase_ticks == 1:
+				cameras.set_view(ShipCameras.View.CHASE)
+				_expect(cameras.current() == cameras.chase and cameras.chase.current, "switches to the chase camera")
+				_expect(_chase_lag() < 0.1, "starts the chase camera straight behind (%.2f degrees off)" % _chase_lag())
+				_bar = _put_box(BAR_SIZE, ship.global_position - ship.global_basis.z * BAR_AHEAD
+						+ ship.global_basis.y * BAR_HEIGHT)
 			if _phase_ticks >= HOLD:
+				_expect(_bar_reach < 0.9, "pulls the chase camera in under the bar (reach %.2f)" % _bar_reach)
+				_bar.queue_free()
+				_bar = null
 				_expect(absf(ship.speed() - ship.held_speed()) < 0.5, "holds its speed (%.2f, set %.2f)" % [ship.speed(),
 						ship.held_speed()])
 				_expect(ship.held_speed() > ship.tuning.max_speed - 1.0, "keeps the set speed (%.2f)" % ship.held_speed())
 				_start_forward = _forward()
-				cameras.set_view(ShipCameras.View.CHASE)
-				_expect(cameras.current() == cameras.chase and cameras.chase.current, "switches to the chase camera")
-				_expect(_chase_lag() < 0.1, "starts the chase camera straight behind (%.2f degrees off)" % _chase_lag())
 				_next()
 		2: # Turn right, watched from the chase camera.
 			input.turn.y = 1.0
@@ -196,6 +209,8 @@ func _check_cockpit_under_thrust() -> void:
 ## The cameras are placed each frame from the ship's drawn position, so where they are is checked in a frame (after
 ## ShipCameras has placed them), not in a physics tick.
 func _process(_delta: float) -> void:
+	if _bar != null:
+		_check_clear_of(_bar, BAR_SIZE)
 	if not _check_eye_on_frame:
 		return
 	_check_eye_on_frame = false
@@ -217,17 +232,34 @@ func _chase_lag() -> float:
 	return rad_to_deg(cameras.chase.heading_forward().angle_to(_forward()))
 
 
-## A wall across the way behind the ship, where the chase camera wants to be. It goes in the floating origin's world,
-## like everything solid.
+## A wall across the way behind the ship, where the chase camera wants to be.
 func _put_wall() -> void:
+	_wall = _put_box(Vector3(60.0, 60.0, 1.0), ship.global_position + ship.global_basis.z * WALL_DISTANCE)
+
+
+## A solid box lined up with the ship, centred `at`. It goes in the floating origin's world, like everything solid.
+func _put_box(box_size: Vector3, at: Vector3) -> StaticBody3D:
 	var box := BoxShape3D.new()
-	box.size = Vector3(60.0, 60.0, 1.0)
+	box.size = box_size
 	var shape := CollisionShape3D.new()
 	shape.shape = box
-	_wall = StaticBody3D.new()
-	_wall.add_child(shape)
-	origin.world.add_child(_wall)
-	_wall.global_transform = Transform3D(ship.global_basis, ship.global_position + ship.global_basis.z * WALL_DISTANCE)
+	var body := StaticBody3D.new()
+	body.add_child(shape)
+	origin.world.add_child(body)
+	body.global_transform = Transform3D(ship.global_basis, at)
+	return body
+
+
+## Fails if the chase camera, as drawn this frame, is inside the box `body` of size `box_size` (or within its
+## clearance of it), and notes how far the camera was pulled in.
+func _check_clear_of(body: StaticBody3D, box_size: Vector3) -> void:
+	if cameras.view != ShipCameras.View.CHASE:
+		return
+	_bar_reach = minf(_bar_reach, cameras.chase.reach)
+	var local := body.global_transform.affine_inverse() * cameras.chase.global_position
+	var gap := (local.abs() - box_size * 0.5).max(Vector3.ZERO).length()
+	_expect(gap > cameras.chase.tuning.clip_radius * 0.5,
+			"keeps the chase camera out of the bar at speed (%.2f m from it, frame %d)" % [gap, _frames])
 
 
 func _next() -> void:

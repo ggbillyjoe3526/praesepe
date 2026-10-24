@@ -104,3 +104,20 @@ func test_a_damaged_file_keeps_the_defaults_and_is_not_wiped() -> void:
 	assert_false(Settings.load_saved())
 	assert_eq(Settings.fov, Settings.DEFAULT_FOV)
 	assert_true(FileAccess.file_exists(Settings.path), "the damaged file is left for SaveFile to move aside")
+
+
+func test_saving_after_a_damaged_load_sets_the_damaged_copy_aside() -> void:
+	var f := FileAccess.open(Settings.path, FileAccess.WRITE)
+	f.store_string("PSAVE settings 1 0000\n{broken")
+	f.close()
+	Settings.load_saved()
+	Settings.set_fov(70.0)
+	assert_true(Settings.commit())
+	var kept := 0
+	for name in DirAccess.get_files_at(ROOT):
+		if name.begins_with(Settings.path.get_file() + ".corrupt-"):
+			kept += 1
+	assert_eq(kept, 1, "the damaged copy is moved aside, never deleted")
+	Settings.reset()
+	assert_true(Settings.load_saved())
+	assert_eq(Settings.fov, 70.0)

@@ -112,7 +112,7 @@ The values live in `game/camera/camera_tuning.tres` (shared by every ship). Wher
 | Bump wobble | Up to 2° for a 6 m/s knock, gone in about 0.6 s; knocks under 0.3 m/s ignored | Times the shake setting |
 | Chase camera place | 4 m up, 18 m behind, looking 8° down | Greybox ship scene |
 | Chase lag | 0.18 s (half with reduce motion) | 35°/s yaw shows as about 6° of swing |
-| Chase lean (assist off) | Half the drift angle, at most 25°, from 5 m/s, full by 40 m/s, eased over 0.6 s | Keeps drift readable |
+| Chase lean (assist off) | Half the drift angle, at most 25°, from 5 m/s, full by 40 m/s, eased over 0.6 s; fades out as the drift goes from sideways to straight backwards | Keeps drift readable, never flips side to side in a spin |
 | Chase clearance | 0.5 m from anything in the way, eases back out over 0.5 s | No clipping |
 
 ## Contracts
@@ -252,7 +252,7 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 Newest first. Each line: date, the decision, who made it.
 
 - 2026-10-24: Cameras until the owner tunes them: start in the cockpit, V switches to the chase camera; the field of view is vertical, 60° to 100°, starting at 75° (what flight was approved with); shake starts full (it is faint), head bob on, reduce motion off; the comfort settings sit on the pause screen until the settings menu and are saved in `settings.json` in the user folder (default, Claude).
-- 2026-10-24: The greybox ship's centre of mass stays where it was when flight was approved (0, -0.07, 0.41 m), so the cockpit canopy's new collision shape doesn't change how it flies (default, Claude).
+- 2026-10-24: The greybox ship's centre of mass (0, -0.07, 0.41 m) and inertia stay where they were when flight was approved, so the cockpit canopy's new collision shape changes neither how it flies nor how it spins after a bump (default, Claude).
 - 2026-10-24: Flight approved: William played the flight from PR #2 and said the controls feel good. "How it flies" and "Flight tuning" are now the baseline; changes to them go to the owner (owner).
 - 2026-10-24: Until the owner's flight verdict (build step 4), flight works as described in "How it flies": assist holds a set speed rather than braking when W is released, the mouse is a self-centring stick, assist off lets spin drift too, and X is a full stop. Keys: W/S, A/D, Space/Ctrl (or C), Q/E, Z, X, Esc (default, Claude).
 - 2026-10-24: The floating origin re-centres the world when the ship is 2048 m from it; true positions are kept in 64-bit (default, Claude).

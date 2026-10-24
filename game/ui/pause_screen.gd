@@ -26,8 +26,6 @@ const HINT_SIZE := 19
 const HINT_COLOUR := Color(0.7, 0.75, 0.85)
 const OFF_TEXT_COLOUR := Color(0.55, 0.58, 0.65)
 const SLIDER_HEIGHT := 36.0
-## Camera shake is set in steps of this (of full shake).
-const SHAKE_STEP := 0.1
 
 ## Who to hand the mouse back to on resume, and whether losing the mouse pauses (off when nobody is flying by hand,
 ## as in the smoke test).
@@ -157,7 +155,7 @@ func _build_comfort(list: VBoxContainer) -> void:
 	fov_slider = _slider(list, Settings.FOV_MIN, Settings.FOV_MAX, 1.0)
 	fov_slider.value_changed.connect(Settings.set_fov)
 	_shake_value = _setting_row(list, "Camera shake")
-	shake_slider = _slider(list, 0.0, 1.0, SHAKE_STEP)
+	shake_slider = _slider(list, 0.0, 1.0, Settings.SHAKE_STEP)
 	shake_slider.value_changed.connect(Settings.set_shake)
 	head_bob_check = _check(list, "Head bob: your head sways as the ship pushes")
 	head_bob_check.toggled.connect(Settings.set_head_bob)

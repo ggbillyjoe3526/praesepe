@@ -3,9 +3,10 @@ extends Camera3D
 ## The third-person view behind the ship while flying (design doc, "Camera"). It sits at the ship's ChaseAnchor and
 ## looks down at it a little, but turns a moment behind the ship (CameraTuning.chase_lag), so a turn shows as the ship
 ## swinging ahead of the camera. With flight assist off it leans toward where the ship is really moving, so a drift
-## stays readable; the lean eases in and out when assist changes. Something between the camera and the ship (a buoy, a
-## station wall) pulls the camera in at once, never through it; it eases back out once the way is clear.
-## ShipCameras sets it up, calls check_clearance() every physics tick and place() every frame while it is the view.
+## stays readable; the lean eases in and out when assist changes, and fades away as the ship moves backwards, so a spin
+## never flips it from side to side. Something between the camera and the ship (a buoy, a station wall) pulls the
+## camera in at once, never through it; it eases back out once the way is clear. ShipCameras sets it up and calls
+## place() every frame while it is the view.
 
 var ship: Ship
 var tuning: CameraTuning
@@ -17,8 +18,6 @@ var reach: float = 1.0
 
 ## The camera's lagging orientation, following the ship's.
 var _heading: Quaternion = Quaternion.IDENTITY
-## How far out the way is clear, from the last physics tick (0 to 1).
-var _clear: float = 1.0
 var _cast: ShapeCast3D
 
 
@@ -47,19 +46,20 @@ func setup(to_ship: Ship, with_tuning: CameraTuning, with_shake: CameraShake) ->
 ## Starts the camera straight behind the ship, with no lag, the lean matching flight assist, and only as far out as
 ## the way is clear. Called when the view switches to it, so it never swings in from an old position.
 func snap() -> void:
-	_heading = ship.get_global_transform_interpolated().basis.get_rotation_quaternion()
+	var drawn := ship.get_global_transform_interpolated()
+	_heading = drawn.basis.get_rotation_quaternion()
 	lean = 0.0 if ship.assist_on() else 1.0
-	check_clearance()
-	reach = _clear
+	reach = clearance(drawn.origin)
 
 
-## Looks for anything between the ship and where the camera wants to be. Physics queries belong in the physics tick.
-func check_clearance() -> void:
-	var from := ship.global_position
+## How much of the way from `from` (the ship as drawn) out to where the camera wants to be is clear, 0 to 1. Cast
+## every frame from where the ship is drawn, not where the physics tick left it, which at top speed is metres apart.
+## A frame's query is safe because physics runs on the main thread (physics/3d/run_on_separate_thread is off).
+func clearance(from: Vector3) -> float:
 	_cast.global_transform = Transform3D(Basis.IDENTITY, from)
 	_cast.target_position = Basis(_heading) * ship.chase_anchor.position
 	_cast.force_shapecast_update()
-	_clear = _cast.get_closest_collision_safe_fraction() if _cast.is_colliding() else 1.0
+	return _cast.get_closest_collision_safe_fraction() if _cast.is_colliding() else 1.0
 
 
 ## Puts the camera in place for this frame, `delta` seconds after the last.
@@ -73,7 +73,8 @@ func place(delta: float) -> void:
 	var lag := tuning.chase_lag * (tuning.chase_lag_reduced if Settings.reduce_motion else 1.0)
 	_heading = _heading.slerp(target, Smoothing.factor(delta, lag)).normalized()
 	# Pulled in at once when something is in the way, eased back out when it is gone.
-	reach = _clear if _clear < reach else lerpf(reach, _clear, Smoothing.factor(delta, tuning.clip_ease_out))
+	var clear := clearance(drawn.origin)
+	reach = clear if clear < reach else lerpf(reach, clear, Smoothing.factor(delta, tuning.clip_ease_out))
 	var facing := Basis(_heading)
 	var look := facing * Basis(Vector3.RIGHT, -deg_to_rad(tuning.chase_look_down))
 	var turn := Basis.from_euler(shake.angles(tuning, Settings.shake_amount()))
@@ -86,8 +87,9 @@ func heading_forward() -> Vector3:
 
 
 ## The turn that leans a view facing `forward` toward `velocity`: `share` of the angle between them, at most
-## `furthest` radians. No turn when there is no motion, no lean allowed, or the ship moves exactly along its nose or
-## exactly backwards (no way to choose a side).
+## `furthest` radians. Past a right angle (the ship sliding backwards) the lean fades out, to nothing when the ship
+## moves exactly backwards, so it never jumps from one side to the other as the nose swings past. No turn without
+## motion or when no lean is allowed.
 static func lean_toward(forward: Vector3, velocity: Vector3, share: float, furthest: float) -> Quaternion:
 	if furthest <= 0.0 or velocity.is_zero_approx():
 		return Quaternion.IDENTITY
@@ -95,4 +97,6 @@ static func lean_toward(forward: Vector3, velocity: Vector3, share: float, furth
 	var axis := forward.cross(moving)
 	if axis.length_squared() < 1.0e-8:
 		return Quaternion.IDENTITY
-	return Quaternion(axis.normalized(), minf(forward.angle_to(moving) * share, furthest))
+	var off := forward.angle_to(moving)
+	var fade := 1.0 - smoothstep(PI * 0.5, PI, off)
+	return Quaternion(axis.normalized(), minf(off * share, furthest) * fade)

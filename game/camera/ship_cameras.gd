@@ -3,7 +3,8 @@ extends Node
 ## Which camera the player sees the ship through: the cockpit (first person, the main view) or the chase camera behind
 ## the ship (design doc, "Camera"). V switches between them while flying; the game starts in the cockpit. Owns the
 ## shared camera shake, applies the player's field of view to both cameras, and places the active one every frame
-## before the HUD draws over it (FlightOrder.CAMERAS_DRAW), after the world has moved for the tick.
+## before the HUD draws over it (FlightOrder.CAMERAS_DRAW). Each physics tick, after the world has moved, it tells the
+## shake what the ship felt (FlightOrder.CAMERAS).
 
 signal view_changed(view: View)
 
@@ -45,8 +46,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(_delta: float) -> void:
 	shake.feel(ship.jolt, ship.thrust_level(), tuning)
-	if view == View.CHASE:
-		chase.check_clearance()
 
 
 func _process(delta: float) -> void:

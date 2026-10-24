@@ -54,6 +54,7 @@ bounce = 0.2
 mass = 20000.0
 center_of_mass_mode = 1
 center_of_mass = Vector3(0, -0.0651163, 0.406977)
+inertia = Vector3(297723, 230824, 83996)
 physics_material_override = SubResource("Phys_hull")
 script = ExtResource("1_ship")
 tuning = ExtResource("2_tuning")

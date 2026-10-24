@@ -100,3 +100,21 @@ func test_leans_toward_the_drift() -> void:
 	assert_almost_eq(rad_to_deg(leaned.angle_to(drift)), 20.0, 0.01, "toward the drift, not away")
 	var sideways := ChaseCamera.lean_toward(Vector3.FORWARD, Vector3.RIGHT, 0.5, deg_to_rad(25.0))
 	assert_almost_eq(rad_to_deg((sideways * Vector3.FORWARD).angle_to(Vector3.FORWARD)), 25.0, 0.01, "capped")
+
+
+func test_the_lean_never_jumps_as_the_nose_swings_past_backwards() -> void:
+	# Spinning with assist off: the nose sweeps all the way round while the ship keeps moving forward. One degree of
+	# nose movement may move the lean target only a few degrees, including across exactly backwards.
+	var velocity := Vector3.FORWARD * 60.0
+	var cap := deg_to_rad(25.0)
+	var last := Vector3.ZERO
+	var worst := 0.0
+	for step in 721:
+		var nose := Vector3.FORWARD.rotated(Vector3.UP, deg_to_rad(step * 0.5))
+		var target := ChaseCamera.lean_toward(nose, velocity, 0.5, cap) * nose
+		if step > 0:
+			worst = maxf(worst, rad_to_deg(target.angle_to(last)))
+		last = target
+	assert_lt(worst, 2.0, "biggest jump per half degree of nose: %.2f degrees" % worst)
+	var backwards := ChaseCamera.lean_toward(Vector3.FORWARD.rotated(Vector3.UP, deg_to_rad(179.0)), velocity, 0.5, cap)
+	assert_lt(rad_to_deg(backwards.get_angle()), 1.0, "almost no lean when moving almost straight backwards")

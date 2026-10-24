@@ -16,6 +16,8 @@ const KIND := "settings"
 const FOV_MIN := 60.0
 const FOV_MAX := 100.0
 const DEFAULT_FOV := 75.0
+## Camera shake is set in steps of this (of full shake).
+const SHAKE_STEP := 0.1
 
 ## Where the settings are saved. Tests point it somewhere else.
 var path: String = "user://settings.json"
@@ -56,7 +58,7 @@ func set_fov(value: float) -> void:
 
 
 func set_shake(value: float) -> void:
-	_change(&"shake", clampf(snappedf(value, 0.05), 0.0, 1.0))
+	_change(&"shake", clampf(snappedf(value, SHAKE_STEP), 0.0, 1.0))
 
 
 func set_head_bob(on: bool) -> void:
