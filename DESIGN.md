@@ -125,7 +125,7 @@ The values live in `game/camera/camera_tuning.tres` (shared by every ship). Wher
 - Leaving a place never counts as arriving there: a place the ship is at when the drive engages counts again once the ship is 250 m beyond its zone.
 - It won't engage inside the asteroid belt or among a base's buildings (within 150 m of Tollgate), or when the nose points at something it would reach within 5 s; a message says what is in the way.
 - In cruise the dashboard and HUD show "CRUISE · F to drop out" and the speed in km/s, and the space dust fades out (it can't show such speeds) while a coarser cruise dust, specks kilometres apart, fades in so the speed still reads.
-- Every place has a marker on the HUD with its name and distance, so the player can point at it and go.
+- Every place has a marker on the HUD with its name and distance (to the surface, or to the belt's home pocket), so the player can point at it and go.
 
 **Cruise drive tuning**
 

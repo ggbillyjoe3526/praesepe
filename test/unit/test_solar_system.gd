@@ -19,6 +19,16 @@ func test_has_every_place_once() -> void:
 		assert_not_null(_system.landmark(place), place)
 
 
+func test_every_place_has_a_marker_showing_the_distance_to_fly() -> void:
+	var at := _system.start_transform().origin
+	for l: Landmark in _system.landmarks:
+		assert_true(l.marker, "%s has a HUD marker" % l.display_name)
+	var calder := _system.landmark("Calder")
+	assert_almost_eq(calder.marker_distance(at), at.length() - calder.radius, 0.5, "a planet: to its surface")
+	var belt := _system.landmark("The Shingle")
+	assert_almost_eq(belt.marker_distance(at), at.distance_to(belt.marker_position()), 0.5, "the belt: to its pocket")
+
+
 func test_every_name_is_in_the_naming_list() -> void:
 	var design := FileAccess.get_file_as_string("res://DESIGN.md")
 	var list := design.substr(design.find("## Naming list"))

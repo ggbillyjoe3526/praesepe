@@ -27,3 +27,8 @@ func surface_distance(point: Vector3) -> float:
 func marker_position() -> Vector3:
 	return global_position
 
+
+## The distance (m) its HUD marker shows from `point`: to its surface, which is what the player flies to.
+func marker_distance(point: Vector3) -> float:
+	return surface_distance(point)
+

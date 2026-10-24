@@ -54,6 +54,11 @@ func marker_position() -> Vector3:
 	return to_global(layout.pocket_centres[0])
 
 
+## Its marker shows the distance to the home pocket it points at.
+func marker_distance(point: Vector3) -> float:
+	return point.distance_to(marker_position())
+
+
 func _physics_process(_delta: float) -> void:
 	_ticks += 1
 	if focus == null or _ticks % tuning.solid_every != 0:

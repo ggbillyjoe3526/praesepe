@@ -90,7 +90,7 @@ func _process(_delta: float) -> void:
 	if ship == null or cameras == null:
 		return
 	for i in _places.size():
-		var metres := ship.global_position.distance_to(_places[i].marker_position())
+		var metres := _places[i].marker_distance(ship.global_position)
 		var key := LandmarkMarkers.distance_key(metres)
 		if key != _shown[i]:
 			_shown[i] = key
