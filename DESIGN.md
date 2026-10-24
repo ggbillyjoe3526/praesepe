@@ -1,0 +1,230 @@
+# Project Praesepe – Design Doc
+
+Oct 24, 2026 · @William
+
+## Overview
+
+Project Praesepe (working title, may change) is a casual, first-person space game: buy a ship on a loan, then earn money flying contracts around one solar system. It is a lighter take on No Man's Sky, with no survival, crafting web or base building.
+
+Built with Godot (engine), Blender (models) and Claude Code (development).
+
+**Pillars**
+
+- **Simple, never confusing.** Every job has a clear goal and a short list of steps. If something needs a tutorial, it is too complex.
+- **Casual and forgiving.** No fail states that wipe progress. Combat is never required.
+- **Play your way.** Haul cargo, mine, fly taxi, hunt bounties or do science. Any ship can do any job.
+- **A place worth exploring.** Each planet looks and feels distinct, with its own environment and weather.
+
+**Tone:** relaxed space trucker with a ship to pay off, not a survival story. The player starts somewhere safe.
+
+## Core loop and the loan
+
+The loop: take contracts at a base, fly and complete them, get paid, then spend on loan payments and upgrades.
+
+1. Dock at a base and pick contracts from the job board.
+2. Fly out and complete them (deliver, fight, land and interact).
+3. Return or arrive at the destination and get paid.
+4. Spend money on loan payments, upgrades and repairs.
+5. Take bigger or better-paying contracts.
+
+**The starting loan**
+
+- The player picks one of three ships, all the same price, bought with a loan.
+- The loan is a push to go earn money, not the end goal. Paying it off should not take long.
+- No interest, no repossession, no other complications.
+- Payments are made whenever the player wants, at any base.
+- After a long grace period, unpaid loans take future earnings automatically until the ship is paid off. Nothing else is lost.
+- Later ships can be bought outright or on the same kind of loan.
+
+## Ships
+
+Three starter ships share a price and tier. Each leans toward a play style, but every ship can take every job. The selection screen shows a "Great for:" hint.
+
+| Ship | Great for | Strengths | Trade-offs |
+| --- | --- | --- | --- |
+| Hauler | Porters / Miners | Large cargo hold, tough hull | Slow, less agile |
+| Interceptor | Security / Taxi | Fast, agile, better weapons | Small cargo hold |
+| Surveyor | Scientists / Explorers | Better scanners, longer fuel range | Lighter hull, modest cargo |
+
+Upgrades (cargo, engines, scanners, shields, mining laser) let any ship cover its weak spots. Names and exact stats are placeholders.
+
+## Flight and camera
+
+Flight uses one Newtonian physics model with a flight assist toggle. It should never feel arcade-like.
+
+- **Flight assist on (default):** thrusters automatically cancel drift and rotation when the player lets go. The ship keeps its weight and momentum but stays controllable.
+- **Flight assist off:** full drift. For skilled players, combat and tight maneuvers. Switchable mid-flight.
+- **Velocity marker:** a cockpit indicator showing where the ship is actually moving versus where it points.
+- **Cruise drive:** compressed distances plus a fast travel mode that drops out when something interesting is nearby.
+
+**Camera**
+
+- First person is the main view, from a full cockpit.
+- Cockpit UI is in the world where possible: cargo on a side screen, contracts on a dashboard panel, the radio as a physical control.
+- While flying, the player can switch to a third-person chase camera showing the ship (not the player model).
+- The chase camera lags slightly in turns. With flight assist off, it leans toward the velocity direction so drift stays readable.
+- On foot is always first person. A third-person on-foot view may come later.
+
+## Contracts
+
+All jobs come from one contract system built on three verbs. Job types are variations on those verbs.
+
+| Verb | Job types |
+| --- | --- |
+| Fly from A to B | Porter (packages), cargo delivery, taxi (passengers) |
+| Shoot or capture | Security patrols, chasing fugitives, bounty hunting, blasting asteroids |
+| Land and interact | Asteroid surface mining, science tasks, station work |
+
+**Rules**
+
+- Combat is never required. Players can play the whole game without firing a weapon.
+- Each contract shows its goal, reward and a short task list.
+- No contract should need more than a few steps to understand.
+
+**Contract chaining:** players can stack contracts along one route (a delivery, a passenger and a mining stop) and earn a bonus for finishing them in one run.
+
+**Reputation:** each job type has its own reputation. Higher reputation unlocks better-paying and rarer contracts in that line of work.
+
+**Passengers with personality:** taxi fares chat, ask for the scenic route, tip for smooth landings, or occasionally turn out to be fugitives.
+
+**Science jobs** must be interactive, never box-ticking. Each step is a small hands-on action: aiming a scan sweep, drilling a sample on a timing bar, turning a valve. Waiting is skipped with a sleep or end-of-shift button, never real-time.
+
+## On-foot play
+
+The player leaves the ship only when it adds something, never for routine steps.
+
+| Activity | On foot? |
+| --- | --- |
+| Delivery / porter | No. Cargo transfers automatically on docking. |
+| Taxi | No. Passengers board and leave on their own. |
+| Security / bounty | No. Ship combat only. |
+| Blasting asteroids | No. Ship-mounted mining laser. |
+| Mining on an asteroid's surface | Yes. A handheld tool reaches richer deposits. |
+| Science | Yes. Space walks, station tasks, field sampling. |
+| Bases and stations | Optional. Walk into a small hub, or use a cockpit terminal once docked. |
+
+The hand-off between flying and walking (leaving the seat, exiting the ship) should feel smooth and quick.
+
+On-foot tasks are built as small modules (drill, collect, carry, scan) so helper robots can take over individual pieces later.
+
+## World
+
+The game takes place in one hand-built solar system, compressed so travel never drags.
+
+**Planets and moons**
+
+- Any planet or moon a player could realistically land on can be landed on.
+- Each has a distinct look and feel: its own environment, weather and one gameplay twist (eruptions on a lava world, sliding on an ice moon, fuel skimming at a gas giant).
+- Each has one base to rest, buy and sell, take and finish jobs, and pay the loan.
+- Planets are mostly empty, with points of interest (wrecks, science sites, deposits) to give landings a purpose.
+
+**Landing:** for now, approach the planet, see a prompt to land, then a transition screen. Seamless landing is a later goal.
+
+**Authored vs. seeded**
+
+| Authored (same every game) | Seeded (varies by seed) |
+| --- | --- |
+| Planets, moons, orbits | Asteroid fields |
+| Bases and stations | Derelicts and points of interest in space |
+| Planet environments | Pirate and hostile spawns |
+|  | Comets and random events |
+|  | Contract offers |
+
+**Random events:** distress calls, comet flybys, eclipses, lost cargo pods, derelicts with small puzzles.
+
+**Radio and comms:** in-ship radio with music and news that reacts to what the player has done.
+
+**Photo mode:** pause, free camera, filters and capture.
+
+## First playable scope
+
+The goal of the first playable is to prove that flying, delivering and mining are fun in a tiny world.
+
+**In scope**
+
+- [ ] One planet with a base, one moon, one space station, one asteroid belt
+- [ ] One ship with a first-person cockpit
+- [ ] Newtonian flight with flight assist on/off and a velocity marker
+- [ ] Third-person chase camera while flying
+- [ ] Cruise drive between locations
+- [ ] Docking at the base and station
+- [ ] Landing prompt and transition screen
+- [ ] Contract board with two job types: delivery and asteroid mining
+- [ ] Ship mining laser for blasting asteroids
+- [ ] On-foot controller: walking into the base and mining on an asteroid's surface
+- [ ] Loan with payments at the base
+- [ ] Shop with 3–4 upgrades
+- [ ] Save and load
+
+**Out of scope for now:** the other two starter ships, combat, taxi, science, reputation, radio, random events, photo mode.
+
+## Technical notes
+
+A few early decisions avoid costly rework later.
+
+- **Large-world precision:** space scenes jitter far from the origin. Plan a floating-origin system or use Godot's double-precision build from the start.
+- **One arrival function for landing:** route all landings through a single function that loads the planet scene and places the ship. Seamless landing can later replace its internals without touching jobs, bases or saves.
+- **Two controllers with a clean hand-off:** a ship controller and an on-foot controller, with entering and leaving the seat as one well-defined transition.
+- **Data-driven contracts:** define contracts as data (verb, origin, destination, reward, steps) so new job types need little new code.
+- **Modular on-foot tasks:** drill, collect, carry and scan as separate pieces, ready for helper robots later.
+- **Self-contained solar system scene:** keeps a future multi-system universe possible without designing for it now.
+- **Seeded generation:** one seed drives every random element so a world can be reproduced.
+
+## Player wiki
+
+A GitHub wiki will document the full game for players. It is written for players, not developers, and kept current as the game changes.
+
+- **Release notes:** what changed in each version, newest first, drawn from the changelog.
+- **Getting started:** controls, the first hour, choosing a starter ship, paying off the loan.
+- **Ships:** every ship with its role, stats, upgrades and how to get it.
+- **Contracts and jobs:** each job type, how it works, rewards and reputation.
+- **Locations:** planets, moons, stations and bases, with their environments, services and points of interest.
+- **Items and upgrades:** what each upgrade does and where to buy it.
+- **Events and encounters:** random events, distress calls, derelicts.
+- **Settings and accessibility:** options, comfort settings, key rebinding.
+- **Roadmap:** what is planned next, with no promised dates.
+- **FAQ and troubleshooting:** common questions, saves, known issues.
+
+The wiki is updated when a player-facing change ships, alongside the changelog. It only describes what is in a released build, never planned features as if they exist (those go on the Roadmap page).
+
+## Future roadmap
+
+The core game comes first. These ideas follow once the first playable is fun, roughly in this order.
+
+1. **Core game:** all three starter ships, every job type (taxi, security, bounty, science), reputation, passengers with personality, contract chaining, random events, radio, photo mode, the full solar system.
+2. **Owning more:** buy more ships (outright or on loan), a hangar to store them, buy a station or outpost (bought, not built).
+3. **Automation:** helper robots for on-foot work (mining, survey, cargo and repair bots), then hired pilot agents to run other ships.
+4. **Expansion:** a jump gate or flight route to new areas, then a universe of predefined solar systems placed by seed.
+5. **Later polish:** seamless planet landing, walkable ship interiors, a codex of discoveries, a third-person on-foot view.
+
+## Decisions log
+
+Newest first. Each line: date, the decision, who made it.
+
+- 2026-10-24: Stack fixed: Godot 4.7.2-stable (standard build), typed GDScript, Forward+, Blender models exported as glTF. Desktop only, Windows first, single player, offline (owner, project instructions).
+- 2026-10-24: Large-world precision uses a floating origin, not the double-precision build, until the owner decides otherwise (project instructions).
+- 2026-10-24: Until the owner decides, losing the ship respawns the player at the last base with a small towing fee (project instructions).
+- 2026-10-24: Until the owner decides, versions are named like the other games ("0.1 Dev 1", then Dev 2, Beta 1 and so on); the game starts at 0.1 Dev 1 (default, Claude).
+- 2026-10-24: Changelog notes go in `changelog.d/` (one small file per pull request) and are gathered into `CHANGELOG.md` at release, the same system as the owner's other Godot games, so parallel pull requests never collide (default, Claude).
+
+## Open decisions
+
+Questions for the owner. Nothing here is built until it is decided.
+
+- Final title (Project Praesepe is a working title).
+- Art style.
+- Multiplayer, controller support, Steam, a third-person on-foot view.
+- Performance targets (until set: a smooth 60 fps on mid-range hardware, no hitches in flight, docking or landing).
+- Double-precision build or floating origin only.
+- Target loan payoff time (how many hours of play).
+- Respawn rules after losing the ship.
+- Version names and release tags (the other games use "0.1 Dev 1" with tags like `v0.1-dev.1`).
+
+## Naming list
+
+Every name in the game is original. Add each new ship, planet, station, company and character here before using it.
+
+| Name | What it is | Status |
+| --- | --- | --- |
+| Project Praesepe | Working title | Placeholder |
+| Hauler, Interceptor, Surveyor | Starter ship classes | Placeholder |

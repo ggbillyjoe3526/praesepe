@@ -1,0 +1,77 @@
+name: Checks
+
+# Every pull request and every push to main: import the project, run the
+# headless smoke test and the unit tests, lint the scripts and check the
+# changelog notes. Fails on any script error or failed test.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to a pull request cancels its older run; runs on main are grouped by
+# commit so none is cancelled and every merge shows whether main is green.
+concurrency:
+  group: checks-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GODOT_VERSION: "4.7.2" # must match project.godot (config/features); .claude/hooks/session-start.mjs reads it
+  GODOT_STATUS: "stable"
+
+jobs:
+  godot:
+    name: Smoke and unit tests (headless)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          status: ${{ env.GODOT_STATUS }}
+
+      - name: Smoke test
+        run: tools/smoke_test.sh
+
+      - name: Unit tests
+        if: success() || failure()
+        run: tools/unit_tests.sh
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-logs
+          path: |
+            import.log
+            smoke.log
+            unit.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  lint:
+    name: Lint (gdlint, changelog notes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # the changelog preview orders notes by when they were added
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install gdtoolkit
+        run: pip install "gdtoolkit==4.5.0"
+
+      - name: gdlint (settings in gdlintrc)
+        run: gdlint game test tools
+
+      - name: Changelog notes (changelog.d/README.md)
+        if: success() || failure()
+        run: tools/changelog.sh check

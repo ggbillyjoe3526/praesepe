@@ -1,0 +1,16 @@
+# gdlint settings (gdtoolkit 4.x, run by CI: see .github/workflows/ci.yml).
+# Checks naming, unused arguments, whitespace and dead code. Turned off: the
+# layout rules (line length, member order, file and function size), which
+# don't catch bugs. From the owner's katanashotgun project.
+disable:
+- class-definitions-order
+- max-line-length
+- max-file-lines
+- max-public-methods
+- max-returns
+# Single capital letters are allowed for maths shorthand (L for length, R for radius).
+function-variable-name: '([a-z][a-z0-9]*(_[a-z0-9]+)*|[A-Z])'
+excluded_directories: !!set
+  .git: null
+  .godot: null
+  addons: null
