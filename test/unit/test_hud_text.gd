@@ -38,3 +38,14 @@ func test_distances_show_in_steps_that_suit_them() -> void:
 	assert_ne(LandmarkMarkers.distance_key(2460.0), LandmarkMarkers.distance_key(2560.0))
 	# The keys never collide across the steps.
 	assert_ne(LandmarkMarkers.distance_key(990.0), LandmarkMarkers.distance_key(9900.0))
+
+
+func test_marker_labels_stack_rather_than_cover_each_other() -> void:
+	var taken: Array[Rect2] = [Rect2(100, 500, 200, 30), Rect2(120, 468, 200, 30), Rect2(900, 500, 100, 30)]
+	var plate := LandmarkMarkers.stack(Rect2(150, 505, 180, 30), taken, 3, true)
+	for j in 3:
+		assert_false(plate.intersects(taken[j]), "clear of label %d" % j)
+	assert_lt(plate.position.y, 468.0, "stacked upwards")
+	assert_eq(plate.position.x, 150.0, "only moved up")
+	var alone := Rect2(500, 100, 100, 30)
+	assert_eq(LandmarkMarkers.stack(alone, taken, 3, false), alone, "left alone when clear")
