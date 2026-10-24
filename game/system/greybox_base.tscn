@@ -1,0 +1,201 @@
+[gd_scene load_steps=18 format=3]
+
+[ext_resource type="Script" path="res://game/system/landmark.gd" id="1_landmark"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_concrete"]
+albedo_color = Color(0.55, 0.54, 0.5, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Mat_hull"]
+albedo_color = Color(0.66, 0.6, 0.5, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_dark"]
+albedo_color = Color(0.2, 0.2, 0.22, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="Mat_amber"]
+shading_mode = 0
+albedo_color = Color(1, 0.68, 0.25, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_pad_light"]
+shading_mode = 0
+albedo_color = Color(0.4, 0.9, 1, 1)
+
+[sub_resource type="CylinderMesh" id="Mesh_pad"]
+material = SubResource("Mat_concrete")
+top_radius = 60.0
+bottom_radius = 62.0
+height = 6.0
+radial_segments = 32
+rings = 1
+
+[sub_resource type="BoxMesh" id="Mesh_hangar"]
+material = SubResource("Mat_hull")
+size = Vector3(50, 24, 40)
+
+[sub_resource type="BoxMesh" id="Mesh_door"]
+material = SubResource("Mat_dark")
+size = Vector3(1, 18, 30)
+
+[sub_resource type="BoxMesh" id="Mesh_hab"]
+material = SubResource("Mat_hull")
+size = Vector3(30, 14, 30)
+
+[sub_resource type="CylinderMesh" id="Mesh_tower"]
+material = SubResource("Mat_dark")
+top_radius = 2.5
+bottom_radius = 4.0
+height = 80.0
+radial_segments = 8
+rings = 1
+
+[sub_resource type="SphereMesh" id="Mesh_beacon"]
+material = SubResource("Mat_amber")
+radius = 4.0
+height = 8.0
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SphereMesh" id="Mesh_pad_light"]
+material = SubResource("Mat_pad_light")
+radius = 1.5
+height = 3.0
+radial_segments = 8
+rings = 4
+
+[sub_resource type="CylinderShape3D" id="Shape_pad"]
+height = 6.0
+radius = 61.0
+
+[sub_resource type="BoxShape3D" id="Shape_hangar"]
+size = Vector3(50, 24, 40)
+
+[sub_resource type="BoxShape3D" id="Shape_hab"]
+size = Vector3(30, 14, 30)
+
+[sub_resource type="CylinderShape3D" id="Shape_tower"]
+height = 80.0
+radius = 4.0
+
+[node name="GreyboxBase" type="Node3D"]
+script = ExtResource("1_landmark")
+display_name = "Tollgate"
+radius = 150.0
+drop_distance = 4000.0
+
+[node name="Structure" type="StaticBody3D" parent="."]
+
+[node name="PadShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("Shape_pad")
+
+[node name="HangarShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 12, 0)
+shape = SubResource("Shape_hangar")
+
+[node name="HabShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 7, 75)
+shape = SubResource("Shape_hab")
+
+[node name="TowerShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 40, -70)
+shape = SubResource("Shape_tower")
+
+[node name="Pad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad")
+
+[node name="Hangar" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 12, 0)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_hangar")
+
+[node name="HangarDoor" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.5, 9, 0)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_door")
+
+[node name="Habitat" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 7, 75)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_hab")
+
+[node name="Tower" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 40, -70)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_tower")
+
+[node name="Beacon" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 83, -70)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_beacon")
+
+[node name="PadLight0" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 4.5, 0)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad_light")
+
+[node name="PadLight1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.3051, 4.5, 40.3051)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad_light")
+
+[node name="PadLight2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.49024e-15, 4.5, 57)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad_light")
+
+[node name="PadLight3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.3051, 4.5, 40.3051)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad_light")
+
+[node name="PadLight4" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -57, 4.5, 6.98049e-15)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad_light")
+
+[node name="PadLight5" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.3051, 4.5, -40.3051)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad_light")
+
+[node name="PadLight6" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.04707e-14, 4.5, -57)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad_light")
+
+[node name="PadLight7" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.3051, 4.5, -40.3051)
+cast_shadow = 0
+visibility_range_end = 20000.0
+visibility_range_end_margin = 500.0
+mesh = SubResource("Mesh_pad_light")

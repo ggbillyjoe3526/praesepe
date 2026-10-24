@@ -12,6 +12,7 @@ extends Node
 var stick: Vector2 = Vector2.ZERO
 var _mouse: Vector2 = Vector2.ZERO
 var _toggle_assist: bool = false
+var _toggle_cruise: bool = false
 var _full_stop: bool = false
 
 
@@ -39,6 +40,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_toggle_assist = true
 	elif event.is_action_pressed(&"full_stop"):
 		_full_stop = true
+	elif event.is_action_pressed(&"toggle_cruise"):
+		_toggle_cruise = true
 
 
 func _physics_process(delta: float) -> void:
@@ -55,7 +58,9 @@ func _physics_process(delta: float) -> void:
 	input.turn = Vector3(pitch, stick.x, Input.get_axis(&"roll_left", &"roll_right"))
 	input.toggle_assist = input.toggle_assist or _toggle_assist
 	input.full_stop = input.full_stop or _full_stop
+	input.toggle_cruise = input.toggle_cruise or _toggle_cruise
 	_toggle_assist = false
+	_toggle_cruise = false
 	_full_stop = false
 
 

@@ -115,6 +115,35 @@ The values live in `game/camera/camera_tuning.tres` (shared by every ship). Wher
 | Chase lean (assist off) | Half the drift angle, at most 25°, from 5 m/s, full by 40 m/s, eased over 0.6 s; fades out as the drift goes from sideways to straight backwards | Keeps drift readable, never flips side to side in a spin |
 | Chase clearance | 0.5 m from anything in the way, eases back out over 0.5 s | No clipping |
 
+**How the cruise drive works (first values, to be tuned with the owner)**
+
+- F starts the cruise drive charging (2 s, the ship flies normally meanwhile); F again, or X, cancels it.
+- Once charged it takes over the speed and goes where the nose points; the mouse still steers. Flight assist stays on and the thrust keys and Z do nothing until it drops out.
+- Its speed is the distance to the nearest surface divided by 6 s, from 300 m/s up to 5 km/s: fast in open space, slowing smoothly on the way in, so a trip across the system takes about half a minute and always ends with a few seconds of approach.
+- It drops out by itself on arriving at a place (inside the place's arrival zone), leaving the ship at 200 m/s, which flight assist then holds. F drops out at once; X drops out and brings the ship to a stop.
+- It never runs into anything: if it would reach a surface in under 2.5 s it drops out at 50 m/s, and a bump drops it out and lets the ship come to rest.
+- Leaving a place never counts as arriving there: a place the ship is at when the drive engages counts again once the ship is 250 m beyond its zone.
+- It won't engage inside the asteroid belt or among a base's buildings (within 150 m of Tollgate), or when the nose points at something it would reach within 5 s; a message says what is in the way.
+- In cruise the dashboard and HUD show "CRUISE · F to drop out" and the speed in km/s, and the space dust fades out (it can't show such speeds) while a coarser cruise dust, specks kilometres apart, fades in so the speed still reads.
+- Every place has a marker on the HUD with its name and distance (to the surface, or to the belt's home pocket), so the player can point at it and go.
+
+**Cruise drive tuning**
+
+The values live in `game/ship/greybox_cruise_tuning.tres` (per ship, so an engine upgrade can change them later).
+
+| Value | Greybox ship | What it does |
+| --- | --- | --- |
+| Charge time | 2 s | From F to taking over |
+| Slowest and fastest | 300 m/s to 5 km/s | Always faster than normal flight (200 m/s) |
+| Approach time | 6 s | Speed is distance to the nearest surface over this |
+| Ramp time | 1.5 s | How quickly the speed follows that |
+| Turning | 0.4 s | How quickly travel follows the nose |
+| Exit speed | 200 m/s | Held by flight assist after arriving or F |
+| Safety | 2.5 s to a surface, then 50 m/s | Drops out before any collision |
+| Engage look-ahead | 5 s | Won't engage when the nose points at something it would reach this soon |
+| Bump limit | 3 m/s | A harder knock drops it out |
+| Rumble | 0.3 of full thrust | Camera shake while cruising |
+
 ## Contracts
 
 All jobs come from one contract system built on three verbs. Job types are variations on those verbs.
@@ -167,6 +196,23 @@ The game takes place in one hand-built solar system, compressed so travel never 
 - Each has a distinct look and feel: its own environment, weather and one gameplay twist (eruptions on a lava world, sliding on an ice moon, fuel skimming at a gas giant).
 - Each has one base to rest, buy and sell, take and finish jobs, and pay the loan.
 - Planets are mostly empty, with points of interest (wrecks, science sites, deposits) to give landings a purpose.
+
+**The tiny solar system (first playable, first values)**
+
+One self-contained scene, `game/system/solar_system.tscn`, compressed to these sizes in metres. Its origin is Calder's centre and the belt lies in Calder's equator plane. The bodies hold still for now (no orbits). The sun, Sorrel, is the light and the disc in the sky, not a place to fly to.
+
+| Place | What it is | Size and place | Arrival zone |
+| --- | --- | --- | --- |
+| Calder | The planet: blue seas, green land, ice caps, a thin blue glow of air | 6 km radius, at the centre | 2 km above the surface |
+| Tollgate | Calder's base: a landing pad, hangar, tower and beacon, all within 150 m of the pad | On Calder's surface, on the side facing the station | 4 km |
+| Halfway Station | The space station: a spine, a ring, solar panels and a docking bay with a green frame | 16 km from Calder's centre, 10 km above its surface | 2.5 km |
+| Mote | The moon: grey, airless | 1.5 km radius, 31 km from Calder, above the belt's plane | 1.5 km above the surface |
+| The Shingle | The asteroid belt: a ring of rocks round Calder | 50 km radius, 6 km wide, 800 m thick | 1.5 km from the band |
+
+- The player starts 2 km from Halfway Station with Calder ahead, next to three buoys marking the way to the station.
+- The Shingle's rocks come from the world seed: 3000 scattered round the ring and 10 dense pockets of 220, each rock 15 to 110 m in radius (small ones commonest). The first pocket is authored: on the band's inner edge, the one its HUD marker points to. Values in `game/system/shingle_belt.tres`.
+- Only the rocks within 2.5 km of the ship are solid (a pool of 48 spheres, picked again every 10 ticks; a sphere stays on its rock while that rock stays near); all are drawn, in 64 pieces round the ring, as lumpy rocks within 9 km and simple shapes out to 70 km, with a faint haze along the band beyond that.
+- Calder and Mote are drawn as fine spheres close up and coarse ones from far away (past 40 km and 15 km). The station and base lose their detail at 12 km and 20 km. Everything is visible to 150 km.
 
 **Landing:** for now, approach the planet, see a prompt to land, then a transition screen. Seamless landing is a later goal.
 
@@ -251,6 +297,8 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-24: The tiny solar system and cruise drive until the owner tunes them: sizes, places and values as in "The tiny solar system" and "How the cruise drive works"; F is the cruise key; the bodies hold still (orbits later); the belt is a ring round the planet beyond the moon, so trips between the other places never cross it; the sun is a light and a sky disc, not a body; the cameras see 150 km; Jolt's speed limit is raised from 500 m/s to 8 km/s for the cruise drive; the names are placeholders the owner can change (default, Claude).
+- 2026-10-24: Cameras approved: William played the cockpit and chase camera from PR #3 and said "I'm happy with that" (owner).
 - 2026-10-24: Cameras until the owner tunes them: start in the cockpit, V switches to the chase camera; the field of view is vertical, 60° to 100°, starting at 75° (what flight was approved with); shake starts full (it is faint), head bob on, reduce motion off; the comfort settings sit on the pause screen until the settings menu and are saved in `settings.json` in the user folder (default, Claude).
 - 2026-10-24: The greybox ship's centre of mass (0, -0.07, 0.41 m) and inertia (about 230 800, 297 800 and 84 000 kg m² around pitch, yaw and roll) stay where they were when flight was approved, so the cockpit canopy's new collision shape changes neither how it flies nor how it spins after a bump; a unit test checks them (default, Claude).
 - 2026-10-24: Flight approved: William played the flight from PR #2 and said the controls feel good. "How it flies" and "Flight tuning" are now the baseline; changes to them go to the owner (owner).
@@ -283,3 +331,9 @@ Every name in the game is original. Add each new ship, planet, station, company 
 | --- | --- | --- |
 | Project Praesepe | Working title | Placeholder |
 | Hauler, Interceptor, Surveyor | Starter ship classes | Placeholder |
+| Sorrel | The star | Placeholder |
+| Calder | The planet | Placeholder |
+| Tollgate | Calder's base | Placeholder |
+| Mote | Calder's moon | Placeholder |
+| Halfway Station | The space station | Placeholder |
+| The Shingle | The asteroid belt | Placeholder |

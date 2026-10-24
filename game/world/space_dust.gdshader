@@ -13,6 +13,8 @@ uniform vec3 streak = vec3(0.0);
 uniform float speck_size = 0.35;
 uniform float fade_near = 4.0;
 uniform vec4 tint : source_color = vec4(0.75, 0.82, 1.0, 1.0);
+// How much of the dust shows, 0 to 1 (SpaceDust: the normal layer fades out at cruise speeds, the cruise layer in).
+uniform float strength = 1.0;
 
 varying float v_fade;
 
@@ -40,7 +42,7 @@ void vertex() {
 	// The quad's y runs from -0.5 (the tail) to 0.5 (the head); x is its width.
 	vec3 world_pos = centre + along * VERTEX.y + side * (VERTEX.x * 2.0);
 	// Long streaks are fainter, so the dust's brightness stays even at speed.
-	v_fade *= clamp(speck_size * 4.0 / len, 0.15, 1.0);
+	v_fade *= clamp(speck_size * 4.0 / len, 0.15, 1.0) * strength;
 	POSITION = PROJECTION_MATRIX * VIEW_MATRIX * vec4(world_pos, 1.0);
 	if (v_fade <= 0.0) {
 		// Faded out entirely: collapse the quad so it costs no drawing.
