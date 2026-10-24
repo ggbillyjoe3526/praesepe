@@ -1,7 +1,8 @@
 extends GutTest
 ## The tiny solar system as authored (design doc, "The tiny solar system"): every place the first playable needs is in
 ## it, named from the naming list; the places sit where the design doc's table says; nothing overlaps; the player
-## starts in open space next to the station with the planet ahead. The smoke test then cruises to each one.
+## starts in open space next to the station with the planet ahead; the station's bay and the base's pad have room for
+## the ship and a clear way out. The smoke test then cruises to each one, docks and lands.
 
 const PLACES: Array[String] = ["Calder", "Tollgate", "Mote", "Halfway Station", "The Shingle"]
 
@@ -112,3 +113,46 @@ func _try_engage(drive: CruiseDrive, at: Vector3, nose: Vector3) -> CruiseDrive.
 		if drive.event != CruiseDrive.Event.NONE:
 			return drive.event
 	return CruiseDrive.Event.NONE
+
+
+func test_the_station_docks_and_the_base_lands() -> void:
+	assert_eq(_system.ports.size(), 2)
+	var dock := _system.port(&"halfway_station")
+	var pad := _system.port(&"tollgate")
+	assert_eq(dock.kind, Port.Kind.DOCK)
+	assert_eq(dock.place, _system.landmark("Halfway Station"))
+	assert_null(dock.body)
+	assert_eq(pad.kind, Port.Kind.PAD)
+	assert_eq(pad.place, _system.landmark("Tollgate"))
+	assert_eq(pad.body, _system.landmark("Calder"), "landing is offered anywhere near Calder")
+	assert_almost_eq(pad.global_basis.y.dot(pad.global_position.normalized()), 1.0, 0.0001, "the pad faces up")
+	# The cruise drive drops out of each place's zone inside the hint range, so the prompt is there on arrival.
+	var station := _system.landmark("Halfway Station")
+	assert_lt(station.radius + station.drop_distance + dock.position.length(), dock.hint_range)
+	var calder := _system.landmark("Calder")
+	assert_lt(calder.drop_distance, pad.offer_range, "cruising to Calder ends where landing is offered")
+	assert_lt(pad.offer_range, calder.orbit_max_altitude + 1.0, "and orbit too")
+
+
+func test_the_ship_fits_its_berths_and_leaves_without_touching_anything() -> void:
+	await wait_physics_frames(2)
+	var ship: Ship = load("res://game/ship/greybox_ship.tscn").instantiate()
+	var shapes: Array[CollisionShape3D] = []
+	for child: Node in ship.get_children():
+		if child is CollisionShape3D:
+			shapes.append(child)
+	assert_gt(shapes.size(), 0)
+	var space := _system.get_world_3d().direct_space_state
+	for p: Port in _system.ports:
+		# Along the way out, a little beyond it, in steps of 2 m.
+		for step in roundi(p.exit_distance / 2.0) + 6:
+			var at := p.global_transform
+			at.origin += p.exit_direction() * step * 2.0
+			for c: CollisionShape3D in shapes:
+				var query := PhysicsShapeQueryParameters3D.new()
+				query.shape = c.shape
+				query.transform = at * c.transform
+				query.margin = 0.05
+				var hits := space.intersect_shape(query, 1)
+				assert_eq(hits.size(), 0, "%s: the %s is clear %d m out" % [p.id, c.name, step * 2])
+	ship.free()

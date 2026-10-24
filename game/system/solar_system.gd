@@ -3,8 +3,9 @@ extends Node3D
 ## The tiny solar system of the first playable (design doc, "The tiny solar system"), one self-contained scene
 ## (game/system/solar_system.tscn), so more systems can be added later without touching the rest of the game. It
 ## holds the sun's light, every place in the system as a Landmark (the planet, its base, the moon, the station and the
-## asteroid belt) and the point the player starts from. Everything in it is authored and placed by hand; only the
-## belt's rocks come from the world seed. Its origin is the planet's centre. The bodies hold still: orbits come later.
+## asteroid belt), the docking bay and landing pad (Port) and the point the player starts from. Everything in it is
+## authored and placed by hand; only the belt's rocks come from the world seed. Its origin is the planet's centre. The
+## bodies hold still (they don't circle each other yet); a ship can still park in orbit round a planet or moon.
 
 ## Where the player's ship starts, and a point it starts looking at.
 @export var start: Marker3D
@@ -14,6 +15,10 @@ extends Node3D
 
 ## Every place in the system, in scene order.
 var landmarks: Array[Landmark] = []
+## The planets and moons, which a ship can orbit (Orbit).
+var bodies: Array[CelestialBody] = []
+## Every docking bay and landing pad (Arrivals).
+var ports: Array[Port] = []
 
 
 func _ready() -> void:
@@ -22,6 +27,7 @@ func _ready() -> void:
 		var body := l as CelestialBody
 		if body != null:
 			body.light_from(sun.global_basis.z)
+			bodies.append(body)
 
 
 ## The ship's starting place and heading (world space).
@@ -38,6 +44,14 @@ func track(ship: Node3D) -> void:
 			belt.focus = ship
 
 
+## The port whose id is `id`, or null.
+func port(id: StringName) -> Port:
+	for p: Port in ports:
+		if p.id == id:
+			return p
+	return null
+
+
 ## The landmark called `display_name`, or null.
 func landmark(display_name: String) -> Landmark:
 	for l: Landmark in landmarks:
@@ -50,4 +64,6 @@ func _collect(node: Node) -> void:
 	for child: Node in node.get_children():
 		if child is Landmark:
 			landmarks.append(child)
+		elif child is Port:
+			ports.append(child)
 		_collect(child)

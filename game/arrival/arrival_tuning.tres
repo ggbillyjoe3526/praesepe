@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ArrivalTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/arrival/arrival_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+fade_out = 0.6
+hold = 1.4
+fade_in = 0.6

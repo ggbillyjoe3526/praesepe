@@ -144,6 +144,49 @@ The values live in `game/ship/greybox_cruise_tuning.tres` (per ship, so an engin
 | Bump limit | 3 m/s | A harder knock drops it out |
 | Rumble | 0.3 of full thrust | Camera shake while cruising |
 
+**How orbit works (first values, to be tuned with the owner)**
+
+Added at the owner's request: a ship can park in orbit round a planet or moon and stay there. It is a simple mode, not
+a simulation: the game has no gravity, so nothing ever falls out of orbit.
+
+- Near a planet or moon (below its highest orbit) the HUD offers "O  Enter orbit round Calder". O swings the ship onto
+  a circle round it, the way it was heading, at the height where it levels out (raised to the lowest orbit if it is
+  under it). The swing is no harder than the side thrusters (25 m/s²), so it feels like a firm push, never a snap.
+- Entering, the ship turns to face along the orbit with the planet below and the horizon a little above the middle of
+  the cockpit window, so the planet fills the bottom of the view. Moving the mouse stops that turn and leaves the view
+  to the pilot.
+- In orbit the ship goes round at the body's orbit speed, holding its height, and its view turns with the orbit, so
+  the planet stays where it is in the window while the ground slides past. The mouse still turns the ship. The
+  dashboard shows "IN ORBIT · O or thrust to leave".
+- O again or any thrust key leaves orbit gently. The ship carries straight on at the velocity it had while its nose
+  comes up level along it over 1 s, longer for a bigger turn so it never turns faster than the ship can ("LEAVING
+  ORBIT · levelling out"), then flight assist holds that velocity. In orbit
+  the nose is dipped toward the planet (more the higher the orbit), so without the level-out the ship would follow its
+  nose down into the ground; with it, it flies on level and climbs slowly away. Moving the mouse while it levels out
+  hands the ship straight back.
+- X (which then stops), Z (which then drifts) or the cruise drive engaging leave orbit at once, keeping the velocity
+  the ship had. A hard bump knocks it out of orbit.
+- It won't enter while cruising, above 250 m/s, or diving so steeply it couldn't level out 100 m above the surface; a
+  message says why.
+
+**Orbit tuning**
+
+The ship's values live in `game/ship/greybox_orbit_tuning.tres` (per ship); each planet's and moon's in the solar
+system scene (`game/system/solar_system.tscn`).
+
+| Value | First value | What it does |
+| --- | --- | --- |
+| Calder's orbits | 500 m to 4 km up, 90 m/s | About 9 minutes round at 1.5 km up |
+| Mote's orbits | 300 m to 2.5 km up, 45 m/s | About 6 minutes round at 1 km up |
+| Top entry speed | 250 m/s | Anything but cruising |
+| Swing onto the orbit | 25 m/s² | No harder than the side thrusters |
+| Entry clearance | 100 m | Refuses a dive it couldn't level out of above this |
+| Height correction | Closes a gap over 4 s, at most 30 m/s; settled within 5 m | Climbs to the lowest orbit; holds the height |
+| Horizon | 5° above the middle of the view | Where the turn on entering puts it |
+| Turn on entering | Closes the angle over about 0.8 s, done within 0.5° | Within the ship's own turn limits |
+| Bump limit | 3 m/s | A harder knock leaves orbit |
+| Level out on leaving | 1 s, easing in and out; longer if the turn would beat the ship's turn rates | O or thrust: nose up along the velocity before flight assist takes over |
+
 ## Contracts
 
 All jobs come from one contract system built on three verbs. Job types are variations on those verbs.
@@ -216,6 +259,37 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
 
 **Landing:** for now, approach the planet, see a prompt to land, then a transition screen. Seamless landing is a later goal.
 
+**How docking and landing work (first values, to be tuned with the owner)**
+
+- Halfway Station has an open docking bay on top of its spine, its mouth framed in green. Tollgate has a landing pad.
+  Each is a port: where the ship is held while docked or landed.
+- Near a port the HUD says what to do: "Fly within 1.5 km of Halfway Station to dock (2.3 km)", then "Slow below
+  100 m/s to dock at Halfway Station", then "G  Dock at Halfway Station". Landing at Tollgate is offered anywhere
+  within 4 km of Calder's surface, so approaching the planet (or orbiting it) is enough: "G  Land at Tollgate".
+  Nothing is offered while the cruise drive charges or runs.
+- G fades the view to black ("Docking at Halfway Station"), the ship arrives, the screen says "Docked at Halfway
+  Station" and "Game saved", and the view fades back in with the ship held still in the bay, looking out of its mouth
+  (or on the pad, facing the hangar). The dashboard shows "DOCKED · G to undock" or "LANDED · G to take off".
+- G again leaves: the ship is eased straight out of the bay (or straight up off the pad), speeding up evenly, then
+  handed back with flight assist holding the speed it left with (25 m/s out of the bay; a hover above the pad).
+- Every docking and landing goes through one arrival function (`Arrivals.arrive`), which tells the rest of the game
+  through the event bus (`Events.arrived`). The autosave listens there and writes the game; contracts will too. Seamless
+  landing can later replace the fade without touching them.
+- Mote has no landing site yet; landing on it comes with surface mining.
+
+**Docking and landing tuning**
+
+The transition's timing lives in `game/arrival/arrival_tuning.tres`; each port's values on the port itself, in the
+station's and base's scenes (`game/system/greybox_station.tscn`, `game/system/greybox_base.tscn`).
+
+| Value | First value | What it does |
+| --- | --- | --- |
+| Docking offered | Within 1.5 km of the bay, below 100 m/s; hints from 3.5 km | The cruise drive drops out about 2.8 km away |
+| Landing offered | Within 4 km of Calder's surface, below 100 m/s; hints from 8 km | Cruising to Calder or Tollgate ends inside it |
+| Transition | 0.6 s fade out, 1.4 s black, 0.6 s fade in | Names the place and says the game saved |
+| Leaving the bay | 60 m, speeding up to 25 m/s (about 5 s) | Clear of the bay's mouth before the pilot has it |
+| Taking off | 30 m straight up, speeding up to 15 m/s (about 4 s) | Then flight assist brings it to a hover |
+
 **Authored vs. seeded**
 
 | Authored (same every game) | Seeded (varies by seed) |
@@ -245,6 +319,7 @@ The goal of the first playable is to prove that flying, delivering and mining ar
 - [ ] Cruise drive between locations
 - [ ] Docking at the base and station
 - [ ] Landing prompt and transition screen
+- [ ] Parking in orbit round a planet or moon with an "Enter orbit" prompt (added by the owner, 2026-10-24)
 - [ ] Contract board with two job types: delivery and asteroid mining
 - [ ] Ship mining laser for blasting asteroids
 - [ ] On-foot controller: walking into the base and mining on an asteroid's surface
@@ -297,6 +372,8 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-24: Docking, landing and orbit until the owner tunes them: values as in "How docking and landing work" and "How orbit works"; G docks, lands, undocks and takes off, O enters and leaves orbit; landing at a planet's base is offered anywhere close to the planet; the docked ship sits in an open bay on the station (the station's dock is no longer a solid block); the autosave writes the game on every docking and landing (seed, clock, random streams and where the ship is), and loading it comes with save and load (build step 7), so a new launch still starts in flight; the event bus is an autoload, `Events` (default, Claude).
+- 2026-10-24: Orbit joins the first playable: William asked for ships to "sit in orbit of objects", not a simulation like Kerbal Space Program, "just a simple 'Enter Orbit' button prompt. The player can enter orbit and stay there" (owner).
 - 2026-10-24: The tiny solar system and cruise drive until the owner tunes them: sizes, places and values as in "The tiny solar system" and "How the cruise drive works"; F is the cruise key; the bodies hold still (orbits later); the belt is a ring round the planet beyond the moon, so trips between the other places never cross it; the sun is a light and a sky disc, not a body; the cameras see 150 km; Jolt's speed limit is raised from 500 m/s to 8 km/s for the cruise drive; the names are placeholders the owner can change (default, Claude).
 - 2026-10-24: Cameras approved: William played the cockpit and chase camera from PR #3 and said "I'm happy with that" (owner).
 - 2026-10-24: Cameras until the owner tunes them: start in the cockpit, V switches to the chase camera; the field of view is vertical, 60° to 100°, starting at 75° (what flight was approved with); shake starts full (it is faint), head bob on, reduce motion off; the comfort settings sit on the pause screen until the settings menu and are saved in `settings.json` in the user folder (default, Claude).

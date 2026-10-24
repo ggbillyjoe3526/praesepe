@@ -3,7 +3,7 @@
 # (game/debug/smoke_run.gd) and fails on any script error, any engine or
 # push_error() ERROR line (the known exit-time leak lines aside), or if the run
 # never reports, then runs it again and fails unless both runs end the same.
-# It flies on autopilot today; it grows to dock as docking lands.
+# It flies, cruises, orbits, lands and docks on autopilot.
 # Usage: tools/smoke_test.sh            (GODOT=/path/to/godot to override)
 set -uo pipefail
 GODOT="${GODOT:-godot}"

@@ -1,6 +1,7 @@
-[gd_scene load_steps=28 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="Script" path="res://game/system/landmark.gd" id="1_landmark"]
+[ext_resource type="Script" path="res://game/arrival/port.gd" id="2_port"]
 
 [sub_resource type="StandardMaterial3D" id="Mat_hull"]
 albedo_color = Color(0.62, 0.64, 0.68, 1)
@@ -73,9 +74,21 @@ size = Vector3(216, 8, 8)
 material = SubResource("Mat_hull")
 size = Vector3(80, 50, 70)
 
-[sub_resource type="BoxMesh" id="Mesh_mouth"]
+[sub_resource type="BoxMesh" id="Mesh_bay_slab"]
+material = SubResource("Mat_hull")
+size = Vector3(80, 8, 70)
+
+[sub_resource type="BoxMesh" id="Mesh_bay_side"]
+material = SubResource("Mat_hull")
+size = Vector3(80, 34, 10)
+
+[sub_resource type="BoxMesh" id="Mesh_bay_back"]
 material = SubResource("Mat_dark")
-size = Vector3(2, 34, 50)
+size = Vector3(10, 34, 50)
+
+[sub_resource type="BoxMesh" id="Mesh_bay_strip"]
+material = SubResource("Mat_green")
+size = Vector3(60, 0.2, 1)
 
 [sub_resource type="BoxMesh" id="Mesh_frame_h"]
 material = SubResource("Mat_green")
@@ -113,8 +126,14 @@ size = Vector3(216, 8, 8)
 [sub_resource type="BoxShape3D" id="Shape_spoke_z"]
 size = Vector3(8, 8, 216)
 
-[sub_resource type="BoxShape3D" id="Shape_dock"]
-size = Vector3(80, 50, 70)
+[sub_resource type="BoxShape3D" id="Shape_bay_slab"]
+size = Vector3(80, 8, 70)
+
+[sub_resource type="BoxShape3D" id="Shape_bay_side"]
+size = Vector3(80, 34, 10)
+
+[sub_resource type="BoxShape3D" id="Shape_bay_back"]
+size = Vector3(10, 34, 50)
 
 [sub_resource type="BoxShape3D" id="Shape_arm"]
 size = Vector3(60, 6, 6)
@@ -203,9 +222,25 @@ shape = SubResource("Shape_spoke_x")
 [node name="SpokeShapeZ" type="CollisionShape3D" parent="Structure"]
 shape = SubResource("Shape_spoke_z")
 
-[node name="DockShape" type="CollisionShape3D" parent="Structure"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 155, 0)
-shape = SubResource("Shape_dock")
+[node name="BayFloorShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 134, 0)
+shape = SubResource("Shape_bay_slab")
+
+[node name="BayRoofShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 176, 0)
+shape = SubResource("Shape_bay_slab")
+
+[node name="BayForeShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 155, -30)
+shape = SubResource("Shape_bay_side")
+
+[node name="BayAftShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 155, 30)
+shape = SubResource("Shape_bay_side")
+
+[node name="BayBackShape" type="CollisionShape3D" parent="Structure"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 155, 0)
+shape = SubResource("Shape_bay_back")
 
 [node name="ArmLeftShape" type="CollisionShape3D" parent="Structure"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52, -110, 0)
@@ -258,17 +293,52 @@ mesh = SubResource("Mesh_spoke")
 visibility_range_end = 12000
 visibility_range_end_margin = 400.0
 
-[node name="Dock" type="MeshInstance3D" parent="Near"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 155, 0)
+[node name="BayFloor" type="MeshInstance3D" parent="Near"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 134, 0)
 cast_shadow = 0
-mesh = SubResource("Mesh_dock")
+mesh = SubResource("Mesh_bay_slab")
 visibility_range_end = 12000
 visibility_range_end_margin = 400.0
 
-[node name="Mouth" type="MeshInstance3D" parent="Near"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.5, 155, 0)
+[node name="BayRoof" type="MeshInstance3D" parent="Near"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 176, 0)
 cast_shadow = 0
-mesh = SubResource("Mesh_mouth")
+mesh = SubResource("Mesh_bay_slab")
+visibility_range_end = 12000
+visibility_range_end_margin = 400.0
+
+[node name="BayFore" type="MeshInstance3D" parent="Near"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 155, -30)
+cast_shadow = 0
+mesh = SubResource("Mesh_bay_side")
+visibility_range_end = 12000
+visibility_range_end_margin = 400.0
+
+[node name="BayAft" type="MeshInstance3D" parent="Near"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 155, 30)
+cast_shadow = 0
+mesh = SubResource("Mesh_bay_side")
+visibility_range_end = 12000
+visibility_range_end_margin = 400.0
+
+[node name="BayBack" type="MeshInstance3D" parent="Near"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 155, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_bay_back")
+visibility_range_end = 12000
+visibility_range_end_margin = 400.0
+
+[node name="BayStripLeft" type="MeshInstance3D" parent="Near"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 138.1, -6)
+cast_shadow = 0
+mesh = SubResource("Mesh_bay_strip")
+visibility_range_end = 12000
+visibility_range_end_margin = 400.0
+
+[node name="BayStripRight" type="MeshInstance3D" parent="Near"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 138.1, 6)
+cast_shadow = 0
+mesh = SubResource("Mesh_bay_strip")
 visibility_range_end = 12000
 visibility_range_end_margin = 400.0
 
@@ -360,3 +430,22 @@ cast_shadow = 0
 mesh = SubResource("Mesh_beacon")
 visibility_range_begin = 12000
 visibility_range_begin_margin = 400.0
+
+[node name="BayLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 168, 0)
+light_color = Color(1, 0.92, 0.8, 1)
+light_energy = 2.0
+omni_range = 75.0
+distance_fade_enabled = true
+distance_fade_begin = 2000.0
+distance_fade_length = 500.0
+
+[node name="DockPort" type="Marker3D" parent="."]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0, 155, 0)
+script = ExtResource("2_port")
+id = &"halfway_station"
+offer_range = 1500.0
+hint_range = 3500.0
+max_speed = 100.0
+exit_distance = 60.0
+exit_speed = 25.0

@@ -14,6 +14,10 @@ var toggle_assist: bool = false
 var toggle_cruise: bool = false
 ## Bring the ship to a stop, turning flight assist on if it was off (one-shot).
 var full_stop: bool = false
+## Enter orbit, or leave it (one-shot).
+var toggle_orbit: bool = false
+## Dock or land where that is offered, or undock or take off (one-shot, used by Arrivals).
+var dock: bool = false
 
 
 ## Back to no input.
@@ -23,3 +27,5 @@ func reset() -> void:
 	toggle_assist = false
 	toggle_cruise = false
 	full_stop = false
+	toggle_orbit = false
+	dock = false

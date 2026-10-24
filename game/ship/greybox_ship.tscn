@@ -1,9 +1,10 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://game/ship/ship.gd" id="1_ship"]
 [ext_resource type="Resource" path="res://game/ship/greybox_ship_tuning.tres" id="2_tuning"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_cockpit.tscn" id="3_cockpit"]
 [ext_resource type="Resource" path="res://game/ship/greybox_cruise_tuning.tres" id="4_cruise"]
+[ext_resource type="Resource" path="res://game/ship/greybox_orbit_tuning.tres" id="5_orbit"]
 
 [sub_resource type="StandardMaterial3D" id="Mat_hull"]
 albedo_color = Color(0.55, 0.57, 0.6, 1)
@@ -60,6 +61,7 @@ physics_material_override = SubResource("Phys_hull")
 script = ExtResource("1_ship")
 tuning = ExtResource("2_tuning")
 cruise_tuning = ExtResource("4_cruise")
+orbit_tuning = ExtResource("5_orbit")
 eye = NodePath("Eye")
 chase_anchor = NodePath("ChaseAnchor")
 

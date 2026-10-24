@@ -3,9 +3,9 @@ extends Control
 ## The HUD markers for the places in the solar system (Landmark.marker), so the player always knows where everything
 ## is: a diamond on each place with its name and distance on a dark plate, drawn through whichever camera is active
 ## (ShipCameras). A place off the screen or behind the camera sits at the screen's edge on the side to turn to, as a
-## hollow diamond. Labels that would cover each other stack instead. A label is rebuilt only when its distance, as
-## shown, changes. A placeholder look until the art style
-## is chosen.
+## hollow diamond. Labels that would cover each other stack instead. The place the ship is docked or landed at (and
+## the planet under it) has no marker until it leaves. A label is rebuilt only when its distance, as shown, changes. A
+## placeholder look until the art style is chosen.
 
 const COLOUR := Color(1.0, 0.86, 0.5)
 const PLATE_COLOUR := Color(0.03, 0.04, 0.08, 0.85)
@@ -107,7 +107,13 @@ func _draw() -> void:
 	var screen := size
 	var centre := screen * 0.5
 	_plate_count = 0
+	# The place the ship is docked or landed at, and the planet under it, are all around it: no markers for them until
+	# the ship has left.
+	var here: Landmark = ship.berth.place if ship.berth != null else null
+	var under: Landmark = ship.berth.body if ship.berth != null else null
 	for i in _places.size():
+		if _places[i] == here or _places[i] == under:
+			continue
 		var at := ScreenMarker.project(view, camera.fov, screen, _places[i].marker_position() - view.origin)
 		var point := Vector2(at.x, at.y)
 		if at.z <= 0.0:
