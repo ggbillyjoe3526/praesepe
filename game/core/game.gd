@@ -66,8 +66,10 @@ func snapshot() -> Dictionary:
 ## Puts back a snapshot(): the same seed, clock and stream positions, so the next draws match the saved game's. A
 ## missing or unreadable value starts that part fresh.
 func restore(data: Dictionary) -> void:
-	start_world(int(data.get("world_seed", 0)))
-	clock = maxf(float(data.get("clock", 0.0)), 0.0)
+	var seed_value: Variant = data.get("world_seed", 0)
+	start_world(int(seed_value) if seed_value is float or seed_value is int else 0)
+	var saved_clock: Variant = data.get("clock", 0.0)
+	clock = maxf(float(saved_clock), 0.0) if saved_clock is float or saved_clock is int else 0.0
 	var states: Variant = data.get("streams", {})
 	if not states is Dictionary:
 		return

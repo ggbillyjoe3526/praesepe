@@ -85,6 +85,9 @@ func test_restore_ignores_bad_values() -> void:
 	var fresh := _draws(Game.rng(&"world"), 3)
 	Game.restore({"world_seed": 3, "streams": {"world": "not a number"}})
 	assert_eq(_draws(Game.rng(&"world"), 3), fresh, "an unreadable state starts that stream fresh")
+	Game.restore({"world_seed": [1, 2], "clock": {"a": 1}})
+	assert_eq(Game.world_seed, 0, "a damaged seed starts seed 0, never a script error")
+	assert_eq(Game.clock, 0.0)
 
 
 func test_skip_time_only_moves_forward() -> void:

@@ -17,7 +17,8 @@ if errors_in import.log; then
   echo "FAIL: errors while importing (see import.log)"; exit 1
 fi
 
-timeout 300 "$GODOT" --headless --path . -- --smoke --seed 1234 > "$LOG" 2>&1
+# A script error that stops the run from quitting fails here after two minutes.
+timeout 120 "$GODOT" --headless --path . -- --smoke --seed 1234 > "$LOG" 2>&1
 status=$?
 if errors_in "$LOG"; then
   echo "FAIL: errors during the smoke run (see $LOG)"; exit 1
