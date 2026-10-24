@@ -82,7 +82,7 @@ func _physics_process(delta: float) -> void:
 	var w := model.angular_accel
 	angular_velocity += b * Vector3(w.x, -w.y, -w.z) * delta
 	if orbit.phase == Orbit.Phase.LEAVING:
-		angular_velocity = orbit.level_spin(b, delta)
+		angular_velocity = orbit.level_spin(b, tuning.max_rates(), delta)
 	if cruise.active():
 		model.linear_accel = Vector3.ZERO
 		linear_velocity = cruise.velocity

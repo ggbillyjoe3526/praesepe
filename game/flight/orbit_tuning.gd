@@ -34,5 +34,6 @@ extends Resource
 
 @export_group("Leaving")
 ## Leaving with O or a thrust key, the ship takes this long (s) to bring its nose up level along its velocity before
-## flight assist takes over, so it flies on the way it was going rather than down the dipped nose's line.
+## flight assist takes over, so it flies on the way it was going rather than down the dipped nose's line. A turn too
+## big to make that fast within the ship's turn rates takes longer.
 @export var level_time: float = 1.0

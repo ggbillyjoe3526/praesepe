@@ -70,6 +70,8 @@ const ORBIT_SETTLE_LIMIT := 1800
 const ORBIT_WATCH := 900
 ## How long (ticks) the autopilot flies on after leaving orbit before checking flight assist has it.
 const AFTER_ORBIT := 300
+## How long (ticks) levelling out to leave orbit may take.
+const LEVEL_LIMIT := 300
 ## How long (ticks) docking or landing may take, from G to the view being back, and leaving.
 const ARRIVAL_LIMIT := 600
 ## How long (ticks) the ship is watched sitting at its berth.
@@ -280,7 +282,7 @@ func _physics_process(_delta: float) -> void:
 				if not ship.orbit.active():
 					_expect(_orbit_event == Orbit.Event.LEFT, "leaves orbit once level")
 					_left_tick = _phase_ticks
-				elif _phase_ticks > roundi(ship.orbit_tuning.level_time * 60.0) + 10:
+				elif _phase_ticks > LEVEL_LIMIT:
 					_expect(false, "leaves orbit once level (still levelling out after %d ticks)" % _phase_ticks)
 					_next()
 			elif _phase_ticks - _left_tick >= AFTER_ORBIT:

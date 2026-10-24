@@ -230,14 +230,35 @@ func test_levelling_out_turns_the_nose_level_along_the_velocity_in_time() -> voi
 	_tick(true)
 	var steps := 0
 	while _orbit.phase == Orbit.Phase.LEAVING:
-		var w := _orbit.level_spin(ship, DT)
+		var w := _orbit.level_spin(ship, Vector3.ONE * 10.0, DT)
 		if w.length() > 1.0e-9:
 			ship = Basis(w.normalized(), w.length() * DT) * ship
 		_tick()
 		steps += 1
-	assert_almost_eq(steps, roundi(_tuning.level_time / DT), 1)
+	assert_almost_eq(steps, roundi(_tuning.level_time / DT), 1, "in OrbitTuning.level_time, with quick turn rates")
 	assert_lt(rad_to_deg((-ship.z).angle_to(_velocity)), 0.5, "the nose is along the velocity")
 	assert_lt(rad_to_deg(ship.y.angle_to(_at.normalized())), 0.5, "the planet straight below")
+
+
+func test_a_big_level_out_takes_longer_rather_than_turning_faster_than_the_ship_can() -> void:
+	_velocity = Vector3(90, 0, 0)
+	_settle()
+	# The pilot has looked round behind, the nose 150 degrees off the velocity.
+	var ship := Basis(_at.normalized(), deg_to_rad(150.0)) * _orbit.facing(_at)
+	var rates := Vector3(deg_to_rad(50.0), deg_to_rad(40.0), deg_to_rad(90.0))
+	_tick(true)
+	var fastest := 0.0
+	var steps := 0
+	while _orbit.phase == Orbit.Phase.LEAVING:
+		var w := _orbit.level_spin(ship, rates, DT)
+		fastest = maxf(fastest, w.length())
+		if w.length() > 1.0e-9:
+			ship = Basis(w.normalized(), w.length() * DT) * ship
+		_tick()
+		steps += 1
+	assert_lt(fastest, rates.y * 1.01, "never faster than the slowest turn rate")
+	assert_gt(steps * DT, _tuning.level_time * 2.0, "so it takes longer")
+	assert_lt(rad_to_deg((-ship.z).angle_to(_velocity)), 0.5, "and still ends level along the velocity")
 
 
 func test_a_hard_bump_knocks_it_out() -> void:

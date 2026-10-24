@@ -30,6 +30,14 @@ func _enter() -> void:
 			return
 
 
+## Waits while the ship levels out to leave orbit (a few seconds at most).
+func _level_out() -> void:
+	for i in 300:
+		if _ship.orbit.phase != Orbit.Phase.LEAVING:
+			return
+		await wait_physics_frames(1)
+
+
 func _down_angle() -> float:
 	return (-_ship.global_basis.z).angle_to(_planet.global_position - _ship.global_position)
 
@@ -54,7 +62,7 @@ func test_o_levels_out_and_flies_on_without_sinking() -> void:
 	_ship.input.toggle_orbit = true
 	await wait_physics_frames(2)
 	assert_eq(_ship.orbit.phase, Orbit.Phase.LEAVING, "levelling out first")
-	await wait_physics_frames(roundi(_ship.orbit_tuning.level_time * 60.0) + 2)
+	await _level_out()
 	assert_false(_ship.orbit.active(), "then out of orbit")
 	assert_true(_ship.assist_on())
 	assert_almost_eq(_ship.held_speed(), _planet.orbit_speed, 1.0, "flight assist holds the orbit's whole speed")
@@ -72,7 +80,7 @@ func test_w_levels_out_and_flies_on() -> void:
 	_ship.input.thrust.z = 1.0
 	await wait_physics_frames(2)
 	assert_eq(_ship.orbit.phase, Orbit.Phase.LEAVING, "thrust leaves orbit, levelling out first")
-	await wait_physics_frames(roundi(_ship.orbit_tuning.level_time * 60.0) + 2)
+	await _level_out()
 	assert_false(_ship.orbit.active())
 	await wait_physics_frames(60)
 	_ship.input.thrust = Vector3.ZERO

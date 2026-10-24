@@ -63,9 +63,12 @@ var event: Event = Event.NONE
 ## Out of orbit: the nearest planet or moon close enough to orbit, or null, and whether it can be entered now.
 var offered: CelestialBody = null
 var refusal: Refusal = Refusal.FAR
-## Leaving: the attitude the ship levels out to, and how long (s) it had been at it when this tick began.
+## Leaving: the attitude the ship levels out to, how long (s) it had been at it when this tick began, and how long it
+## takes (OrbitTuning.level_time, or longer for a turn too big to make that fast within the ship's turn rates).
 var _level_to: Basis = Basis.IDENTITY
 var _levelled_for: float = 0.0
+var _level_time: float = 0.0
+var _level_sized: bool = false
 ## Leaving: the pilot moved the stick, so the ship is theirs from the next tick.
 var _handed_over: bool = false
 
@@ -104,7 +107,7 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, leav
 	elif phase == Phase.LEAVING:
 		_levelled_for += delta
 		# Level since the last tick's turn (level_spin), or the pilot's to fly.
-		if _handed_over or _levelled_for > tuning.level_time - delta * 0.5:
+		if _handed_over or _levelled_for > _level_time - delta * 0.5:
 			_leave(Event.LEFT)
 	elif toggle or leave:
 		_level_out(at, ship_velocity)
@@ -169,20 +172,25 @@ func turn_for(ship_basis: Basis, at: Vector3, pilot_turn: Vector3, rates: Vector
 
 
 ## While leaving, the spin (rad/s, world space) that turns a ship whose attitude is `ship_basis` to level out along its
-## velocity this tick: easing in and out, so it is level just as OrbitTuning.level_time runs out.
-func level_spin(ship_basis: Basis, delta: float) -> Vector3:
+## velocity this tick: easing in and out, so it is level just as the level-out's time runs out. The first tick sizes
+## that time so the turn is never faster than the slowest of the full-stick `rates` (rad/s).
+func level_spin(ship_basis: Basis, rates: Vector3, delta: float) -> Vector3:
 	if phase != Phase.LEAVING:
 		return Vector3.ZERO
-	var before := smoothstep(0.0, 1.0, _levelled_for / tuning.level_time)
-	var after := smoothstep(0.0, 1.0, (_levelled_for + delta) / tuning.level_time)
-	# The share of the turn still to go that this tick covers.
-	var share := 1.0 if before >= 1.0 else (after - before) / (1.0 - before)
 	var q := Quaternion(_level_to * ship_basis.orthonormalized().inverse()).normalized()
 	if q.w < 0.0:
 		q = -q
 	var angle := q.get_angle()
+	if not _level_sized:
+		_level_sized = true
+		# Easing in and out, the turn is fastest halfway, at 1.5 times its average rate.
+		_level_time = maxf(tuning.level_time, 1.5 * angle / minf(rates.x, minf(rates.y, rates.z)))
 	if angle < 1.0e-6:
 		return Vector3.ZERO
+	var before := smoothstep(0.0, 1.0, _levelled_for / _level_time)
+	var after := smoothstep(0.0, 1.0, (_levelled_for + delta) / _level_time)
+	# The share of the turn still to go that this tick covers.
+	var share := 1.0 if before >= 1.0 else (after - before) / (1.0 - before)
 	return q.get_axis() * angle * share / delta
 
 
@@ -279,6 +287,8 @@ func _level_out(at: Vector3, ship_velocity: Vector3) -> void:
 	up = up.normalized()
 	_level_to = Basis(forward.cross(up), up, -forward)
 	_levelled_for = 0.0
+	_level_time = tuning.level_time
+	_level_sized = false
 	_handed_over = false
 	phase = Phase.LEAVING
 	event = Event.LEAVING
