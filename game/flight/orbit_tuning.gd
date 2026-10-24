@@ -31,3 +31,8 @@ extends Resource
 @export var turn_time: float = 0.8
 ## Lined up to within this (degrees) counts as done.
 @export var turn_tolerance: float = 0.5
+
+@export_group("Leaving")
+## Leaving with O or a thrust key, the ship takes this long (s) to bring its nose up level along its velocity before
+## flight assist takes over, so it flies on the way it was going rather than down the dipped nose's line.
+@export var level_time: float = 1.0

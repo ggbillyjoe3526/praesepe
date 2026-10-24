@@ -9,17 +9,20 @@ extends RefCounted
 ## The orbit runs the way the ship was heading, at the height where it levels out (kept within the body's orbit
 ## heights).
 ## Entering, the ship's velocity swings onto the circle no faster than OrbitTuning.entry_accel, and the ship turns to
-## face along it with the planet below, unless the pilot moves the mouse. O again, a thrust key, X, Z or the cruise
-## drive taking over leaves orbit: the ship keeps the velocity it had and flight assist holds it, so nothing lurches.
-## A hard bump knocks it out. Nothing here touches nodes but reading where the bodies are, so the unit tests run it
-## directly. Vectors are in world space.
+## face along it with the planet below, unless the pilot moves the mouse. O again or a thrust key leaves orbit gently:
+## the ship carries straight on at the velocity it had while its nose comes up level along it
+## (OrbitTuning.level_time), then flight assist holds that velocity, so nothing lurches and the ship climbs slowly away
+## from the planet rather than following its dipped nose down. X, Z or the cruise drive taking over leave at once, as
+## does moving the mouse while it levels out. A hard bump knocks it out. Nothing here touches nodes but reading where
+## the bodies are, so the unit tests run it directly. Vectors are in world space.
 
-enum Phase { OFF, ENTERING, ORBITING }
+enum Phase { OFF, ENTERING, ORBITING, LEAVING }
 ## What happened this tick. `body` is the planet or moon, where there is one.
 enum Event {
 	NONE,
 	ENTERING, ## O pressed: swinging onto the orbit.
 	SETTLED, ## In orbit at its height.
+	LEAVING, ## O or thrust: levelling out before leaving.
 	LEFT, ## Left orbit because the pilot did something else.
 	BUMPED, ## Knocked out of orbit.
 	REFUSED, ## O pressed, but no orbit is offered here (`refusal` says why; no `body` when none is near).
@@ -35,6 +38,10 @@ enum Refusal {
 ## A stick pushed further than this (of a full push) while the ship turns to face along the orbit hands the view
 ## back to the pilot.
 const STICK_TAKES_OVER := 0.15
+## Slower than this (m/s), the ship's motion says nothing about which way it is heading.
+const BARELY_MOVING := 1.0
+## A direction with less than this (of its length) left after levelling was straight up or down.
+const NEARLY_STRAIGHT := 0.01
 
 var tuning: OrbitTuning
 ## Every planet and moon in the solar system (SolarSystem.bodies).
@@ -56,6 +63,11 @@ var event: Event = Event.NONE
 ## Out of orbit: the nearest planet or moon close enough to orbit, or null, and whether it can be entered now.
 var offered: CelestialBody = null
 var refusal: Refusal = Refusal.FAR
+## Leaving: the attitude the ship levels out to, and how long (s) it had been at it when this tick began.
+var _level_to: Basis = Basis.IDENTITY
+var _levelled_for: float = 0.0
+## Leaving: the pilot moved the stick, so the ship is theirs from the next tick.
+var _handed_over: bool = false
 
 
 func _init(orbit_tuning: OrbitTuning) -> void:
@@ -71,9 +83,10 @@ func settled() -> bool:
 
 
 ## One physics tick: the ship is `at`, moving at `ship_velocity`, its nose pointing `nose` (unit). `toggle` is O this
-## tick; `leave` is anything else the pilot did that leaves orbit (thrust, X, Z, the cruise drive engaging); `jolt` is
-## how hard it was bumped (m/s, Ship.jolt). `can_enter` is false while cruising.
-func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, leave: bool, jolt: float,
+## tick; `leave` is a thrust key, which leaves orbit by levelling out first, like O; `drop` is anything that leaves it
+## at once (X, Z, the cruise drive engaging); `jolt` is how hard it was bumped (m/s, Ship.jolt). `can_enter` is false
+## while cruising.
+func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, leave: bool, drop: bool, jolt: float,
 		can_enter: bool, delta: float) -> void:
 	event = Event.NONE
 	if phase == Phase.OFF:
@@ -84,10 +97,17 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, leav
 			else:
 				event = Event.REFUSED
 		return
-	if toggle or leave:
+	if drop:
 		_leave(Event.LEFT)
 	elif jolt > tuning.bump_limit:
 		_leave(Event.BUMPED)
+	elif phase == Phase.LEAVING:
+		_levelled_for += delta
+		# Level since the last tick's turn (level_spin), or the pilot's to fly.
+		if _handed_over or _levelled_for > tuning.level_time - delta * 0.5:
+			_leave(Event.LEFT)
+	elif toggle or leave:
+		_level_out(at, ship_velocity)
 	else:
 		_hold(at, ship_velocity, delta)
 
@@ -97,6 +117,7 @@ func stop() -> void:
 	phase = Phase.OFF
 	body = null
 	turning = false
+	_handed_over = false
 	spin = Vector3.ZERO
 	offered = null
 	refusal = Refusal.FAR
@@ -133,6 +154,8 @@ func facing(at: Vector3) -> Basis:
 ## the pilot leaves the stick alone, it steers; once lined up, or once the pilot pushes the stick, the pilot's turn is
 ## used as it is.
 func turn_for(ship_basis: Basis, at: Vector3, pilot_turn: Vector3, rates: Vector3) -> Vector3:
+	if phase == Phase.LEAVING and pilot_turn.length() > STICK_TAKES_OVER:
+		_handed_over = true
 	if not turning:
 		return pilot_turn
 	if pilot_turn.length() > STICK_TAKES_OVER:
@@ -143,6 +166,24 @@ func turn_for(ship_basis: Basis, at: Vector3, pilot_turn: Vector3, rates: Vector
 		turning = false
 		return pilot_turn
 	return Orbit.steer(ship_basis, target, rates, tuning.turn_time)
+
+
+## While leaving, the spin (rad/s, world space) that turns a ship whose attitude is `ship_basis` to level out along its
+## velocity this tick: easing in and out, so it is level just as OrbitTuning.level_time runs out.
+func level_spin(ship_basis: Basis, delta: float) -> Vector3:
+	if phase != Phase.LEAVING:
+		return Vector3.ZERO
+	var before := smoothstep(0.0, 1.0, _levelled_for / tuning.level_time)
+	var after := smoothstep(0.0, 1.0, (_levelled_for + delta) / tuning.level_time)
+	# The share of the turn still to go that this tick covers.
+	var share := 1.0 if before >= 1.0 else (after - before) / (1.0 - before)
+	var q := Quaternion(_level_to * ship_basis.orthonormalized().inverse()).normalized()
+	if q.w < 0.0:
+		q = -q
+	var angle := q.get_angle()
+	if angle < 1.0e-6:
+		return Vector3.ZERO
+	return q.get_axis() * angle * share / delta
 
 
 ## The turn that brings `from` round to `to`: a rate on each axis that would close its angle in `time` seconds, as a
@@ -194,10 +235,10 @@ func _enter(at: Vector3, ship_velocity: Vector3, nose: Vector3, delta: float) ->
 	var out := r.normalized()
 	# Round the way the ship is heading: its motion, or its nose when it is barely moving or heading straight up or
 	# down; a ship pointing straight at the body too goes round its equator.
-	var along := Orbit._level(ship_velocity if ship_velocity.length() > 1.0 else nose, out)
-	if along.length() < 0.01:
+	var along := Orbit._level(ship_velocity if ship_velocity.length() > BARELY_MOVING else nose, out)
+	if along.length() < NEARLY_STRAIGHT:
 		along = Orbit._level(nose, out)
-	if along.length() < 0.01:
+	if along.length() < NEARLY_STRAIGHT:
 		along = Orbit._level(Vector3.FORWARD if absf(out.y) > 0.9 else Vector3.UP.cross(out), out)
 	axis = out.cross(along.normalized()).normalized()
 	radius = clampf(r.length(), body.radius + body.orbit_min_altitude, body.radius + body.orbit_max_altitude)
@@ -226,10 +267,31 @@ func _hold(at: Vector3, ship_velocity: Vector3, delta: float) -> void:
 	spin = axis * (velocity.dot(axis.cross(r / d).normalized()) / d)
 
 
+## Starts leaving: the ship carries straight on at `ship_velocity`, no longer turning with the orbit, and levels out
+## along it with the planet below. A ship barely moving, or moving straight up or down, leaves at once.
+func _level_out(at: Vector3, ship_velocity: Vector3) -> void:
+	var out := (at - body.global_position).normalized()
+	var forward := ship_velocity.normalized()
+	var up := Orbit._level(out, forward)
+	if ship_velocity.length() < BARELY_MOVING or up.length() < NEARLY_STRAIGHT:
+		_leave(Event.LEFT)
+		return
+	up = up.normalized()
+	_level_to = Basis(forward.cross(up), up, -forward)
+	_levelled_for = 0.0
+	_handed_over = false
+	phase = Phase.LEAVING
+	event = Event.LEAVING
+	turning = false
+	velocity = ship_velocity
+	spin = Vector3.ZERO
+
+
 func _leave(why: Event) -> void:
 	phase = Phase.OFF
 	event = why
 	turning = false
+	_handed_over = false
 	spin = Vector3.ZERO
 
 

@@ -69,7 +69,7 @@ const OPEN_CRUISE := 480
 const ORBIT_SETTLE_LIMIT := 1800
 const ORBIT_WATCH := 900
 ## How long (ticks) the autopilot flies on after leaving orbit before checking flight assist has it.
-const AFTER_ORBIT := 150
+const AFTER_ORBIT := 300
 ## How long (ticks) docking or landing may take, from G to the view being back, and leaving.
 const ARRIVAL_LIMIT := 600
 ## How long (ticks) the ship is watched sitting at its berth.
@@ -112,6 +112,9 @@ var _event: CruiseDrive.Event = CruiseDrive.Event.NONE
 var _event_place: Landmark = null
 var _event_tick: int = 0
 var _orbit_event: Orbit.Event = Orbit.Event.NONE
+## Leaving orbit: the height (m) over the planet when O was pressed, and the tick the ship was out of orbit.
+var _left_height: float = 0.0
+var _left_tick: int = -1
 var _orbit_height: float = 0.0
 var _orbit_view: float = 0.0
 var _orbit_start: Vector3 = Vector3.ZERO
@@ -264,16 +267,31 @@ func _physics_process(_delta: float) -> void:
 				_next()
 		13:
 			_orbit_step(input)
-		14: # Leave orbit with O: flight assist takes over at the speed the ship had along its nose.
+		14: # Leave orbit with O: the nose levels out, then flight assist flies on at the orbit's speed, never sinking.
+			var calder := system.landmark("Calder") as CelestialBody
 			if _phase_ticks == 1:
 				input.toggle_orbit = true
+				_left_height = calder.surface_distance(ship.global_position)
+				_left_tick = -1
 			elif _phase_ticks == 2:
-				_expect(_orbit_event == Orbit.Event.LEFT and not ship.orbit.active(), "leaves orbit with O")
-			elif _phase_ticks >= AFTER_ORBIT:
+				_expect(_orbit_event == Orbit.Event.LEAVING and ship.orbit.phase == Orbit.Phase.LEAVING,
+						"levels out to leave orbit with O")
+			elif _left_tick < 0:
+				if not ship.orbit.active():
+					_expect(_orbit_event == Orbit.Event.LEFT, "leaves orbit once level")
+					_left_tick = _phase_ticks
+				elif _phase_ticks > roundi(ship.orbit_tuning.level_time * 60.0) + 10:
+					_expect(false, "leaves orbit once level (still levelling out after %d ticks)" % _phase_ticks)
+					_next()
+			elif _phase_ticks - _left_tick >= AFTER_ORBIT:
 				var slip := rad_to_deg(ship.linear_velocity.angle_to(_forward()))
-				_expect(ship.assist_on() and absf(ship.speed() - ship.held_speed()) < 0.5 and slip < 1.0,
+				var height := calder.surface_distance(ship.global_position)
+				_expect(ship.assist_on() and absf(ship.speed() - ship.held_speed()) < 0.5 and slip < 1.0
+						and ship.held_speed() > calder.orbit_speed - 1.0,
 						"flies on with flight assist after leaving orbit (%.2f m/s, set %.2f, %.2f degrees off the nose)"
 						% [ship.speed(), ship.held_speed(), slip])
+				_expect(height > _left_height - 1.0,
+						"no lower %.0f s after leaving orbit (%.0f m, from %.0f m)" % [AFTER_ORBIT / 60.0, height, _left_height])
 				_next()
 		15: # Back into orbit, and land at Tollgate from it.
 			_land_from_orbit(input)

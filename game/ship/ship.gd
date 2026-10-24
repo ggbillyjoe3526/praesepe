@@ -7,7 +7,8 @@ extends RigidBody3D
 ## was last bumped, for camera shake.
 ## While its cruise drive (CruiseDrive) runs, the drive sets the ship's speed and direction and flight assist only
 ## turns it; the thrust keys and Z do nothing until it drops out. In orbit (Orbit) the orbit sets its velocity the same
-## way and the ship's attitude turns with the orbit; a thrust key, X or Z leaves orbit and then works as usual.
+## way and the ship's attitude turns with the orbit; O or a thrust key leaves orbit once the nose has come up level, X
+## or Z at once, and then they work as usual.
 ## Docked or landed (Arrivals) it is held still at its berth and ignores its input; leaving, Arrivals guides it out at a
 ## set velocity before handing it back to the pilot.
 
@@ -80,6 +81,8 @@ func _physics_process(delta: float) -> void:
 	var b := global_basis
 	var w := model.angular_accel
 	angular_velocity += b * Vector3(w.x, -w.y, -w.z) * delta
+	if orbit.phase == Orbit.Phase.LEAVING:
+		angular_velocity = orbit.level_spin(b, delta)
 	if cruise.active():
 		model.linear_accel = Vector3.ZERO
 		linear_velocity = cruise.velocity
@@ -102,15 +105,17 @@ func _physics_process(delta: float) -> void:
 
 
 ## The orbit's part of a tick, before the flight model runs: O enters or leaves it, anything else the pilot does with
-## the ship leaves it, and while it lasts the ship may be turning to face along it.
+## the ship leaves it (a thrust key levelling out first, like O), and while it lasts the ship may be turning to face
+## along it.
 func _step_orbit(delta: float) -> void:
-	var leave := input.thrust != Vector3.ZERO or input.full_stop or input.toggle_assist \
-			or cruise.event == CruiseDrive.Event.ENGAGED
-	orbit.step(global_position, linear_velocity, -global_basis.z, input.toggle_orbit, leave, jolt,
+	var leave := input.thrust != Vector3.ZERO
+	var drop := input.full_stop or input.toggle_assist or cruise.event == CruiseDrive.Event.ENGAGED
+	orbit.step(global_position, linear_velocity, -global_basis.z, input.toggle_orbit, leave, drop, jolt,
 			cruise.phase != CruiseDrive.Phase.CRUISING, delta)
 	input.toggle_orbit = false
 	if orbit.event == Orbit.Event.LEFT or orbit.event == Orbit.Event.BUMPED:
-		# Flight assist carries on at the speed the orbit left the ship with, along its nose.
+		# Flight assist carries on at the speed the orbit left the ship with, along its nose (levelled out along the
+		# velocity when leaving with O or thrust, so that is all of it).
 		model.set_speed = clampf(pilot_velocity().z, -tuning.max_reverse_speed, tuning.max_speed)
 	if orbit.active():
 		input.turn = orbit.turn_for(global_basis, global_position, input.turn, tuning.max_rates())

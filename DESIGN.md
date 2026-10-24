@@ -158,9 +158,13 @@ a simulation: the game has no gravity, so nothing ever falls out of orbit.
 - In orbit the ship goes round at the body's orbit speed, holding its height, and its view turns with the orbit, so
   the planet stays where it is in the window while the ground slides past. The mouse still turns the ship. The
   dashboard shows "IN ORBIT · O or thrust to leave".
-- O again, any thrust key, X (which then stops), Z (which then drifts) or the cruise drive engaging leaves orbit. The
-  ship keeps the velocity it had and flight assist carries on along the nose, so nothing lurches. A hard bump knocks it
-  out of orbit.
+- O again or any thrust key leaves orbit gently. The ship carries straight on at the velocity it had while its nose
+  comes up level along it over 1 s ("LEAVING ORBIT · levelling out"), then flight assist holds that velocity. In orbit
+  the nose is dipped toward the planet (more the higher the orbit), so without the level-out the ship would follow its
+  nose down into the ground; with it, it flies on level and climbs slowly away. Moving the mouse while it levels out
+  hands the ship straight back.
+- X (which then stops), Z (which then drifts) or the cruise drive engaging leave orbit at once, keeping the velocity
+  the ship had. A hard bump knocks it out of orbit.
 - It won't enter while cruising, above 250 m/s, or diving so steeply it couldn't level out 100 m above the surface; a
   message says why.
 
@@ -180,6 +184,7 @@ system scene (`game/system/solar_system.tscn`).
 | Horizon | 5° above the middle of the view | Where the turn on entering puts it |
 | Turn on entering | Closes the angle over about 0.8 s, done within 0.5° | Within the ship's own turn limits |
 | Bump limit | 3 m/s | A harder knock leaves orbit |
+| Level out on leaving | 1 s, easing in and out | O or thrust: nose up along the velocity before flight assist takes over |
 
 ## Contracts
 

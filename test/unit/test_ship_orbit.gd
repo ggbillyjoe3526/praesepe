@@ -1,7 +1,7 @@
 extends GutTest
 ## The greybox ship in orbit round a plain planet (design doc, "Orbit"): the orbit has the velocity, the ship's
 ## attitude turns with it so its view of the planet holds still, and every key that flies the ship leaves orbit
-## without a lurch: W keeps going, X stops, Z drifts.
+## without a lurch: O and W level the nose out and fly on without sinking, X stops, Z drifts.
 
 var _ship: Ship
 var _planet: CelestialBody
@@ -48,16 +48,38 @@ func test_settles_and_keeps_its_view_of_the_planet() -> void:
 	assert_almost_eq(_ship.pilot_spin(), Vector3.ZERO, Vector3.ONE * 0.001, "no spin against the orbit")
 
 
-func test_w_leaves_and_flies_on() -> void:
+func test_o_levels_out_and_flies_on_without_sinking() -> void:
 	await _enter()
+	var height := _planet.surface_distance(_ship.global_position)
+	_ship.input.toggle_orbit = true
+	await wait_physics_frames(2)
+	assert_eq(_ship.orbit.phase, Orbit.Phase.LEAVING, "levelling out first")
+	await wait_physics_frames(roundi(_ship.orbit_tuning.level_time * 60.0) + 2)
+	assert_false(_ship.orbit.active(), "then out of orbit")
+	assert_true(_ship.assist_on())
+	assert_almost_eq(_ship.held_speed(), _planet.orbit_speed, 1.0, "flight assist holds the orbit's whole speed")
+	assert_lt(rad_to_deg(_ship.linear_velocity.angle_to(-_ship.global_basis.z)), 1.0, "along the nose")
+	for i in 10:
+		await wait_physics_frames(60)
+		var now := _planet.surface_distance(_ship.global_position)
+		assert_gt(now, height - 1.0, "never sinking toward the planet (%.1f m, from %.1f m)" % [now, height])
+		height = now
+
+
+func test_w_levels_out_and_flies_on() -> void:
+	await _enter()
+	var height := _planet.surface_distance(_ship.global_position)
 	_ship.input.thrust.z = 1.0
 	await wait_physics_frames(2)
-	assert_false(_ship.orbit.active(), "thrust leaves orbit")
+	assert_eq(_ship.orbit.phase, Orbit.Phase.LEAVING, "thrust leaves orbit, levelling out first")
+	await wait_physics_frames(roundi(_ship.orbit_tuning.level_time * 60.0) + 2)
+	assert_false(_ship.orbit.active())
+	await wait_physics_frames(60)
 	_ship.input.thrust = Vector3.ZERO
 	await wait_physics_frames(120)
-	# The nose is dipped toward the planet, so the speed along it is a share of the orbit's, plus W's push.
-	assert_gt(_ship.held_speed(), 50.0, "flight assist holds about the speed it had along the nose")
+	assert_gt(_ship.held_speed(), _planet.orbit_speed, "W speeds up from the orbit's speed")
 	assert_almost_eq(_ship.speed(), _ship.held_speed(), 0.5)
+	assert_gt(_planet.surface_distance(_ship.global_position), height - 1.0, "and the ship hasn't sunk")
 
 
 func test_x_leaves_and_stops() -> void:
@@ -86,6 +108,7 @@ func test_the_cruise_drive_takes_over_from_the_orbit() -> void:
 	_ship.input.toggle_cruise = true
 	await wait_physics_frames(roundi(_ship.cruise_tuning.charge_time * 60.0) - 10)
 	assert_true(_ship.orbit.active(), "still in orbit while the drive charges")
+	assert_eq(FlightHud.mode_of(_ship), FlightHud.Mode.CHARGING, "and the HUD says the drive is charging")
 	await wait_physics_frames(14)
 	# Nothing in the drive's way here (it knows no places), so it engages and the orbit gives way.
 	assert_true(_ship.cruise.active(), "the drive engages")

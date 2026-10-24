@@ -36,10 +36,12 @@ func _body(display_name: String, at: Vector3, radius: float, low: float, high: f
 	return b
 
 
-## One tick: the orbit steps, then the ship moves at the orbit's velocity while in it (or keeps its own).
-func _tick(toggle: bool = false, leave: bool = false, jolt: float = 0.0, can_enter: bool = true) -> void:
+## One tick: the orbit steps, then the ship moves at the orbit's velocity while in it (or keeps its own). `leave` is a
+## thrust key, `drop` X or Z.
+func _tick(toggle: bool = false, leave: bool = false, jolt: float = 0.0, can_enter: bool = true,
+		drop: bool = false) -> void:
 	var was := _orbit.active()
-	_orbit.step(_at, _velocity, Vector3.FORWARD, toggle, leave, jolt, can_enter, DT)
+	_orbit.step(_at, _velocity, Vector3.FORWARD, toggle, leave, drop, jolt, can_enter, DT)
 	if _orbit.event != Orbit.Event.NONE:
 		_events.append(_orbit.event)
 	if _orbit.active() or was:
@@ -173,18 +175,73 @@ func test_the_frame_turns_once_per_lap() -> void:
 	assert_almost_eq(_orbit.spin.normalized(), _orbit.axis, Vector3.ONE * 0.0001)
 
 
-func test_o_again_or_any_other_flying_leaves_keeping_the_velocity() -> void:
+func test_o_again_or_thrust_levels_out_then_leaves_keeping_the_velocity() -> void:
 	_velocity = Vector3(90, 0, 0)
 	_settle()
 	var before := _velocity
+	var height := _planet.surface_distance(_at)
 	_tick(true)
+	assert_eq(_events.back(), Orbit.Event.LEAVING)
+	assert_eq(_orbit.phase, Orbit.Phase.LEAVING)
+	assert_eq(_orbit.spin, Vector3.ZERO, "no longer turning with the orbit")
+	for i in roundi(_tuning.level_time / DT) - 2:
+		_tick()
+	assert_eq(_orbit.phase, Orbit.Phase.LEAVING, "levelling out for OrbitTuning.level_time")
+	_tick()
+	_tick()
 	assert_false(_orbit.active())
 	assert_eq(_events.back(), Orbit.Event.LEFT)
-	assert_eq(_velocity, before, "the ship keeps the velocity it had")
-	assert_eq(_orbit.spin, Vector3.ZERO)
+	assert_eq(_velocity, before, "the ship carried straight on at the velocity it had")
+	assert_gt(_planet.surface_distance(_at), height, "a little higher, never lower")
 	_settle()
 	_tick(false, true)
-	assert_eq(_events.back(), Orbit.Event.LEFT, "thrust, X or Z leave too")
+	assert_eq(_events.back(), Orbit.Event.LEAVING, "a thrust key levels out too")
+
+
+func test_x_or_z_leave_at_once() -> void:
+	_velocity = Vector3(90, 0, 0)
+	_settle()
+	var before := _velocity
+	_tick(false, false, 0.0, true, true)
+	assert_false(_orbit.active())
+	assert_eq(_events.back(), Orbit.Event.LEFT)
+	assert_eq(_velocity, before)
+	_settle()
+	_tick(true)
+	_tick(false, false, 0.0, true, true)
+	assert_eq(_events.back(), Orbit.Event.LEFT, "also while levelling out")
+
+
+func test_moving_the_mouse_while_levelling_out_hands_the_ship_back() -> void:
+	_velocity = Vector3(90, 0, 0)
+	_settle()
+	_tick(true)
+	_orbit.turn_for(Basis.IDENTITY, _at, Vector3(0.5, 0, 0), Vector3.ONE)
+	_tick()
+	assert_false(_orbit.active())
+	assert_eq(_events.back(), Orbit.Event.LEFT)
+
+
+func test_levelling_out_turns_the_nose_level_along_the_velocity_in_time() -> void:
+	_velocity = Vector3(90, 0, 0)
+	_settle()
+	var ship := _orbit.facing(_at)
+	assert_gt(rad_to_deg((-ship.z).angle_to(_velocity)), 20.0, "the nose starts dipped well below the velocity")
+	_tick(true)
+	var steps := 0
+	while _orbit.phase == Orbit.Phase.LEAVING:
+		var w := _orbit.level_spin(ship, DT)
+		if w.length() > 1.0e-9:
+			ship = Basis(w.normalized(), w.length() * DT) * ship
+		_tick()
+		steps += 1
+	assert_almost_eq(steps, roundi(_tuning.level_time / DT), 1)
+	assert_lt(rad_to_deg((-ship.z).angle_to(_velocity)), 0.5, "the nose is along the velocity")
+	assert_lt(rad_to_deg(ship.y.angle_to(_at.normalized())), 0.5, "the planet straight below")
+
+
+func test_a_hard_bump_knocks_it_out() -> void:
+	_velocity = Vector3(90, 0, 0)
 	_settle()
 	_tick(false, false, _tuning.bump_limit + 0.5)
 	assert_eq(_events.back(), Orbit.Event.BUMPED, "a hard bump knocks it out")

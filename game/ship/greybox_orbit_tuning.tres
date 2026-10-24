@@ -14,3 +14,4 @@ bump_limit = 3.0
 horizon_above = 5.0
 turn_time = 0.8
 turn_tolerance = 0.5
+level_time = 1.0

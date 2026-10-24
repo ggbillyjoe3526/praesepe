@@ -14,6 +14,10 @@ const ORBIT_COLOUR := Color(0.78, 0.72, 1.0)
 ## Where the plate sits: its bottom this far (px at 1080p) above the screen's bottom, above the cockpit's dashboard
 ## and the chase view's plate, a little under the middle of the view.
 const BOTTOM := 400.0
+## The state keys below fold their parts together like a hash: each part times MIX, and the distance's own key
+## (LandmarkMarkers.distance_key, always far under DISTANCE_KEYS) added last, so different states give different keys.
+const MIX := 31
+const DISTANCE_KEYS := 1000003
 
 @export var ship: Ship
 @export var arrivals: Arrivals
@@ -87,6 +91,8 @@ static func orbit_text(phase: Orbit.Phase, body: CelestialBody, why: Orbit.Refus
 			return "Entering orbit round %s   ·   O to cancel" % body.display_name
 		Orbit.Phase.ORBITING:
 			return "O   Leave orbit round %s" % body.display_name
+		Orbit.Phase.LEAVING:
+			return "Levelling out to leave orbit round %s" % body.display_name
 	match why:
 		Orbit.Refusal.NONE:
 			return "O   Enter orbit round %s" % body.display_name
@@ -104,7 +110,7 @@ func _port_state() -> int:
 	var shown := 0
 	if arrivals.refusal == Arrivals.Refusal.TOO_FAR and arrivals.nearest_distance < INF:
 		shown = LandmarkMarkers.distance_key(arrivals.nearest_distance)
-	return ((id * 31 + arrivals.stage) * 31 + arrivals.refusal) * 1000003 + shown
+	return ((id * MIX + arrivals.stage) * MIX + arrivals.refusal) * DISTANCE_KEYS + shown
 
 
 ## A number that changes exactly when the orbit line's words do.
@@ -112,7 +118,7 @@ func _orbit_state() -> int:
 	var o := ship.orbit
 	var b := o.body if o.active() else o.offered
 	var id := b.get_instance_id() if b != null else 0
-	return ((id * 31 + arrivals.stage) * 31 + o.phase) * 31 + o.refusal
+	return ((id * MIX + arrivals.stage) * MIX + o.phase) * MIX + o.refusal
 
 
 func _build() -> void:

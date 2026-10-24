@@ -25,7 +25,10 @@ const ORBIT_COLOUR := Color(0.78, 0.72, 1.0)
 const BERTH_COLOUR := Color(0.92, 0.95, 1.0)
 ## What the second readout line shows: flight assist off or on, the cruise drive charging or cruising, entering or in
 ## orbit, docked or landed, or leaving.
-enum Mode { ASSIST_OFF, ASSIST_ON, CHARGING, CRUISING, ENTERING_ORBIT, ORBITING, DOCKED, LANDED, UNDOCKING, TAKING_OFF }
+enum Mode {
+	ASSIST_OFF, ASSIST_ON, CHARGING, CRUISING, ENTERING_ORBIT, ORBITING, LEAVING_ORBIT, DOCKED, LANDED, UNDOCKING,
+	TAKING_OFF,
+}
 const NOSE_ARMS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 ## Sizes in px at 1080p: the nose mark's arms, the mouse stick's ring (a full push) and dot, and the velocity markers.
 const NOSE_GAP := 6.0
@@ -107,16 +110,19 @@ static func mode_of(ship: Ship) -> Mode:
 		if ship.guided:
 			return Mode.UNDOCKING if dock else Mode.TAKING_OFF
 		return Mode.DOCKED if dock else Mode.LANDED
-	match ship.orbit.phase:
-		Orbit.Phase.ENTERING:
-			return Mode.ENTERING_ORBIT
-		Orbit.Phase.ORBITING:
-			return Mode.ORBITING
+	# The drive can charge while still in orbit (engaging is what leaves it), so it is asked first.
 	match ship.cruise.phase:
 		CruiseDrive.Phase.CHARGING:
 			return Mode.CHARGING
 		CruiseDrive.Phase.CRUISING:
 			return Mode.CRUISING
+	match ship.orbit.phase:
+		Orbit.Phase.ENTERING:
+			return Mode.ENTERING_ORBIT
+		Orbit.Phase.ORBITING:
+			return Mode.ORBITING
+		Orbit.Phase.LEAVING:
+			return Mode.LEAVING_ORBIT
 	return Mode.ASSIST_ON if ship.assist_on() else Mode.ASSIST_OFF
 
 
@@ -131,6 +137,8 @@ static func mode_text(mode: Mode, held: int) -> String:
 			return "ENTERING ORBIT  ·  O to cancel"
 		Mode.ORBITING:
 			return "IN ORBIT  ·  O or thrust to leave"
+		Mode.LEAVING_ORBIT:
+			return "LEAVING ORBIT  ·  levelling out"
 		Mode.DOCKED:
 			return "DOCKED  ·  G to undock"
 		Mode.LANDED:
@@ -148,7 +156,7 @@ static func mode_colour(mode: Mode) -> Color:
 			return OFF_COLOUR
 		Mode.ASSIST_ON:
 			return ON_COLOUR
-		Mode.ENTERING_ORBIT, Mode.ORBITING:
+		Mode.ENTERING_ORBIT, Mode.ORBITING, Mode.LEAVING_ORBIT:
 			return ORBIT_COLOUR
 		Mode.DOCKED, Mode.LANDED, Mode.UNDOCKING, Mode.TAKING_OFF:
 			return BERTH_COLOUR
@@ -187,6 +195,8 @@ static func orbit_message(event: Orbit.Event, body: String, why: Orbit.Refusal) 
 			return "Entering orbit round %s" % body
 		Orbit.Event.SETTLED:
 			return "In orbit round %s  ·  O or any thrust key to leave" % body
+		Orbit.Event.LEAVING:
+			return "Levelling out to leave orbit"
 		Orbit.Event.LEFT:
 			return "Left orbit"
 		Orbit.Event.BUMPED:
