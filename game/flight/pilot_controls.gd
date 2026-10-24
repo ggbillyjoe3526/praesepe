@@ -14,6 +14,8 @@ var _mouse: Vector2 = Vector2.ZERO
 var _toggle_assist: bool = false
 var _toggle_cruise: bool = false
 var _full_stop: bool = false
+var _toggle_orbit: bool = false
+var _dock: bool = false
 
 
 func _ready() -> void:
@@ -42,6 +44,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_full_stop = true
 	elif event.is_action_pressed(&"toggle_cruise"):
 		_toggle_cruise = true
+	elif event.is_action_pressed(&"toggle_orbit"):
+		_toggle_orbit = true
+	elif event.is_action_pressed(&"dock"):
+		_dock = true
 
 
 func _physics_process(delta: float) -> void:
@@ -59,9 +65,13 @@ func _physics_process(delta: float) -> void:
 	input.toggle_assist = input.toggle_assist or _toggle_assist
 	input.full_stop = input.full_stop or _full_stop
 	input.toggle_cruise = input.toggle_cruise or _toggle_cruise
+	input.toggle_orbit = input.toggle_orbit or _toggle_orbit
+	input.dock = input.dock or _dock
 	_toggle_assist = false
 	_toggle_cruise = false
 	_full_stop = false
+	_toggle_orbit = false
+	_dock = false
 
 
 func _notification(what: int) -> void:

@@ -1,0 +1,236 @@
+extends GutTest
+## Parking in orbit (design doc, "Orbit"), run directly at the game's 60 Hz tick with the ship moved by the orbit's
+## velocity: what is offered where, entering the way the ship heads, settling at the height it levels out at, holding
+## that height and speed round and round, the attitude turning with the orbit, and every way of leaving. The planet is
+## a plain sphere with the greybox ship's orbit tuning.
+
+const DT := 1.0 / 60.0
+
+var _tuning: OrbitTuning
+var _orbit: Orbit
+var _planet: CelestialBody
+var _at: Vector3
+var _velocity: Vector3
+var _events: Array[Orbit.Event] = []
+
+
+func before_each() -> void:
+	_tuning = load("res://game/ship/greybox_orbit_tuning.tres")
+	_orbit = Orbit.new(_tuning)
+	_planet = _body("Test planet", Vector3.ZERO, 6000.0, 500.0, 4000.0, 90.0)
+	_at = Vector3(0, 0, 6000.0 + 1500.0)
+	_velocity = Vector3.ZERO
+	_events.clear()
+
+
+func _body(display_name: String, at: Vector3, radius: float, low: float, high: float, speed: float) -> CelestialBody:
+	var b := CelestialBody.new()
+	b.display_name = display_name
+	b.radius = radius
+	b.orbit_min_altitude = low
+	b.orbit_max_altitude = high
+	b.orbit_speed = speed
+	add_child_autofree(b)
+	b.global_position = at
+	_orbit.bodies.append(b)
+	return b
+
+
+## One tick: the orbit steps, then the ship moves at the orbit's velocity while in it (or keeps its own).
+func _tick(toggle: bool = false, leave: bool = false, jolt: float = 0.0, can_enter: bool = true) -> void:
+	var was := _orbit.active()
+	_orbit.step(_at, _velocity, Vector3.FORWARD, toggle, leave, jolt, can_enter, DT)
+	if _orbit.event != Orbit.Event.NONE:
+		_events.append(_orbit.event)
+	if _orbit.active() or was:
+		_velocity = _orbit.velocity
+	_at += _velocity * DT
+
+
+func _ticks(seconds: float) -> void:
+	for i in roundi(seconds / DT):
+		_tick()
+
+
+## Enters orbit and waits until it has settled.
+func _settle(limit: float = 60.0) -> void:
+	_tick(true)
+	for i in roundi(limit / DT):
+		_tick()
+		if _orbit.settled():
+			return
+
+
+func _height() -> float:
+	return _planet.surface_distance(_at)
+
+
+func test_offers_the_nearest_body_below_its_highest_orbit() -> void:
+	var moon := _body("Test moon", Vector3(30000, 0, 0), 1500.0, 300.0, 2500.0, 45.0)
+	_tick()
+	assert_eq(_orbit.offered, _planet, "1.5 km up: the planet")
+	assert_eq(_orbit.refusal, Orbit.Refusal.NONE)
+	_at = Vector3(30000, 0, 1500.0 + 2000.0)
+	_tick()
+	assert_eq(_orbit.offered, moon, "2 km above the moon")
+	_at = Vector3(0, 0, 6000.0 + 4100.0)
+	_tick()
+	assert_null(_orbit.offered, "above the planet's highest orbit: nothing")
+	assert_eq(_orbit.refusal, Orbit.Refusal.FAR)
+
+
+func test_nothing_is_offered_while_cruising() -> void:
+	_tick(false, false, 0.0, false)
+	assert_null(_orbit.offered)
+	_tick(true, false, 0.0, false)
+	assert_false(_orbit.active(), "O does nothing while cruising")
+
+
+func test_refuses_too_fast_or_diving_too_steeply() -> void:
+	_velocity = Vector3(_tuning.max_entry_speed + 10.0, 0, 0)
+	_tick(true)
+	assert_false(_orbit.active())
+	assert_eq(_events, [Orbit.Event.REFUSED] as Array[Orbit.Event])
+	assert_eq(_orbit.refusal, Orbit.Refusal.TOO_FAST)
+	# 600 m up, falling at 200 m/s: it couldn't level out above the surface.
+	_at = Vector3(0, 0, 6600.0)
+	_velocity = Vector3(0, 0, -200.0)
+	_tick(true)
+	assert_eq(_orbit.refusal, Orbit.Refusal.TOO_STEEP)
+	assert_false(_orbit.active())
+	# Slower, it can.
+	_velocity = Vector3(0, 0, -40.0)
+	_tick(true)
+	assert_true(_orbit.active())
+
+
+func test_o_far_from_everything_is_refused_with_no_body() -> void:
+	_at = Vector3(0, 0, 50000.0)
+	_tick(true)
+	assert_eq(_events, [Orbit.Event.REFUSED] as Array[Orbit.Event])
+	assert_null(_orbit.offered)
+
+
+func test_goes_round_the_way_the_ship_was_heading() -> void:
+	_velocity = Vector3(80, 0, 0)
+	_settle()
+	assert_true(_orbit.settled(), "settled")
+	assert_eq(_events, [Orbit.Event.ENTERING, Orbit.Event.SETTLED] as Array[Orbit.Event])
+	assert_gt(_velocity.x, 89.0, "still heading +x")
+	assert_almost_eq(_velocity.length(), _planet.orbit_speed, 0.01, "at the orbit's speed")
+	assert_almost_eq(_orbit.axis, Vector3(0, 1, 0), Vector3.ONE * 0.001, "round the planet's y axis")
+
+
+func test_holds_its_height_and_speed_all_the_way_round() -> void:
+	_velocity = Vector3(0, 60, 0)
+	_settle()
+	var h := _height()
+	assert_almost_eq(h, 1500.0, _tuning.settle_tolerance + 1.0, "levelled out where it was, moving sideways")
+	var start := _at
+	var lap := TAU * _at.length() / _planet.orbit_speed
+	for i in roundi(lap / DT):
+		_tick()
+		if i % 60 == 0:
+			assert_almost_eq(_height(), h, 1.0, "height after %d s" % (i / 60))
+			assert_almost_eq(_velocity.length(), _planet.orbit_speed, 0.01, "speed after %d s" % (i / 60))
+	assert_lt(_at.distance_to(start), 60.0, "back where it started after one lap (%.1f m)" % _at.distance_to(start))
+	assert_eq(_events, [Orbit.Event.ENTERING, Orbit.Event.SETTLED] as Array[Orbit.Event], "never dropped out")
+
+
+func test_coming_in_steeply_settles_lower_rather_than_bouncing() -> void:
+	_at = Vector3(0, 0, 6000.0 + 2000.0)
+	_velocity = Vector3(0, 0, -150.0)
+	_settle()
+	assert_true(_orbit.settled())
+	# Stopping 150 m/s at 25 m/s² takes 450 m, while it also swings sideways; it settles below where it started.
+	assert_between(_height(), 1400.0, 1800.0)
+	assert_almost_eq(_orbit.radius, _at.length(), _tuning.settle_tolerance)
+
+
+func test_entering_below_the_lowest_orbit_climbs_to_it() -> void:
+	_at = Vector3(0, 0, 6000.0 + 200.0)
+	_velocity = Vector3(50, 0, 0)
+	_settle()
+	assert_true(_orbit.settled())
+	assert_almost_eq(_height(), _planet.orbit_min_altitude, _tuning.settle_tolerance)
+
+
+func test_the_swing_onto_the_orbit_is_never_sharper_than_the_thrusters() -> void:
+	_velocity = Vector3(0, 0, 100.0)
+	_tick(true)
+	var last := _velocity
+	for i in 600:
+		_tick()
+		var change := last.distance_to(_velocity) / DT
+		assert_lt(change, _tuning.entry_accel + 0.5, "tick %d: %.2f m/s²" % [i, change])
+		last = _velocity
+
+
+func test_the_frame_turns_once_per_lap() -> void:
+	_velocity = Vector3(90, 0, 0)
+	_settle()
+	assert_almost_eq(_orbit.spin.length(), _planet.orbit_speed / _at.length(), 0.00001)
+	assert_almost_eq(_orbit.spin.normalized(), _orbit.axis, Vector3.ONE * 0.0001)
+
+
+func test_o_again_or_any_other_flying_leaves_keeping_the_velocity() -> void:
+	_velocity = Vector3(90, 0, 0)
+	_settle()
+	var before := _velocity
+	_tick(true)
+	assert_false(_orbit.active())
+	assert_eq(_events.back(), Orbit.Event.LEFT)
+	assert_eq(_velocity, before, "the ship keeps the velocity it had")
+	assert_eq(_orbit.spin, Vector3.ZERO)
+	_settle()
+	_tick(false, true)
+	assert_eq(_events.back(), Orbit.Event.LEFT, "thrust, X or Z leave too")
+	_settle()
+	_tick(false, false, _tuning.bump_limit + 0.5)
+	assert_eq(_events.back(), Orbit.Event.BUMPED, "a hard bump knocks it out")
+	_settle()
+	_tick(false, false, _tuning.bump_limit - 0.5)
+	assert_true(_orbit.active(), "a nudge doesn't")
+
+
+func test_facing_puts_the_horizon_just_above_the_middle_of_the_view() -> void:
+	_velocity = Vector3(90, 0, 0)
+	_settle()
+	var f := _orbit.facing(_at)
+	var forward := -f.z
+	assert_almost_eq(forward.dot(f.y), 0.0, 0.0001, "an upright attitude")
+	assert_gt(forward.dot(_velocity.normalized()), 0.5, "facing along the orbit")
+	assert_gt(f.y.dot(_at.normalized()), 0.5, "the planet below")
+	# The horizon, seen from here, is this far below level; the view's middle sits horizon_above under it.
+	var dip := rad_to_deg(acos(_planet.radius / _at.length()))
+	var below_level := rad_to_deg(asin(-forward.dot(_at.normalized())))
+	assert_almost_eq(below_level - dip, _tuning.horizon_above, 0.01)
+
+
+func test_steer_turns_the_right_way_on_each_axis() -> void:
+	var rates := Vector3(1, 1, 1)
+	assert_almost_eq(Orbit.steer(Basis.IDENTITY, Basis.IDENTITY, rates, 1.0), Vector3.ZERO, Vector3.ONE * 0.0001)
+	var yawed_right := Basis(Vector3.UP, -0.2)
+	assert_gt(Orbit.steer(Basis.IDENTITY, yawed_right, rates, 1.0).y, 0.0, "yaw right")
+	var pitched_up := Basis(Vector3.RIGHT, 0.2)
+	assert_gt(Orbit.steer(Basis.IDENTITY, pitched_up, rates, 1.0).x, 0.0, "pitch up")
+	var rolled_right := Basis(Vector3.FORWARD, 0.2)
+	assert_gt(Orbit.steer(Basis.IDENTITY, rolled_right, rates, 1.0).z, 0.0, "roll right")
+	assert_almost_eq(Orbit.steer(Basis.IDENTITY, Basis(Vector3.UP, -3.0), rates, 0.1).y, 1.0, 0.0001, "never past full")
+	# Nose straight down to level and rolled a quarter turn: one rotation, every axis toward it.
+	var big := Basis(Vector3.FORWARD, 0.6) * Basis(Vector3.RIGHT, 1.2)
+	var turn := Orbit.steer(Basis.IDENTITY, big, rates, 10.0)
+	assert_gt(turn.x, 0.0, "pitches up")
+	assert_gt(turn.z, 0.0, "rolls right")
+
+
+func test_the_pilots_stick_takes_the_view_back() -> void:
+	_velocity = Vector3(90, 0, 0)
+	_tick(true)
+	assert_true(_orbit.turning)
+	var auto := _orbit.turn_for(Basis.IDENTITY, _at, Vector3.ZERO, Vector3.ONE)
+	assert_ne(auto, Vector3.ZERO, "the orbit steers while the stick is still")
+	var mine := Vector3(0.5, 0, 0)
+	assert_eq(_orbit.turn_for(Basis.IDENTITY, _at, mine, Vector3.ONE), mine, "a push hands it back")
+	assert_false(_orbit.turning)
+	assert_eq(_orbit.turn_for(Basis.IDENTITY, _at, Vector3.ZERO, Vector3.ONE), Vector3.ZERO, "and it stays the pilot's")

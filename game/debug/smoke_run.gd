@@ -17,14 +17,23 @@ extends Node
 ## the station, the moon and the planet's base, an order whose straight lines miss everything), engages the drive,
 ## steers for the place and checks the drive drops out there by itself, on arrival, at the speed flight assist then
 ## holds, with no bump on the way. Last it cruises up into open space and drops out with F, then again with X, which
-## also brings the ship to a stop. The result line names the belt's fingerprint and when each arrival came, so a second
-## run on the same seed must match it exactly.
+## also brings the ship to a stop.
+##
+## Then it parks in orbit, lands, takes off, docks and undocks: it cruises to Calder, presses O and checks the ship
+## settles into orbit at the orbit's speed and holds its height and its view of the planet; O leaves orbit and flight
+## assist carries on; O again re-enters it, and G lands at Tollgate from orbit, through the transition screen, the
+## ship held still on the pad and the game autosaved (to the smoke test's own file, read back to check). G takes off,
+## the ship climbs clear of the base and cruises to Halfway Station, slows down, docks (saved again) and undocks out
+## of the bay. The result line names the belt's fingerprint and when each arrival, the orbit, the landing and the
+## docking came, so a second run on the same seed must match it exactly.
 ##
 ## Ticks are physics ticks at 60 Hz. tools/smoke_test.sh runs with `--fixed-fps 60`, so a run is the same every time
 ## and finishes as fast as the machine allows.
 
 ## tools/smoke_test.sh fails unless this line is printed.
 const PASS_LINE := "SMOKE: ok"
+## Where the smoke test's autosaves go: never the player's save.
+const SAVE_PATH := "user://smoke_savegame.json"
 const ACCELERATE := 600
 const HOLD := 180
 const TURN := 90
@@ -56,12 +65,29 @@ const AIM_TOLERANCE := 1.5
 const STEER_TIME := 0.6
 ## How long (ticks) to cruise into open space before dropping out by hand.
 const OPEN_CRUISE := 480
+## How long (ticks) the orbit may take to settle, and how long it is then watched.
+const ORBIT_SETTLE_LIMIT := 1800
+const ORBIT_WATCH := 900
+## How long (ticks) the autopilot flies on after leaving orbit before checking flight assist has it.
+const AFTER_ORBIT := 150
+## How long (ticks) docking or landing may take, from G to the view being back, and leaving.
+const ARRIVAL_LIMIT := 600
+## How long (ticks) the ship is watched sitting at its berth.
+const BERTH_WATCH := 60
+## How far (m) from the base's middle the ship climbs after taking off, clear of its buildings for the cruise drive.
+const CLEAR_OF_BASE := 320.0
+## The approach to the station's dock: the speed (m/s) the autopilot slows to, and how long (ticks) it may take.
+const APPROACH_SPEED := 80.0
+const APPROACH_LIMIT := 2400
 
 var ship: Ship
 var origin: FloatingOrigin
 var pause: PauseScreen
 var cameras: ShipCameras
 var system: SolarSystem
+var arrivals: Arrivals
+var autosave: Autosave
+var transition: TransitionScreen
 
 var _frames: int = 0
 var _phase: int = 0
@@ -85,6 +111,13 @@ var _arrivals: PackedStringArray = PackedStringArray()
 var _event: CruiseDrive.Event = CruiseDrive.Event.NONE
 var _event_place: Landmark = null
 var _event_tick: int = 0
+var _orbit_event: Orbit.Event = Orbit.Event.NONE
+var _orbit_height: float = 0.0
+var _orbit_view: float = 0.0
+var _orbit_start: Vector3 = Vector3.ZERO
+var _arrived_at: Port = null
+## Checked the ship at its berth, and now watching it sit there.
+var _at_berth: bool = false
 
 
 func _ready() -> void:
@@ -92,11 +125,28 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_physics_priority = FlightOrder.CONTROLS
 	ship.cruise_changed.connect(_on_cruise_changed)
+	ship.orbit_changed.connect(_on_orbit_changed)
+	Events.arrived.connect(_on_arrived)
+	SaveFile.remove(SAVE_PATH)
 
 
 func _exit_tree() -> void:
 	if ship.cruise_changed.is_connected(_on_cruise_changed):
 		ship.cruise_changed.disconnect(_on_cruise_changed)
+	if ship.orbit_changed.is_connected(_on_orbit_changed):
+		ship.orbit_changed.disconnect(_on_orbit_changed)
+	if Events.arrived.is_connected(_on_arrived):
+		Events.arrived.disconnect(_on_arrived)
+
+
+func _on_orbit_changed(event: Orbit.Event, _body: CelestialBody) -> void:
+	_orbit_event = event
+
+
+## Docking or landing moved the ship to its berth: start the movement check afresh from there.
+func _on_arrived(port: Port) -> void:
+	_arrived_at = port
+	_last_true = PackedFloat64Array()
 
 
 func _on_cruise_changed(event: CruiseDrive.Event, place: Landmark) -> void:
@@ -208,7 +258,34 @@ func _physics_process(_delta: float) -> void:
 		11:
 			if ship.speed() < 0.05 or _phase_ticks >= STOP_LIMIT:
 				_expect(ship.speed() < 0.05, "stops after X drops it out of cruise (%.2f m/s)" % ship.speed())
-				_finish()
+				_next()
+		12: # Cruise to Calder.
+			if _visit(input, system.landmark("Calder")):
+				_next()
+		13:
+			_orbit_step(input)
+		14: # Leave orbit with O: flight assist takes over at the speed the ship had along its nose.
+			if _phase_ticks == 1:
+				input.toggle_orbit = true
+			elif _phase_ticks == 2:
+				_expect(_orbit_event == Orbit.Event.LEFT and not ship.orbit.active(), "leaves orbit with O")
+			elif _phase_ticks >= AFTER_ORBIT:
+				var slip := rad_to_deg(ship.linear_velocity.angle_to(_forward()))
+				_expect(ship.assist_on() and absf(ship.speed() - ship.held_speed()) < 0.5 and slip < 1.0,
+						"flies on with flight assist after leaving orbit (%.2f m/s, set %.2f, %.2f degrees off the nose)"
+						% [ship.speed(), ship.held_speed(), slip])
+				_next()
+		15: # Back into orbit, and land at Tollgate from it.
+			_land_from_orbit(input)
+		16: # Take off, then climb clear of the base's buildings.
+			_take_off(input)
+		17: # Cruise to the station.
+			if _visit(input, system.landmark("Halfway Station")):
+				_next()
+		18:
+			_dock_at_station(input)
+		19:
+			_undock(input)
 
 
 func _while_paused() -> void:
@@ -312,8 +389,18 @@ func _tour_step(input: ShipInput) -> void:
 	var place := system.landmark(TOUR[_tour])
 	if place == null:
 		_expect(false, "finds %s in the solar system" % TOUR[_tour])
-		_next()
+		_next_place()
 		return
+	if _visit(input, place):
+		_next_place()
+
+
+## Points at `place`, engages the cruise drive, cruises there and checks it dropped out on arrival and that flight
+## assist then holds the exit speed. True once done (or given up on).
+func _visit(input: ShipInput, place: Landmark) -> bool:
+	if place == null:
+		_expect(false, "finds a place to cruise to")
+		return true
 	input.turn = _steer_toward(place.marker_position())
 	match _stage:
 		0: # Point at it, then press F.
@@ -325,12 +412,13 @@ func _tour_step(input: ShipInput) -> void:
 				_phase_ticks = 0
 			elif _phase_ticks >= AIM_LIMIT:
 				_expect(false, "points at %s" % place.display_name)
-				_next_place()
+				_stage = 0
+				return true
 		1: # Charging, then cruising, until the drive drops out.
 			_cruise_top = maxf(_cruise_top, ship.speed())
 			var charge_ticks := roundi(ship.cruise_tuning.charge_time * Engine.physics_ticks_per_second)
 			if _phase_ticks == charge_ticks + 2:
-				_expect(ship.cruise.active(), "engages the cruise drive after charging, near %s" % TOUR[maxi(_tour - 1, 0)])
+				_expect(ship.cruise.active(), "engages the cruise drive after charging, for %s" % place.display_name)
 			if ship.cruise.active():
 				_expect(ship.jolt < 0.5, "cruises without a bump (%.2f m/s)" % ship.jolt)
 			if _event in [CruiseDrive.Event.ARRIVED, CruiseDrive.Event.DROPPED, CruiseDrive.Event.SAFETY,
@@ -341,12 +429,15 @@ func _tour_step(input: ShipInput) -> void:
 			elif _phase_ticks >= CRUISE_LIMIT:
 				_expect(false, "arrives at %s in time (%.0f m to go)" % [place.display_name,
 						place.surface_distance(ship.global_position)])
-				_next_place()
+				_stage = 0
+				return true
 		2: # A moment later, assist holds the exit speed.
 			if _phase_ticks >= 30:
 				_expect(absf(ship.speed() - ship.cruise_tuning.exit_speed) < 1.0, "holds %.0f m/s after arriving (%.2f)"
 						% [ship.cruise_tuning.exit_speed, ship.speed()])
-				_next_place()
+				_stage = 0
+				return true
+	return false
 
 
 func _check_arrival(place: Landmark) -> void:
@@ -358,6 +449,232 @@ func _check_arrival(place: Landmark) -> void:
 			"drops out at the edge of %s's arrival zone (%.0f m, zone %.0f m)" % [place.display_name, left, place.drop_distance])
 	_expect(_cruise_top > ship.cruise_tuning.min_speed, "cruises faster than its slowest (%.0f m/s)" % _cruise_top)
 	_arrivals.append("%s@%d" % [place.display_name.replace(" ", ""), _event_tick])
+
+
+## Into orbit round Calder with O: it settles at the orbit's speed, then holds its height, its speed and its view of
+## the planet (the nose keeps the same angle to the ground below) while going round, with no bump.
+func _orbit_step(input: ShipInput) -> void:
+	var o := ship.orbit
+	var calder := system.landmark("Calder") as CelestialBody
+	match _stage:
+		0:
+			_expect(o.offered == calder and o.refusal == Orbit.Refusal.NONE, "is offered an orbit round Calder")
+			_expect(ActionPrompts.orbit_text(o.phase, o.offered, o.refusal, o.tuning.max_entry_speed)
+					== "O   Enter orbit round Calder", "shows the prompt to enter orbit")
+			input.toggle_orbit = true
+			_orbit_event = Orbit.Event.NONE
+			_stage = 1
+			_phase_ticks = 0
+		1:
+			if _phase_ticks == 1:
+				_expect(_orbit_event == Orbit.Event.ENTERING and o.active() and o.body == calder,
+						"starts entering orbit round Calder")
+			_expect(ship.jolt < 0.5, "enters orbit without a bump (%.2f m/s)" % ship.jolt)
+			if o.settled() and not o.turning:
+				_expect(absf(ship.speed() - calder.orbit_speed) < 0.05, "goes round at the orbit's speed (%.2f m/s)"
+						% ship.speed())
+				var h := calder.surface_distance(ship.global_position)
+				_expect(h >= calder.orbit_min_altitude - 5.0 and h <= calder.orbit_max_altitude + 5.0,
+						"orbits between Calder's orbit heights (%.0f m up)" % h)
+				_expect(Orbit.lined_up(ship.global_basis, o.facing(ship.global_position), deg_to_rad(1.0)),
+						"turns to face along the orbit with the planet below")
+				_orbit_height = h
+				_orbit_view = _view_angle(calder)
+				_orbit_start = ship.global_position - calder.global_position
+				_arrivals.append("orbit@%d" % _frames)
+				_stage = 2
+				_phase_ticks = 0
+			elif _phase_ticks >= ORBIT_SETTLE_LIMIT:
+				_expect(false, "settles into orbit in time (phase %d, turning %s)" % [o.phase, o.turning])
+				_stage = 0
+				_next()
+		2:
+			_expect(o.settled(), "stays in orbit")
+			var h := calder.surface_distance(ship.global_position)
+			_expect(absf(h - _orbit_height) < 1.0, "holds its orbit's height (%.2f m off)" % (h - _orbit_height))
+			_expect(absf(ship.speed() - calder.orbit_speed) < 0.05, "holds the orbit's speed (%.2f m/s)" % ship.speed())
+			var view := _view_angle(calder)
+			_expect(absf(view - _orbit_view) < 0.5, "keeps its view of the planet (%.2f degrees moved)"
+					% (view - _orbit_view))
+			if _phase_ticks >= ORBIT_WATCH:
+				var swept := rad_to_deg(_orbit_start.angle_to(ship.global_position - calder.global_position))
+				_expect(swept > 5.0, "goes round the planet (%.1f degrees)" % swept)
+				_stage = 0
+				_next()
+
+
+## The angle (degrees) between the ship's nose and straight down to `body`: steady while the view turns with the
+## orbit.
+func _view_angle(body: CelestialBody) -> float:
+	return rad_to_deg(_forward().angle_to(body.global_position - ship.global_position))
+
+
+## O again, then G once landing at Tollgate is offered: the transition screen runs and the ship ends up held still on
+## the pad, the game saved there.
+func _land_from_orbit(input: ShipInput) -> void:
+	var tollgate := system.port(&"tollgate")
+	match _stage:
+		0:
+			input.toggle_orbit = true
+			_stage = 1
+			_phase_ticks = 0
+		1:
+			if _phase_ticks >= 30:
+				_expect(ship.orbit.active(), "re-enters orbit")
+				_expect(arrivals.nearest == tollgate and arrivals.refusal == Arrivals.Refusal.NONE,
+						"is offered landing at Tollgate from orbit (refusal %d)" % arrivals.refusal)
+				_expect(ActionPrompts.port_text(arrivals.stage, arrivals.nearest, arrivals.refusal,
+						arrivals.nearest_distance) == "G   Land at Tollgate", "shows the prompt to land")
+				input.dock = true
+				_arrived_at = null
+				_stage = 2
+				_phase_ticks = 0
+		2:
+			if _await_berth(tollgate, "Landed at Tollgate", FlightHud.Mode.LANDED, "G   Take off"):
+				_stage = 0
+				_next()
+
+
+## Waits for the ship to arrive at `port` and the view to come back, then checks it is held still there, the screen
+## said `words`, the dashboard shows `mode`, the prompt offers `leave_prompt`, and the game was saved there. True when
+## done (or given up on).
+func _await_berth(port: Port, words: String, mode: FlightHud.Mode, leave_prompt: String) -> bool:
+	if _at_berth:
+		return _berth_watch(port)
+	if _phase_ticks == 1:
+		_expect(arrivals.stage == Arrivals.Stage.ARRIVING, "starts the transition to %s (stage %d)" % [port.place_name(),
+				arrivals.stage])
+	if arrivals.stage == Arrivals.Stage.SETTLING and _phase_ticks < ARRIVAL_LIMIT:
+		_expect(transition.cover > 0.99 or _arrived_at == port, "is covered by the transition screen")
+	if arrivals.stage != Arrivals.Stage.DOCKED:
+		if _phase_ticks >= ARRIVAL_LIMIT:
+			_expect(false, "arrives at %s in time (stage %d)" % [port.place_name(), arrivals.stage])
+			return true
+		return false
+	_expect(_arrived_at == port and ship.berth == port, "arrives at %s" % port.place_name())
+	var off := ship.global_position.distance_to(port.global_position)
+	var turned := rad_to_deg(ship.global_basis.z.angle_to(port.global_basis.z))
+	_expect(off < 0.01 and turned < 0.1, "is placed at the berth (%.3f m, %.2f degrees off)" % [off, turned])
+	_expect(not ship.orbit.active() and not ship.cruise.active(), "stops the orbit and the cruise drive")
+	_expect(transition.shown()[0] == words and transition.shown()[1] == TransitionScreen.saved_text(true),
+			"says where it arrived and that the game saved (%s / %s)" % [transition.shown()[0], transition.shown()[1]])
+	_expect(not transition.visible, "brings the view back")
+	var shown := (ship.get_node(^"Cockpit") as CockpitDisplay).shown()
+	_expect(shown[1] == FlightHud.mode_text(mode, 0), "shows it on the dashboard (%s)" % shown[1])
+	_expect(ActionPrompts.port_text(arrivals.stage, arrivals.port, arrivals.refusal, 0.0) == leave_prompt,
+			"offers to leave (%s)" % leave_prompt)
+	_check_save(port)
+	_arrivals.append("%s:%s@%d" % ["dock" if port.kind == Port.Kind.DOCK else "land", String(port.id), _frames])
+	_at_berth = true
+	_phase_ticks = 0
+	return false
+
+
+## Watches the ship sit still at its berth for a moment. True when done.
+func _berth_watch(port: Port) -> bool:
+	_expect(ship.speed() == 0.0 and ship.global_position.distance_to(port.global_position) < 0.01,
+			"sits still at %s" % port.place_name())
+	if _phase_ticks < BERTH_WATCH:
+		return false
+	_at_berth = false
+	return true
+
+
+## The autosave wrote the game with the ship at `port`, and it reads back.
+func _check_save(port: Port) -> void:
+	_expect(autosave.last_ok and autosave.last_berth == port.id, "autosaves at %s" % port.place_name())
+	var r := SaveFile.read(SAVE_PATH, SaveGame.KIND)
+	_expect(r.ok and r.version == SaveGame.VERSION, "reads the autosave back")
+	if r.ok:
+		var world: Dictionary = r.data.get("world", {})
+		_expect(r.data.get("berth") == String(port.id) and int(world.get("world_seed", -1)) == Game.world_seed,
+				"saved the berth and the world (%s, seed %s)" % [r.data.get("berth"), world.get("world_seed")])
+
+
+## G takes off from the pad: the ship rises along the way out, then flight assist has it; then it climbs clear of
+## the base.
+func _take_off(input: ShipInput) -> void:
+	var tollgate := system.port(&"tollgate")
+	match _stage:
+		0:
+			input.dock = true
+			_stage = 1
+			_phase_ticks = 0
+		1:
+			if _phase_ticks == 2:
+				_expect(arrivals.stage == Arrivals.Stage.LEAVING and ship.guided, "starts taking off")
+			if arrivals.stage == Arrivals.Stage.FLYING:
+				var rise := (ship.global_position - tollgate.global_position).dot(tollgate.exit_direction())
+				_expect(absf(rise - tollgate.exit_distance) < 1.0, "rises %.0f m off the pad (%.2f)"
+						% [tollgate.exit_distance, rise])
+				_expect(ship.berth == null and not ship.guided and ship.assist_on(), "hands the ship back")
+				_stage = 2
+				_phase_ticks = 0
+			elif _phase_ticks >= ARRIVAL_LIMIT:
+				_expect(false, "takes off in time")
+				_stage = 2
+		2:
+			input.thrust.y = 1.0
+			var base := system.landmark("Tollgate")
+			if ship.global_position.distance_to(base.global_position) > CLEAR_OF_BASE:
+				input.thrust.y = 0.0
+				input.full_stop = true
+				_stage = 0
+				_next()
+			elif _phase_ticks >= ARRIVAL_LIMIT:
+				_expect(false, "climbs clear of Tollgate")
+				_stage = 0
+				_next()
+
+
+## Flies at the station's dock, slowing to APPROACH_SPEED, until docking is offered; then G docks.
+func _dock_at_station(input: ShipInput) -> void:
+	var dock := system.port(&"halfway_station")
+	match _stage:
+		0:
+			input.turn = _steer_toward(dock.global_position)
+			if ship.speed() > APPROACH_SPEED:
+				input.thrust.z = -1.0
+			if arrivals.nearest == dock and arrivals.refusal == Arrivals.Refusal.NONE:
+				input.dock = true
+				_arrived_at = null
+				_stage = 1
+				_phase_ticks = 0
+			elif _phase_ticks >= APPROACH_LIMIT:
+				_expect(false, "is offered docking at Halfway Station (refusal %d, %.0f m)" % [arrivals.refusal,
+						arrivals.nearest_distance])
+				_stage = 0
+				_next()
+		1:
+			if _await_berth(dock, "Docked at Halfway Station", FlightHud.Mode.DOCKED, "G   Undock"):
+				_stage = 0
+				_next()
+
+
+## G undocks: the ship slides out of the bay along its nose and flight assist holds the speed it left with.
+func _undock(input: ShipInput) -> void:
+	var dock := system.port(&"halfway_station")
+	match _stage:
+		0:
+			input.dock = true
+			_stage = 1
+			_phase_ticks = 0
+		1:
+			if arrivals.stage == Arrivals.Stage.FLYING:
+				var out := (ship.global_position - dock.global_position).dot(dock.exit_direction())
+				_expect(absf(out - dock.exit_distance) < 1.0, "slides %.0f m out of the bay (%.2f)" % [dock.exit_distance,
+						out])
+				_stage = 2
+				_phase_ticks = 0
+			elif _phase_ticks >= ARRIVAL_LIMIT:
+				_expect(false, "undocks in time")
+				_finish()
+		2:
+			_expect(ship.jolt < 0.01, "leaves the bay without touching it (%.3f m/s)" % ship.jolt)
+			if _phase_ticks >= 60:
+				_expect(absf(ship.held_speed() - dock.exit_speed) < 0.5 and absf(ship.speed() - dock.exit_speed) < 0.5,
+						"flies on at %.0f m/s (%.2f, set %.2f)" % [dock.exit_speed, ship.speed(), ship.held_speed()])
+				_finish()
 
 
 func _next_place() -> void:

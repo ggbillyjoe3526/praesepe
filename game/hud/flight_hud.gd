@@ -2,8 +2,9 @@ class_name FlightHud
 extends Control
 ## The flight HUD (design doc, "Flight and camera"): the nose's aim point, the velocity marker showing where the ship
 ## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus the keys and
-## short messages, such as the cruise drive's (CruiseDrive). In the chase view a plate at the bottom also shows speed and flight assist; in the cockpit the
-## dashboard screen shows them (CockpitDisplay), in the same words. Text is rebuilt only when the whole number shown
+## short messages, such as the cruise drive's (CruiseDrive) and the orbit's (Orbit). In the chase view a plate at the
+## bottom also shows speed and flight assist; in the cockpit the dashboard screen shows them (CockpitDisplay), in the
+## same words. Text is rebuilt only when the whole number shown
 ## changes (so while speeding up, not in steady flight; in cruise, speeds over 1 km/s show in tenths of a km/s). A
 ## placeholder look until the art style is chosen.
 
@@ -20,8 +21,11 @@ const STICK_COLOUR := Color(0.92, 0.95, 1.0, 0.5)
 const OFF_COLOUR := Color(1.0, 0.72, 0.3)
 const ON_COLOUR := Color(0.55, 0.95, 0.75)
 const CRUISE_COLOUR := Color(0.55, 0.8, 1.0)
-## What the second readout line shows: flight assist off or on, the cruise drive charging or cruising.
-enum Mode { ASSIST_OFF, ASSIST_ON, CHARGING, CRUISING }
+const ORBIT_COLOUR := Color(0.78, 0.72, 1.0)
+const BERTH_COLOUR := Color(0.92, 0.95, 1.0)
+## What the second readout line shows: flight assist off or on, the cruise drive charging or cruising, entering or in
+## orbit, docked or landed, or leaving.
+enum Mode { ASSIST_OFF, ASSIST_ON, CHARGING, CRUISING, ENTERING_ORBIT, ORBITING, DOCKED, LANDED, UNDOCKING, TAKING_OFF }
 const NOSE_ARMS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 ## Sizes in px at 1080p: the nose mark's arms, the mouse stick's ring (a full push) and dot, and the velocity markers.
 const NOSE_GAP := 6.0
@@ -36,6 +40,7 @@ const LINE_WIDTH := 2.5
 @export var ship: Ship
 @export var cameras: ShipCameras
 @export var controls: PilotControls
+@export var arrivals: Arrivals
 
 var _speed_shown: int = -1
 var _set_shown: int = -1
@@ -55,6 +60,9 @@ func _ready() -> void:
 	if ship != null:
 		ship.assist_changed.connect(_on_assist_changed)
 		ship.cruise_changed.connect(_on_cruise_changed)
+		ship.orbit_changed.connect(_on_orbit_changed)
+	if arrivals != null:
+		arrivals.refused.connect(_on_dock_refused)
 	if cameras != null:
 		cameras.view_changed.connect(_on_view_changed)
 		_readout.visible = cameras.view == ShipCameras.View.CHASE
@@ -67,6 +75,10 @@ func _exit_tree() -> void:
 		ship.assist_changed.disconnect(_on_assist_changed)
 	if ship != null and ship.cruise_changed.is_connected(_on_cruise_changed):
 		ship.cruise_changed.disconnect(_on_cruise_changed)
+	if ship != null and ship.orbit_changed.is_connected(_on_orbit_changed):
+		ship.orbit_changed.disconnect(_on_orbit_changed)
+	if arrivals != null and arrivals.refused.is_connected(_on_dock_refused):
+		arrivals.refused.disconnect(_on_dock_refused)
 	if cameras != null and cameras.view_changed.is_connected(_on_view_changed):
 		cameras.view_changed.disconnect(_on_view_changed)
 	if Settings.changed.is_connected(queue_redraw):
@@ -90,6 +102,16 @@ static func assist_text(on: bool, held: int) -> String:
 
 ## What `ship` is flying in, for the second readout line.
 static func mode_of(ship: Ship) -> Mode:
+	if ship.berth != null:
+		var dock := ship.berth.kind == Port.Kind.DOCK
+		if ship.guided:
+			return Mode.UNDOCKING if dock else Mode.TAKING_OFF
+		return Mode.DOCKED if dock else Mode.LANDED
+	match ship.orbit.phase:
+		Orbit.Phase.ENTERING:
+			return Mode.ENTERING_ORBIT
+		Orbit.Phase.ORBITING:
+			return Mode.ORBITING
 	match ship.cruise.phase:
 		CruiseDrive.Phase.CHARGING:
 			return Mode.CHARGING
@@ -105,6 +127,18 @@ static func mode_text(mode: Mode, held: int) -> String:
 			return "CRUISE CHARGING  ·  F to cancel"
 		Mode.CRUISING:
 			return "CRUISE  ·  F to drop out"
+		Mode.ENTERING_ORBIT:
+			return "ENTERING ORBIT  ·  O to cancel"
+		Mode.ORBITING:
+			return "IN ORBIT  ·  O or thrust to leave"
+		Mode.DOCKED:
+			return "DOCKED  ·  G to undock"
+		Mode.LANDED:
+			return "LANDED  ·  G to take off"
+		Mode.UNDOCKING:
+			return "UNDOCKING"
+		Mode.TAKING_OFF:
+			return "TAKING OFF"
 	return FlightHud.assist_text(mode == Mode.ASSIST_ON, held)
 
 
@@ -114,6 +148,10 @@ static func mode_colour(mode: Mode) -> Color:
 			return OFF_COLOUR
 		Mode.ASSIST_ON:
 			return ON_COLOUR
+		Mode.ENTERING_ORBIT, Mode.ORBITING:
+			return ORBIT_COLOUR
+		Mode.DOCKED, Mode.LANDED, Mode.UNDOCKING, Mode.TAKING_OFF:
+			return BERTH_COLOUR
 	return CRUISE_COLOUR
 
 
@@ -139,6 +177,41 @@ static func cruise_message(event: CruiseDrive.Event, place: String) -> String:
 		CruiseDrive.Event.BUMPED:
 			return "Bump! Dropped out of cruise"
 	return ""
+
+
+## The message for something that happened with an orbit (Orbit.Event) round the body called `body`; `why` says why
+## entering was refused.
+static func orbit_message(event: Orbit.Event, body: String, why: Orbit.Refusal) -> String:
+	match event:
+		Orbit.Event.ENTERING:
+			return "Entering orbit round %s" % body
+		Orbit.Event.SETTLED:
+			return "In orbit round %s  ·  O or any thrust key to leave" % body
+		Orbit.Event.LEFT:
+			return "Left orbit"
+		Orbit.Event.BUMPED:
+			return "Bump! Knocked out of orbit"
+		Orbit.Event.REFUSED:
+			match why:
+				Orbit.Refusal.TOO_FAST:
+					return "Too fast to enter orbit round %s. Slow down first" % body
+				Orbit.Refusal.TOO_STEEP:
+					return "Diving too steeply to enter orbit round %s. Level out first" % body
+			return "Nothing to orbit here. Fly closer to a planet or moon"
+	return ""
+
+
+## The message when G is pressed with nothing offered: `port` is the nearest one, or null, and `why` says why not.
+static func dock_refused_message(port: Port, why: Arrivals.Refusal) -> String:
+	if port == null:
+		return "Nothing to dock at or land on here"
+	var verb := "dock at" if port.kind == Port.Kind.DOCK else "land at"
+	match why:
+		Arrivals.Refusal.TOO_FAST:
+			return "Too fast to %s %s. Slow below %d m/s" % [verb, port.place_name(), roundi(port.max_speed)]
+		Arrivals.Refusal.CRUISING:
+			return "Drop out of cruise (F) to %s %s" % [verb, port.place_name()]
+	return "Come closer to %s %s" % [verb, port.place_name()]
 
 
 func _process(delta: float) -> void:
@@ -176,6 +249,16 @@ func _on_cruise_changed(event: CruiseDrive.Event, place: Landmark) -> void:
 	var warn := event in [CruiseDrive.Event.BLOCKED, CruiseDrive.Event.BLOCKED_INSIDE, CruiseDrive.Event.SAFETY,
 			CruiseDrive.Event.BUMPED]
 	_show_toast(words, OFF_COLOUR if warn else CRUISE_COLOUR)
+
+
+func _on_orbit_changed(event: Orbit.Event, body: CelestialBody) -> void:
+	var words := FlightHud.orbit_message(event, body.display_name if body != null else "", ship.orbit.refusal)
+	var warn := event == Orbit.Event.BUMPED or event == Orbit.Event.REFUSED
+	_show_toast(words, OFF_COLOUR if warn else ORBIT_COLOUR)
+
+
+func _on_dock_refused(port: Port, why: Arrivals.Refusal) -> void:
+	_show_toast(FlightHud.dock_refused_message(port, why), OFF_COLOUR)
 
 
 func _on_view_changed(view: ShipCameras.View) -> void:

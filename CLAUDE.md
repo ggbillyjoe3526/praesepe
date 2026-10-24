@@ -15,6 +15,8 @@ flags. The project instructions hold the full rules; this file holds what is spe
   (settings in `gdlintrc`), `tools/changelog.sh check`.
 - **Seeds are law:** gameplay draws only from `Game.rng(<stream>)` (`game/core/game.gd`); presentation uses
   `Game.FX_STREAM`. Never the global `randi()`/`randf()`.
+- **Event bus:** systems hear about docking, landing and saving through the `Events` autoload
+  (`game/core/events.gd`); every docking and landing goes through `Arrivals.arrive()` (`game/arrival/arrivals.gd`).
 - **Saves** go through `SaveFile` (`game/save/save_file.gd`): atomic write, read-back check, one backup, damaged copies
   set aside and never deleted.
 - **Changelog:** never edit `CHANGELOG.md` in a feature pull request. Add one new file `changelog.d/<short-name>.md`

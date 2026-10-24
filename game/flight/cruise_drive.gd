@@ -103,6 +103,15 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, stop
 				_cruise(at, nose, delta)
 
 
+## Off at once with no event, as when the ship docks or lands.
+func stop() -> void:
+	phase = Phase.OFF
+	speed = 0.0
+	velocity = Vector3.ZERO
+	nearest = null
+	nearest_distance = INF
+
+
 func _engage(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> void:
 	phase = Phase.OFF
 	var forward := maxf(ship_velocity.dot(nose), 0.0)

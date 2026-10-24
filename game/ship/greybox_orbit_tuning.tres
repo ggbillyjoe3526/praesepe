@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="OrbitTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/flight/orbit_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+max_entry_speed = 250.0
+entry_accel = 25.0
+entry_clearance = 100.0
+settle_time = 4.0
+max_climb = 30.0
+settle_tolerance = 5.0
+bump_limit = 3.0
+horizon_above = 5.0
+turn_time = 0.8
+turn_tolerance = 0.5
