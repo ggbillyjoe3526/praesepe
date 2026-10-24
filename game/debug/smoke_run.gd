@@ -13,6 +13,13 @@ extends Node
 ## with flight assist off, and pulls in when a wall is put behind the ship (and eases out once it is gone). At top
 ## speed the ship flies under a bar that crosses the line out to the chase camera, which must never end up inside it.
 ##
+## Then it tours the solar system on the cruise drive: it points the nose at each place in turn (the asteroid belt,
+## the station, the moon and the planet's base, an order whose straight lines miss everything), engages the drive,
+## steers for the place and checks the drive drops out there by itself, on arrival, at the speed flight assist then
+## holds, with no bump on the way. Last it cruises up into open space and drops out with F, then again with X, which
+## also brings the ship to a stop. The result line names the belt's fingerprint and when each arrival came, so a second
+## run on the same seed must match it exactly.
+##
 ## Ticks are physics ticks at 60 Hz. tools/smoke_test.sh runs with `--fixed-fps 60`, so a run is the same every time
 ## and finishes as fast as the machine allows.
 
@@ -38,11 +45,23 @@ const BAR_HEIGHT := 2.8
 const BAR_SIZE := Vector3(40.0, 0.4, 0.4)
 ## How far apart (m) the ship's true movement and its velocity may be in one tick.
 const STEP_SLACK := 0.05
+## The cruise tour, in order, by name (SolarSystem.landmark).
+const TOUR: Array[String] = ["The Shingle", "Halfway Station", "Mote", "Tollgate"]
+## How long (ticks) the autopilot may take to point at a place, and to cruise there.
+const AIM_LIMIT := 900
+const CRUISE_LIMIT := 7200
+## Pointed within this (degrees) of a place counts as aimed.
+const AIM_TOLERANCE := 1.5
+## The autopilot asks for a turn rate that would close the angle in this long (s).
+const STEER_TIME := 0.6
+## How long (ticks) to cruise into open space before dropping out by hand.
+const OPEN_CRUISE := 480
 
 var ship: Ship
 var origin: FloatingOrigin
 var pause: PauseScreen
 var cameras: ShipCameras
+var system: SolarSystem
 
 var _frames: int = 0
 var _phase: int = 0
@@ -52,7 +71,6 @@ var _top_speed: float = 0.0
 var _start_forward: Vector3 = Vector3.ZERO
 var _drift_velocity: Vector3 = Vector3.ZERO
 var _last_true: PackedFloat64Array = PackedFloat64Array()
-var _last_velocity: Vector3 = Vector3.ZERO
 var _paused_at: Vector3 = Vector3.ZERO
 var _paused_clock: float = 0.0
 var _paused_frames: int = 0
@@ -60,12 +78,31 @@ var _wall: StaticBody3D
 var _check_eye_on_frame: bool = false
 var _bar: StaticBody3D
 var _bar_reach: float = 1.0
+var _stage: int = 0
+var _tour: int = 0
+var _cruise_top: float = 0.0
+var _arrivals: PackedStringArray = PackedStringArray()
+var _event: CruiseDrive.Event = CruiseDrive.Event.NONE
+var _event_place: Landmark = null
+var _event_tick: int = 0
 
 
 func _ready() -> void:
 	# Runs during the pause too, to check that nothing moves and to resume.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_physics_priority = FlightOrder.CONTROLS
+	ship.cruise_changed.connect(_on_cruise_changed)
+
+
+func _exit_tree() -> void:
+	if ship.cruise_changed.is_connected(_on_cruise_changed):
+		ship.cruise_changed.disconnect(_on_cruise_changed)
+
+
+func _on_cruise_changed(event: CruiseDrive.Event, place: Landmark) -> void:
+	_event = event
+	_event_place = place
+	_event_tick = _frames
 
 
 func _physics_process(_delta: float) -> void:
@@ -163,7 +200,15 @@ func _physics_process(_delta: float) -> void:
 			pause.open()
 			_next()
 		8:
-			_finish()
+			_tour_step(input)
+		9: # Into open space (straight up, out of the ring's plane), then drop out with F.
+			_open_cruise(input, false)
+		10: # And again, dropping out with X: the ship then comes to a stop.
+			_open_cruise(input, true)
+		11:
+			if ship.speed() < 0.05 or _phase_ticks >= STOP_LIMIT:
+				_expect(ship.speed() < 0.05, "stops after X drops it out of cruise (%.2f m/s)" % ship.speed())
+				_finish()
 
 
 func _while_paused() -> void:
@@ -179,17 +224,17 @@ func _while_paused() -> void:
 
 
 ## The ship's true position should move by its velocity each tick (to within the physics step), whatever the floating
-## origin did. A shift that moved the ship differently from the world would show here as a jump.
+## origin did. A shift that moved the ship differently from the world would show here as a jump. The velocity it moved
+## by is the one it has now, at the start of this tick: what the ship set last tick, which the physics step used.
 func _check_step() -> void:
 	var now := origin.true_position(ship.global_position)
 	if not _last_true.is_empty():
 		var moved := Vector3(now[0] - _last_true[0], now[1] - _last_true[1], now[2] - _last_true[2])
-		var expected := _last_velocity / Engine.physics_ticks_per_second
+		var expected := ship.linear_velocity / Engine.physics_ticks_per_second
 		if moved.distance_to(expected) > STEP_SLACK + expected.length() * 0.01:
 			_expect(false, "moves by its velocity (moved %s, expected %s, tick %d)" % [moved, expected, _frames])
 	_expect(ship.global_position.length() <= origin.threshold + ship.tuning.max_speed, "stays near the origin")
 	_last_true = now
-	_last_velocity = ship.linear_velocity
 
 
 func _forward() -> Vector3:
@@ -221,7 +266,7 @@ func _process(_delta: float) -> void:
 
 func _check_dashboard() -> void:
 	var shown := (ship.get_node(^"Cockpit") as CockpitDisplay).shown()
-	var speed := FlightHud.speed_text(roundi(ship.speed()))
+	var speed := FlightHud.speed_text(FlightHud.shown_speed(ship.speed()))
 	var assist := FlightHud.assist_text(true, roundi(ship.held_speed()))
 	_expect(shown[0] == speed and shown[1] == assist, "shows its speed on the dashboard (%s / %s)" % [shown[0],
 			shown[1]])
@@ -262,6 +307,115 @@ func _check_clear_of(body: StaticBody3D, box_size: Vector3) -> void:
 			"keeps the chase camera out of the bar at speed (%.2f m from it, frame %d)" % [gap, _frames])
 
 
+## One place of the cruise tour: point at it, engage, cruise there, and check the drive dropped out on arrival.
+func _tour_step(input: ShipInput) -> void:
+	var place := system.landmark(TOUR[_tour])
+	if place == null:
+		_expect(false, "finds %s in the solar system" % TOUR[_tour])
+		_next()
+		return
+	input.turn = _steer_toward(place.marker_position())
+	match _stage:
+		0: # Point at it, then press F.
+			if _aimed_at(place.marker_position()):
+				input.toggle_cruise = true
+				_event = CruiseDrive.Event.NONE
+				_cruise_top = 0.0
+				_stage = 1
+				_phase_ticks = 0
+			elif _phase_ticks >= AIM_LIMIT:
+				_expect(false, "points at %s" % place.display_name)
+				_next_place()
+		1: # Charging, then cruising, until the drive drops out.
+			_cruise_top = maxf(_cruise_top, ship.speed())
+			var charge_ticks := roundi(ship.cruise_tuning.charge_time * Engine.physics_ticks_per_second)
+			if _phase_ticks == charge_ticks + 2:
+				_expect(ship.cruise.active(), "engages the cruise drive after charging, near %s" % TOUR[maxi(_tour - 1, 0)])
+			if ship.cruise.active():
+				_expect(ship.jolt < 0.5, "cruises without a bump (%.2f m/s)" % ship.jolt)
+			if _event in [CruiseDrive.Event.ARRIVED, CruiseDrive.Event.DROPPED, CruiseDrive.Event.SAFETY,
+					CruiseDrive.Event.BUMPED, CruiseDrive.Event.BLOCKED, CruiseDrive.Event.BLOCKED_INSIDE]:
+				_check_arrival(place)
+				_stage = 2
+				_phase_ticks = 0
+			elif _phase_ticks >= CRUISE_LIMIT:
+				_expect(false, "arrives at %s in time (%.0f m to go)" % [place.display_name,
+						place.surface_distance(ship.global_position)])
+				_next_place()
+		2: # A moment later, assist holds the exit speed.
+			if _phase_ticks >= 30:
+				_expect(absf(ship.speed() - ship.cruise_tuning.exit_speed) < 1.0, "holds %.0f m/s after arriving (%.2f)"
+						% [ship.cruise_tuning.exit_speed, ship.speed()])
+				_next_place()
+
+
+func _check_arrival(place: Landmark) -> void:
+	var name_seen := _event_place.display_name if _event_place != null else "nowhere"
+	_expect(_event == CruiseDrive.Event.ARRIVED and _event_place == place, "drops out of cruise on arriving at %s (event %s at %s)"
+			% [place.display_name, CruiseDrive.Event.keys()[_event], name_seen])
+	var left := place.surface_distance(ship.global_position)
+	_expect(left < place.drop_distance and left > place.drop_distance - 200.0,
+			"drops out at the edge of %s's arrival zone (%.0f m, zone %.0f m)" % [place.display_name, left, place.drop_distance])
+	_expect(_cruise_top > ship.cruise_tuning.min_speed, "cruises faster than its slowest (%.0f m/s)" % _cruise_top)
+	_arrivals.append("%s@%d" % [place.display_name.replace(" ", ""), _event_tick])
+
+
+func _next_place() -> void:
+	_tour += 1
+	_stage = 0
+	_phase_ticks = 0
+	if _tour >= TOUR.size():
+		_next()
+
+
+## Cruise straight up for a while, then drop out: with F (`with_stop` false: the ship keeps the exit speed) or with X
+## (true: it then stops).
+func _open_cruise(input: ShipInput, with_stop: bool) -> void:
+	var up := ship.global_position + Vector3.UP * 100000.0
+	input.turn = _steer_toward(up)
+	match _stage:
+		0:
+			if _aimed_at(up):
+				input.toggle_cruise = true
+				_event = CruiseDrive.Event.NONE
+				_stage = 1
+				_phase_ticks = 0
+			elif _phase_ticks >= AIM_LIMIT:
+				_expect(false, "points straight up")
+				_stage = 1
+		1:
+			var cruising_for := _phase_ticks - roundi(ship.cruise_tuning.charge_time * Engine.physics_ticks_per_second)
+			if cruising_for == OPEN_CRUISE:
+				_expect(ship.cruise.active(), "cruises in open space")
+				_expect(ship.speed() > ship.cruise_tuning.min_speed + 1.0, "speeds up in open space (%.0f m/s)" % ship.speed())
+				if with_stop:
+					input.full_stop = true
+				else:
+					input.toggle_cruise = true
+			elif cruising_for == OPEN_CRUISE + 2:
+				_expect(_event == CruiseDrive.Event.DROPPED, "drops out of cruise when asked (event %s)"
+						% CruiseDrive.Event.keys()[_event])
+				_expect(not ship.cruise.active(), "has dropped out")
+				var held := 0.0 if with_stop else ship.cruise_tuning.exit_speed
+				_expect(absf(ship.held_speed() - held) < 0.5, "then holds %.0f m/s (%.2f)" % [held, ship.held_speed()])
+				_stage = 0
+				_next()
+
+
+## The turn that steers the nose toward `point` (world space): a rate that would close the angle in STEER_TIME.
+func _steer_toward(point: Vector3) -> Vector3:
+	var local := ship.global_basis.inverse() * (point - ship.global_position)
+	var yaw := atan2(local.x, -local.z)
+	var pitch := atan2(local.y, Vector2(local.x, local.z).length())
+	var rates := ship.tuning.max_rates()
+	return Vector3(clampf(pitch / (rates.x * STEER_TIME), -1.0, 1.0), clampf(yaw / (rates.y * STEER_TIME), -1.0, 1.0), 0.0)
+
+
+func _aimed_at(point: Vector3) -> bool:
+	var angle := rad_to_deg(_forward().angle_to(point - ship.global_position))
+	return angle < AIM_TOLERANCE and ship.angular_velocity.length() < 0.05
+
+
 func _next() -> void:
 	_phase += 1
 	_phase_ticks = 0
@@ -282,6 +436,8 @@ func _finish() -> void:
 		get_tree().quit(1)
 		return
 	var t := origin.true_position(ship.global_position)
-	print("%s frames=%d seed=%d clock=%.2f top=%.2f shifts=%d at=(%.3f, %.3f, %.3f)" % [PASS_LINE, _frames,
-			Game.world_seed, Game.clock, _top_speed, origin.shift_count, t[0], t[1], t[2]])
+	var belt := system.landmark("The Shingle") as AsteroidBelt
+	print("%s frames=%d seed=%d clock=%.2f top=%.2f shifts=%d belt=%s arrivals=%s at=(%.3f, %.3f, %.3f)" % [PASS_LINE,
+			_frames, Game.world_seed, Game.clock, _top_speed, origin.shift_count, belt.layout.checksum(),
+			",".join(_arrivals), t[0], t[1], t[2]])
 	get_tree().quit(0)

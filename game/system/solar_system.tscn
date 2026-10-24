@@ -1,0 +1,117 @@
+[gd_scene load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://game/system/solar_system.gd" id="1_system"]
+[ext_resource type="Script" path="res://game/system/celestial_body.gd" id="2_body"]
+[ext_resource type="Script" path="res://game/system/asteroid_belt.gd" id="3_belt"]
+[ext_resource type="Shader" path="res://game/system/body_surface.gdshader" id="4_surface"]
+[ext_resource type="Shader" path="res://game/system/atmosphere.gdshader" id="5_air"]
+[ext_resource type="Shader" path="res://game/system/belt_haze.gdshader" id="6_haze"]
+[ext_resource type="PackedScene" path="res://game/system/greybox_station.tscn" id="7_station"]
+[ext_resource type="PackedScene" path="res://game/system/greybox_base.tscn" id="8_base"]
+[ext_resource type="Resource" path="res://game/system/shingle_belt.tres" id="9_belt_tuning"]
+[ext_resource type="PackedScene" path="res://game/world/buoy.tscn" id="10_buoy"]
+
+[sub_resource type="ShaderMaterial" id="Mat_calder"]
+shader = ExtResource("4_surface")
+shader_parameter/low_colour = Color(0.07, 0.19, 0.36, 1)
+shader_parameter/high_colour = Color(0.33, 0.43, 0.24, 1)
+shader_parameter/pole_colour = Color(0.86, 0.89, 0.93, 1)
+shader_parameter/low_roughness = 0.3
+shader_parameter/high_roughness = 0.9
+shader_parameter/level = 0.52
+shader_parameter/edge = 0.02
+shader_parameter/scale = 2.2
+shader_parameter/pole_start = 0.82
+
+[sub_resource type="ShaderMaterial" id="Mat_calder_air"]
+shader = ExtResource("5_air")
+shader_parameter/colour = Color(0.35, 0.6, 1, 1)
+shader_parameter/strength = 1.4
+shader_parameter/sharpness = 3.0
+
+[sub_resource type="ShaderMaterial" id="Mat_mote"]
+shader = ExtResource("4_surface")
+shader_parameter/low_colour = Color(0.36, 0.35, 0.34, 1)
+shader_parameter/high_colour = Color(0.55, 0.53, 0.5, 1)
+shader_parameter/pole_colour = Color(0.55, 0.53, 0.5, 1)
+shader_parameter/low_roughness = 0.95
+shader_parameter/high_roughness = 0.95
+shader_parameter/level = 0.45
+shader_parameter/edge = 0.08
+shader_parameter/scale = 3.5
+shader_parameter/pole_start = 2.0
+
+[sub_resource type="StandardMaterial3D" id="Mat_rock"]
+albedo_color = Color(0.45, 0.41, 0.37, 1)
+roughness = 1.0
+
+[sub_resource type="ShaderMaterial" id="Mat_haze"]
+render_priority = -1
+shader = ExtResource("6_haze")
+shader_parameter/colour = Color(0.55, 0.5, 0.44, 1)
+shader_parameter/opacity = 0.22
+shader_parameter/fade_near = 4000.0
+shader_parameter/fade_full = 20000.0
+
+[node name="SolarSystem" type="Node3D" node_paths=PackedStringArray("start", "start_look", "sun")]
+script = ExtResource("1_system")
+start = NodePath("Start")
+start_look = NodePath("StartLook")
+sun = NodePath("Sun")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.806405, -0.208283, 0.55347, 0, 0.935922, 0.352208, -0.591364, -0.284022, 0.754732, 0, 0, 0)
+light_color = Color(1, 0.95, 0.88, 1)
+light_energy = 1.2
+
+[node name="Calder" type="Node3D" parent="."]
+script = ExtResource("2_body")
+surface = SubResource("Mat_calder")
+atmosphere = SubResource("Mat_calder_air")
+atmosphere_height = 250.0
+lod_distance = 40000.0
+display_name = "Calder"
+radius = 6000.0
+drop_distance = 2000.0
+marker = false
+
+[node name="Tollgate" parent="Calder" instance=ExtResource("8_base")]
+transform = Transform3D(-0.316542, 0.904352, -0.286266, 0, 0.301784, 0.953376, 0.948578, 0.301784, -0.0955273, 5424.3, 1810.1, 1810.1)
+
+[node name="Mote" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24000, 7800, -18000)
+script = ExtResource("2_body")
+surface = SubResource("Mat_mote")
+lod_distance = 15000.0
+display_name = "Mote"
+radius = 1500.0
+drop_distance = 1500.0
+
+[node name="HalfwayStation" parent="." instance=ExtResource("7_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16000, 1200, 0)
+
+[node name="TheShingle" type="Node3D" parent="."]
+script = ExtResource("3_belt")
+tuning = ExtResource("9_belt_tuning")
+rock_material = SubResource("Mat_rock")
+haze_material = SubResource("Mat_haze")
+display_name = "The Shingle"
+radius = 0.0
+drop_distance = 1500.0
+
+[node name="Buoys" type="Node3D" parent="."]
+
+[node name="Buoy1" parent="Buoys" instance=ExtResource("10_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16910, 1490, -1190)
+
+[node name="Buoy2" parent="Buoys" instance=ExtResource("10_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16585, 1365, -765)
+
+[node name="Buoy3" parent="Buoys" instance=ExtResource("10_buoy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16260, 1240, -340)
+
+[node name="Start" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17300, 1700, -1700)
+
+[node name="StartLook" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2500, 5000)

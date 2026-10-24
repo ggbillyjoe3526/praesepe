@@ -2,9 +2,10 @@ class_name FlightHud
 extends Control
 ## The flight HUD (design doc, "Flight and camera"): the nose's aim point, the velocity marker showing where the ship
 ## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus the keys and
-## short messages. In the chase view a plate at the bottom also shows speed and flight assist; in the cockpit the
+## short messages, such as the cruise drive's (CruiseDrive). In the chase view a plate at the bottom also shows speed and flight assist; in the cockpit the
 ## dashboard screen shows them (CockpitDisplay), in the same words. Text is rebuilt only when the whole number shown
-## changes (so while speeding up, not in steady flight). A placeholder look until the art style is chosen.
+## changes (so while speeding up, not in steady flight; in cruise, speeds over 1 km/s show in tenths of a km/s). A
+## placeholder look until the art style is chosen.
 
 ## Below this speed (m/s) the ship counts as stopped and no velocity marker shows.
 const STOPPED := 0.5
@@ -18,6 +19,9 @@ const RETROGRADE_COLOUR := Color(1.0, 0.7, 0.3)
 const STICK_COLOUR := Color(0.92, 0.95, 1.0, 0.5)
 const OFF_COLOUR := Color(1.0, 0.72, 0.3)
 const ON_COLOUR := Color(0.55, 0.95, 0.75)
+const CRUISE_COLOUR := Color(0.55, 0.8, 1.0)
+## What the second readout line shows: flight assist off or on, the cruise drive charging or cruising.
+enum Mode { ASSIST_OFF, ASSIST_ON, CHARGING, CRUISING }
 const NOSE_ARMS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 ## Sizes in px at 1080p: the nose mark's arms, the mouse stick's ring (a full push) and dot, and the velocity markers.
 const NOSE_GAP := 6.0
@@ -35,7 +39,7 @@ const LINE_WIDTH := 2.5
 
 var _speed_shown: int = -1
 var _set_shown: int = -1
-var _assist_shown: int = -1
+var _mode_shown: int = -1
 var _toast_left: float = 0.0
 
 @onready var _speed: Label = %Speed
@@ -50,6 +54,7 @@ func _ready() -> void:
 	_toast_plate.visible = false
 	if ship != null:
 		ship.assist_changed.connect(_on_assist_changed)
+		ship.cruise_changed.connect(_on_cruise_changed)
 	if cameras != null:
 		cameras.view_changed.connect(_on_view_changed)
 		_readout.visible = cameras.view == ShipCameras.View.CHASE
@@ -60,20 +65,80 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if ship != null and ship.assist_changed.is_connected(_on_assist_changed):
 		ship.assist_changed.disconnect(_on_assist_changed)
+	if ship != null and ship.cruise_changed.is_connected(_on_cruise_changed):
+		ship.cruise_changed.disconnect(_on_cruise_changed)
 	if cameras != null and cameras.view_changed.is_connected(_on_view_changed):
 		cameras.view_changed.disconnect(_on_view_changed)
 	if Settings.changed.is_connected(queue_redraw):
 		Settings.changed.disconnect(queue_redraw)
 
 
-## The speed as the HUD and the dashboard show it.
+## A speed (m/s) rounded as it is shown: to the metre per second up to 1 km/s, to 100 m/s beyond.
+static func shown_speed(speed: float) -> int:
+	return roundi(speed) if speed < 999.5 else roundi(speed / 100.0) * 100
+
+
+## The speed as the HUD and the dashboard show it, from shown_speed().
 static func speed_text(speed: int) -> String:
-	return "%d m/s" % speed
+	return "%d m/s" % speed if speed < 1000 else "%.1f km/s" % (speed / 1000.0)
 
 
 ## Flight assist as the HUD and the dashboard show it, with the speed it is holding.
 static func assist_text(on: bool, held: int) -> String:
 	return "FLIGHT ASSIST ON  ·  holding %d m/s" % held if on else "FLIGHT ASSIST OFF  ·  drifting"
+
+
+## What `ship` is flying in, for the second readout line.
+static func mode_of(ship: Ship) -> Mode:
+	match ship.cruise.phase:
+		CruiseDrive.Phase.CHARGING:
+			return Mode.CHARGING
+		CruiseDrive.Phase.CRUISING:
+			return Mode.CRUISING
+	return Mode.ASSIST_ON if ship.assist_on() else Mode.ASSIST_OFF
+
+
+## The second readout line, on the HUD and the dashboard.
+static func mode_text(mode: Mode, held: int) -> String:
+	match mode:
+		Mode.CHARGING:
+			return "CRUISE CHARGING  ·  F to cancel"
+		Mode.CRUISING:
+			return "CRUISE  ·  F to drop out"
+	return FlightHud.assist_text(mode == Mode.ASSIST_ON, held)
+
+
+static func mode_colour(mode: Mode) -> Color:
+	match mode:
+		Mode.ASSIST_OFF:
+			return OFF_COLOUR
+		Mode.ASSIST_ON:
+			return ON_COLOUR
+	return CRUISE_COLOUR
+
+
+## The message for something the cruise drive did (CruiseDrive.Event) at the place called `place`.
+static func cruise_message(event: CruiseDrive.Event, place: String) -> String:
+	match event:
+		CruiseDrive.Event.CHARGING:
+			return "Cruise drive charging  ·  F to cancel"
+		CruiseDrive.Event.CANCELLED:
+			return "Cruise cancelled"
+		CruiseDrive.Event.ENGAGED:
+			return "Cruising  ·  steer with the mouse, F to drop out"
+		CruiseDrive.Event.BLOCKED:
+			return "Can't cruise: %s is too close ahead. Turn away first" % place
+		CruiseDrive.Event.BLOCKED_INSIDE:
+			return "Can't cruise inside %s. Fly clear of it first" % place
+		CruiseDrive.Event.ARRIVED:
+			return "Arrived at %s" % place
+		CruiseDrive.Event.DROPPED:
+			return "Dropped out of cruise"
+		CruiseDrive.Event.SAFETY:
+			return "Dropped out of cruise: %s is close" % place
+		CruiseDrive.Event.BUMPED:
+			return "Bump! Dropped out of cruise"
+	return ""
 
 
 func _process(delta: float) -> void:
@@ -87,23 +152,30 @@ func _process(delta: float) -> void:
 
 
 func _update_text() -> void:
-	var speed := roundi(ship.speed())
+	var speed := FlightHud.shown_speed(ship.speed())
 	if speed != _speed_shown:
 		_speed_shown = speed
 		_speed.text = FlightHud.speed_text(speed)
-	var on := 1 if ship.assist_on() else 0
+	var mode := FlightHud.mode_of(ship)
 	var held := roundi(ship.held_speed())
-	if on != _assist_shown:
-		_assist.add_theme_color_override("font_color", ON_COLOUR if on == 1 else OFF_COLOUR)
-	if on != _assist_shown or (on == 1 and held != _set_shown):
-		_assist_shown = on
+	if mode != _mode_shown:
+		_assist.add_theme_color_override("font_color", FlightHud.mode_colour(mode))
+	if mode != _mode_shown or (mode == Mode.ASSIST_ON and held != _set_shown):
+		_mode_shown = mode
 		_set_shown = held
-		_assist.text = FlightHud.assist_text(on == 1, held)
+		_assist.text = FlightHud.mode_text(mode, held)
 
 
 func _on_assist_changed(on: bool) -> void:
 	_show_toast("Flight assist ON" if on else "Flight assist OFF: the ship keeps drifting and spinning",
 			ON_COLOUR if on else OFF_COLOUR)
+
+
+func _on_cruise_changed(event: CruiseDrive.Event, place: Landmark) -> void:
+	var words := FlightHud.cruise_message(event, place.display_name if place != null else "")
+	var warn := event in [CruiseDrive.Event.BLOCKED, CruiseDrive.Event.BLOCKED_INSIDE, CruiseDrive.Event.SAFETY,
+			CruiseDrive.Event.BUMPED]
+	_show_toast(words, OFF_COLOUR if warn else CRUISE_COLOUR)
 
 
 func _on_view_changed(view: ShipCameras.View) -> void:

@@ -48,6 +48,17 @@ func rng(stream_name: StringName) -> RandomNumberGenerator:
 	return created
 
 
+## A fresh generator for building one seeded feature of the world, such as an asteroid belt's rocks (design doc,
+## "Authored vs. seeded"). `feature` names it (`&"belt:shingle"`). It starts from the same first draw every time for
+## the same world seed and name, whatever else has been drawn, so a feature is rebuilt identically on every launch and
+## after loading a save; nothing about it is saved. Never used for running gameplay (contract offers, events): those
+## draw from rng(), whose place in the sequence is saved.
+func world_rng(feature: StringName) -> RandomNumberGenerator:
+	if feature.is_empty():
+		push_error("Game.world_rng: a world feature needs a name")
+	return Seeds.stream(Seeds.stream_seed(world_seed, StringName("world:" + String(feature))))
+
+
 ## Moves the in-game clock forward without waiting, for sleeping or ending a shift.
 func skip_time(seconds: float) -> void:
 	clock += maxf(seconds, 0.0)

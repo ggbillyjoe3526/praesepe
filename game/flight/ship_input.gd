@@ -10,6 +10,8 @@ var thrust: Vector3 = Vector3.ZERO
 var turn: Vector3 = Vector3.ZERO
 ## Switch flight assist on or off (one-shot: the ship clears it once used).
 var toggle_assist: bool = false
+## Start the cruise drive charging, or cancel or drop out of it (one-shot).
+var toggle_cruise: bool = false
 ## Bring the ship to a stop, turning flight assist on if it was off (one-shot).
 var full_stop: bool = false
 
@@ -19,4 +21,5 @@ func reset() -> void:
 	thrust = Vector3.ZERO
 	turn = Vector3.ZERO
 	toggle_assist = false
+	toggle_cruise = false
 	full_stop = false

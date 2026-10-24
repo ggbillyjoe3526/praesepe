@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="BeltTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/system/belt_tuning.gd" id="1_belt"]
+
+[resource]
+script = ExtResource("1_belt")
+feature = &"belt:shingle"
+ring_radius = 50000.0
+half_width = 3000.0
+half_height = 400.0
+scattered = 3000
+pockets = 10
+rocks_per_pocket = 220
+pocket_radius = 1200.0
+pocket_flatten = 0.3
+home_angle = -53.13
+rock_min_radius = 15.0
+rock_max_radius = 110.0
+chunks = 64
+near_distance = 9000.0
+far_distance = 70000.0
+solid_rocks = 48
+solid_reach = 2500.0
+solid_every = 10

@@ -3,17 +3,27 @@ extends MultiMeshInstance3D
 ## Specks of dust drifting in space around the camera (space_dust.gdshader), so speed and drift read clearly where
 ## there is nothing else to see. One draw call, built once from the presentation stream (Game.FX_STREAM); each frame
 ## only two shader values change. It sits outside the floating origin's world and follows the origin's offset instead,
-## so its pattern never jumps on a shift. Placeholder look until the art style is chosen.
+## so its pattern never jumps on a shift. In the cruise drive, far faster than the dust can show, it fades away and
+## is not drawn at all; a second, coarser layer (`for_cruise`: bigger specks, kilometres apart) fades in instead, so
+## cruising still shows its speed and direction. Placeholder look until the art style is chosen.
 
 const LATTICE_SHIFT := &"lattice_shift"
 const STREAK := &"streak"
 const BOX_SIZE := &"box_size"
+const STRENGTH := &"strength"
 
 @export var count: int = 1200
 ## The repeating box's size (m); the dust fades out before its edge.
 @export var box_size: float = 400.0
 ## How long a streak is, in seconds of motion: at 200 m/s, 0.05 s gives 10 m streaks.
 @export var streak_time: float = 0.05
+## Between these speeds (m/s) the dust fades out, or for the cruise layer fades in.
+@export var fade_from: float = 350.0
+@export var fade_to: float = 800.0
+## The cruise layer: shown at cruise speeds instead of normal ones.
+@export var for_cruise: bool = false
+## The longest a streak gets (m), however fast the ship goes.
+@export var streak_max: float = 1000000.0
 @export var origin: FloatingOrigin
 ## Whose motion stretches the dust (the player's ship).
 @export var ship: Ship
@@ -43,5 +53,12 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if origin != null:
 		_material.set_shader_parameter(LATTICE_SHIFT, origin.wrapped_offset(box_size))
-	if ship != null:
-		_material.set_shader_parameter(STREAK, ship.linear_velocity * streak_time)
+	if ship == null:
+		return
+	var strength := smoothstep(fade_from, fade_to, ship.speed())
+	if not for_cruise:
+		strength = 1.0 - strength
+	visible = strength > 0.0
+	if visible:
+		_material.set_shader_parameter(STRENGTH, strength)
+		_material.set_shader_parameter(STREAK, (ship.linear_velocity * streak_time).limit_length(streak_max))
