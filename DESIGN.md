@@ -123,8 +123,8 @@ The values live in `game/camera/camera_tuning.tres` (shared by every ship). Wher
 - It drops out by itself on arriving at a place (inside the place's arrival zone), leaving the ship at 200 m/s, which flight assist then holds. F drops out at once; X drops out and brings the ship to a stop.
 - It never runs into anything: if it would reach a surface in under 2.5 s it drops out at 50 m/s, and a bump drops it out and lets the ship come to rest.
 - Leaving a place never counts as arriving there: a place the ship is at when the drive engages counts again once the ship is 250 m beyond its zone.
-- It won't engage inside the asteroid belt, or when the nose points at something it would reach within 5 s; a message says what is in the way.
-- In cruise the dashboard and HUD show "CRUISE · F to drop out" and the speed in km/s, and the space dust fades out (it can't show such speeds).
+- It won't engage inside the asteroid belt or among a base's buildings (within 150 m of Tollgate), or when the nose points at something it would reach within 5 s; a message says what is in the way.
+- In cruise the dashboard and HUD show "CRUISE · F to drop out" and the speed in km/s, and the space dust fades out (it can't show such speeds) while a coarser cruise dust, specks kilometres apart, fades in so the speed still reads.
 - Every place has a marker on the HUD with its name and distance, so the player can point at it and go.
 
 **Cruise drive tuning**
@@ -140,6 +140,7 @@ The values live in `game/ship/greybox_cruise_tuning.tres` (per ship, so an engin
 | Turning | 0.4 s | How quickly travel follows the nose |
 | Exit speed | 200 m/s | Held by flight assist after arriving or F |
 | Safety | 2.5 s to a surface, then 50 m/s | Drops out before any collision |
+| Engage look-ahead | 5 s | Won't engage when the nose points at something it would reach this soon |
 | Bump limit | 3 m/s | A harder knock drops it out |
 | Rumble | 0.3 of full thrust | Camera shake while cruising |
 
@@ -203,14 +204,14 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
 | Place | What it is | Size and place | Arrival zone |
 | --- | --- | --- | --- |
 | Calder | The planet: blue seas, green land, ice caps, a thin blue glow of air | 6 km radius, at the centre | 2 km above the surface |
-| Tollgate | Calder's base: a landing pad, hangar, tower and beacon | On Calder's surface, on the side facing the station | 4 km |
+| Tollgate | Calder's base: a landing pad, hangar, tower and beacon, all within 150 m of the pad | On Calder's surface, on the side facing the station | 4 km |
 | Halfway Station | The space station: a spine, a ring, solar panels and a docking bay with a green frame | 16 km from Calder's centre, 10 km above its surface | 2.5 km |
 | Mote | The moon: grey, airless | 1.5 km radius, 31 km from Calder, above the belt's plane | 1.5 km above the surface |
 | The Shingle | The asteroid belt: a ring of rocks round Calder | 50 km radius, 6 km wide, 800 m thick | 1.5 km from the band |
 
 - The player starts 2 km from Halfway Station with Calder ahead, next to three buoys marking the way to the station.
 - The Shingle's rocks come from the world seed: 3000 scattered round the ring and 10 dense pockets of 220, each rock 15 to 110 m in radius (small ones commonest). The first pocket is authored: on the band's inner edge, the one its HUD marker points to. Values in `game/system/shingle_belt.tres`.
-- Only the rocks within 2.5 km of the ship are solid (a pool of 48 spheres, picked again every 10 ticks); all are drawn, in 64 pieces round the ring, as lumpy rocks within 9 km and simple shapes out to 70 km, with a faint haze along the band beyond that.
+- Only the rocks within 2.5 km of the ship are solid (a pool of 48 spheres, picked again every 10 ticks; a sphere stays on its rock while that rock stays near); all are drawn, in 64 pieces round the ring, as lumpy rocks within 9 km and simple shapes out to 70 km, with a faint haze along the band beyond that.
 - Calder and Mote are drawn as fine spheres close up and coarse ones from far away (past 40 km and 15 km). The station and base lose their detail at 12 km and 20 km. Everything is visible to 150 km.
 
 **Landing:** for now, approach the planet, see a prompt to land, then a transition screen. Seamless landing is a later goal.

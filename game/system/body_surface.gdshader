@@ -37,16 +37,17 @@ float value_noise(vec3 p) {
 	return mix(mix(a, b, u.y), mix(c, d, u.y), u.z);
 }
 
-// Five octaves, each half the size and half the strength of the last; about 0 to 1.
-float fbm(vec3 p) {
+// `octaves` layers of noise, each half the size and half the strength of the last; about 0 to 1.
+float fbm(vec3 p, int octaves) {
 	float sum = 0.0;
 	float amp = 0.5;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < octaves; i++) {
 		sum += value_noise(p) * amp;
 		p = p * 2.03 + vec3(17.1, 9.3, 4.7);
 		amp *= 0.5;
 	}
-	return sum / 0.96875;
+	// The strengths add up to 1 - 2 * amp.
+	return sum / (1.0 - 2.0 * amp);
 }
 
 void vertex() {
@@ -55,11 +56,12 @@ void vertex() {
 
 void fragment() {
 	vec3 dir = normalize(v_dir);
-	float h = fbm(dir * scale + vec3(11.0));
+	float h = fbm(dir * scale + vec3(11.0), 5);
 	float high = smoothstep(level - edge, level + edge, h);
 	vec3 col = mix(low_colour, high_colour, high);
-	// A little light and shade within each colour, so it reads as ground rather than paint.
-	col *= 0.85 + 0.3 * fbm(dir * scale * 6.0);
+	// A little light and shade within each colour, so it reads as ground rather than paint. Two layers are plenty
+	// for this, and keep it cheap and steady from far away.
+	col *= 0.85 + 0.3 * fbm(dir * scale * 6.0, 2);
 	float pole = smoothstep(pole_start, pole_start + 0.04, abs(dir.y) + (h - 0.5) * 0.15);
 	ALBEDO = mix(col, pole_colour, pole);
 	ROUGHNESS = mix(mix(low_roughness, high_roughness, high), 0.6, pole);

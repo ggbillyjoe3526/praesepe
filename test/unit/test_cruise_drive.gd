@@ -208,3 +208,20 @@ func test_turns_to_follow_the_nose() -> void:
 	assert_gt(_drive.direction.angle_to(Vector3.RIGHT), deg_to_rad(10.0), "not at once")
 	_ticks(3.0)
 	assert_lt(_drive.direction.angle_to(Vector3.RIGHT), deg_to_rad(0.5), "but soon")
+
+
+func test_the_greybox_tuning_is_the_design_docs() -> void:
+	# DESIGN.md, "Cruise drive tuning": change a value there and in greybox_cruise_tuning.tres together.
+	var expected := {
+		"charge_time": 2.0, "engage_look_ahead": 5.0, "min_speed": 300.0, "max_speed": 5000.0,
+		"approach_time": 6.0, "ramp_time": 1.5, "align_time": 0.4, "exit_speed": 200.0, "safety_time": 2.5,
+		"safety_exit_speed": 50.0, "bump_limit": 3.0, "rumble": 0.3,
+	}
+	for key: String in expected:
+		assert_eq(_tuning.get(key), expected[key], key)
+	var design := FileAccess.get_file_as_string("res://DESIGN.md")
+	var table := design.substr(design.find("**Cruise drive tuning**"), 1500)
+	for row: String in ["| Charge time | 2 s |", "| Engage look-ahead | 5 s |", "| 300 m/s to 5 km/s |",
+			"| Approach time | 6 s |", "| Ramp time | 1.5 s |", "| Turning | 0.4 s |", "| Exit speed | 200 m/s |",
+			"| 2.5 s to a surface, then 50 m/s |", "| Bump limit | 3 m/s |", "| Rumble | 0.3 of full thrust |"]:
+		assert_string_contains(table, row, false)

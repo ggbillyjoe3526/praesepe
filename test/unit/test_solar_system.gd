@@ -71,3 +71,34 @@ func test_the_sun_lights_the_planet_from_the_start_side() -> void:
 	var towards_sun := _system.sun.global_basis.z
 	var start := _system.start_transform().origin
 	assert_gt(towards_sun.dot(start.normalized()), 0.3, "the face of Calder the player first sees is mostly lit")
+
+
+func test_the_drive_never_engages_among_tollgates_buildings() -> void:
+	var drive := CruiseDrive.new(load("res://game/ship/greybox_cruise_tuning.tres"))
+	drive.landmarks = _system.landmarks
+	var base := _system.landmark("Tollgate")
+	var hangar := base.global_basis * Vector3(-1, 0, 0)
+	# Hovering over the pad, nose level at the hangar.
+	assert_eq(_try_engage(drive, base.to_global(Vector3(0, 20, 0)), hangar), CruiseDrive.Event.BLOCKED_INSIDE)
+	assert_eq(drive.place, base)
+	# Just outside, nose at the buildings (the ground curves up into the way too, so either may be named).
+	assert_eq(_try_engage(drive, base.to_global(Vector3(400, 20, 0)), hangar), CruiseDrive.Event.BLOCKED)
+	assert_true(drive.place == base or drive.place == _system.landmark("Calder"))
+	# Higher up, aimed down at the pad from 600 m: the base itself is in the way.
+	var above := base.to_global(Vector3(0, 600, 0))
+	assert_eq(_try_engage(drive, above, (base.global_position - above).normalized()), CruiseDrive.Event.BLOCKED)
+	assert_eq(drive.place, base)
+	# Clear of them, heading up and away, it goes.
+	assert_eq(_try_engage(drive, base.to_global(Vector3(0, 300, 0)), base.global_basis.y), CruiseDrive.Event.ENGAGED)
+
+
+## Presses F with the ship holding still at `at`, nose along `nose`, and gives the drive's answer once charged.
+func _try_engage(drive: CruiseDrive, at: Vector3, nose: Vector3) -> CruiseDrive.Event:
+	drive.phase = CruiseDrive.Phase.OFF
+	drive.step(at, Vector3.ZERO, nose, true, false, 0.0, 1.0 / 60.0)
+	var ticks := roundi(drive.tuning.charge_time * 60.0) + 1
+	for i in ticks:
+		drive.step(at, Vector3.ZERO, nose, false, false, 0.0, 1.0 / 60.0)
+		if drive.event != CruiseDrive.Event.NONE:
+			return drive.event
+	return CruiseDrive.Event.NONE

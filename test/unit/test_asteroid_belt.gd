@@ -116,6 +116,37 @@ func test_only_the_rocks_near_the_ship_are_solid_and_never_too_many() -> void:
 	assert_almost_eq(closest, nearest, 0.01, "the nearest rock is among the solid ones")
 
 
+func test_a_rock_that_stays_near_keeps_its_body() -> void:
+	var belt := _belt()
+	var ship := Node3D.new()
+	add_child_autofree(ship)
+	belt.focus = ship
+	ship.global_position = belt.layout.pocket_centres[0]
+	await wait_physics_frames(_tuning.solid_every + 1)
+	var before := _solid_places(belt)
+	ship.global_position += Vector3(150, 0, 0)
+	await wait_physics_frames(_tuning.solid_every + 1)
+	var after := _solid_places(belt)
+	var kept := 0
+	var moved := 0
+	for body: Node3D in before:
+		if after.has(body) and after.values().has(before[body]):
+			kept += 1
+			if after[body] != before[body]:
+				moved += 1
+	assert_gt(kept, 0, "some rocks are near both times")
+	assert_eq(moved, 0, "a rock still near is still on the body it had")
+
+
+## The pool bodies that are on, and where each one is.
+func _solid_places(belt: AsteroidBelt) -> Dictionary:
+	var out := {}
+	for body: Node in belt.find_children("Solid*", "StaticBody3D", false, false):
+		if not (body.get_child(0) as CollisionShape3D).disabled:
+			out[body] = (body as Node3D).position
+	return out
+
+
 func test_rock_meshes_face_outwards() -> void:
 	var mat := StandardMaterial3D.new()
 	for mesh: ArrayMesh in [RockMesh.near_rock(mat), RockMesh.far_rock(mat)]:

@@ -125,7 +125,7 @@ size = Vector3(140, 2, 36)
 [node name="GreyboxStation" type="Node3D"]
 script = ExtResource("1_landmark")
 display_name = "Halfway Station"
-radius = 230.0
+radius = 250.0
 drop_distance = 2500.0
 
 [node name="Structure" type="StaticBody3D" parent="."]

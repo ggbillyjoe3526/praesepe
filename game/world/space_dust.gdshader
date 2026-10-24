@@ -13,7 +13,7 @@ uniform vec3 streak = vec3(0.0);
 uniform float speck_size = 0.35;
 uniform float fade_near = 4.0;
 uniform vec4 tint : source_color = vec4(0.75, 0.82, 1.0, 1.0);
-// 1 normally, fading to 0 at cruise speeds (SpaceDust.fade_in).
+// How much of the dust shows, 0 to 1 (SpaceDust: the normal layer fades out at cruise speeds, the cruise layer in).
 uniform float strength = 1.0;
 
 varying float v_fade;

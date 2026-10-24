@@ -7,6 +7,9 @@ extends Resource
 @export_group("Engaging")
 ## How long (s) the drive charges after F before it takes over. The ship flies normally meanwhile.
 @export var charge_time: float = 2.0
+## It won't engage when the nose points at something it would reach within this (s), at the ship's own forward speed
+## or min_speed, whichever is more.
+@export var engage_look_ahead: float = 5.0
 
 @export_group("Speed (m/s)")
 ## The slowest the drive goes, close to anything. Faster than normal flight, so cruising always gains time.

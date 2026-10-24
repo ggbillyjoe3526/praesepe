@@ -73,7 +73,6 @@ lod_distance = 40000.0
 display_name = "Calder"
 radius = 6000.0
 drop_distance = 2000.0
-marker = false
 
 [node name="Tollgate" parent="Calder" instance=ExtResource("8_base")]
 transform = Transform3D(-0.316542, 0.904352, -0.286266, 0, 0.301784, 0.953376, 0.948578, 0.301784, -0.0955273, 5424.3, 1810.1, 1810.1)

@@ -8,8 +8,8 @@ extends RefCounted
 ## in open space and slows down smoothly on the way in. It drops out by itself on arriving at a place (inside the
 ## place's Landmark.drop_distance), and also before it could hit anything or after a bump. F (or X) drops out at once.
 ## Places the ship is already at when the drive engages don't count as arrivals until the ship has left them, so
-## leaving a station never drops straight back out. It refuses to engage inside something (the asteroid belt) or when
-## the nose points at something close.
+## leaving a station never drops straight back out. It refuses to engage inside something (the asteroid belt, a base's
+## buildings) or when the nose points at something close.
 ##
 ## Vectors are in world space. Each step() fills `velocity` (the ship's velocity this tick while cruising, and the
 ## velocity to leave it with on the tick it drops out) and `event` (what happened, for messages).
@@ -22,7 +22,7 @@ enum Event {
 	CANCELLED, ## F or X pressed while charging.
 	ENGAGED, ## Took over the ship's speed.
 	BLOCKED, ## Didn't engage: the nose points at `place`, too close.
-	BLOCKED_INSIDE, ## Didn't engage: the ship is inside `place` (the asteroid belt).
+	BLOCKED_INSIDE, ## Didn't engage: the ship is inside `place` (the asteroid belt, a base).
 	ARRIVED, ## Dropped out on arriving at `place`.
 	DROPPED, ## Dropped out because the pilot asked.
 	SAFETY, ## Dropped out before running into `place`.
@@ -107,6 +107,8 @@ func _engage(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> void:
 	phase = Phase.OFF
 	var forward := maxf(ship_velocity.dot(nose), 0.0)
 	var probe := nose * maxf(forward, tuning.min_speed)
+	# Of everything too close ahead, the one it would reach first is the one the message names.
+	var soonest := tuning.engage_look_ahead
 	for l: Landmark in landmarks:
 		if not l.obstacle:
 			continue
@@ -114,10 +116,13 @@ func _engage(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> void:
 			event = Event.BLOCKED_INSIDE
 			place = l
 			return
-		if time_to_reach(l, at, probe) < tuning.safety_time * 2.0:
+		var reach := time_to_reach(l, at, probe)
+		if reach < soonest:
+			soonest = reach
 			event = Event.BLOCKED
 			place = l
-			return
+	if event == Event.BLOCKED:
+		return
 	if _armed.size() != landmarks.size():
 		_armed.resize(landmarks.size())
 	for i in landmarks.size():

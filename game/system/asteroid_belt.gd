@@ -7,7 +7,7 @@ extends Landmark
 ##   (simple shapes), so a few draw calls cover thousands of rocks and pieces out of view aren't drawn. A faint haze
 ##   along the band shows the belt from afar, where single rocks are too small to see.
 ## - Only the rocks near the ship are solid: a fixed pool of sphere bodies is moved onto the nearest ones every few
-##   ticks. Nothing is created or freed in flight.
+##   ticks, a body staying on its rock while that rock stays near. Nothing is created or freed in flight.
 ## For the cruise drive its surface is the band's edge: inside the band counts as inside the belt.
 
 @export var tuning: BeltTuning
@@ -23,7 +23,12 @@ var solid_count: int = 0
 var _bodies: Array[StaticBody3D] = []
 var _colliders: Array[CollisionShape3D] = []
 var _shapes: Array[SphereShape3D] = []
+## Per pool body: the rock it stands in for, or -1 when it is off. Per rock: its body, or -1.
 var _solid_rock: PackedInt32Array = PackedInt32Array()
+var _slot_of: PackedInt32Array = PackedInt32Array()
+## Per rock: the pick it was last wanted in (_stamp), so picks never need clearing.
+var _wanted: PackedInt32Array = PackedInt32Array()
+var _stamp: int = 0
 var _best: PackedInt32Array = PackedInt32Array()
 var _best_d: PackedFloat32Array = PackedFloat32Array()
 var _ticks: int = 0
@@ -55,7 +60,7 @@ func _physics_process(_delta: float) -> void:
 		return
 	var at := to_local(focus.global_position)
 	if surface_distance(focus.global_position) > tuning.solid_reach:
-		_set_solid(0)
+		_set_solid_none()
 		return
 	_pick_nearest(at)
 
@@ -82,24 +87,43 @@ func _pick_nearest(at: Vector3) -> void:
 			_best[slot] = i
 			_best_d[slot] = d
 			found = mini(found + 1, _best.size())
+	_stamp += 1
 	for k in found:
-		var i := _best[k]
-		if _solid_rock[k] != i:
-			_solid_rock[k] = i
-			_shapes[k].radius = layout.solid_radius(i)
-			_bodies[k].position = layout.positions[i]
-	_set_solid(found)
+		_wanted[_best[k]] = _stamp
+	# Rocks that stay solid keep their bodies, so nothing the ship touches moves under it; only the freed bodies move
+	# onto the newly near rocks.
+	for k in _solid_rock.size():
+		var i := _solid_rock[k]
+		if i >= 0 and _wanted[i] != _stamp:
+			_free_slot(k)
+	var free := 0
+	for n in found:
+		var i := _best[n]
+		if _slot_of[i] >= 0:
+			continue
+		while _solid_rock[free] >= 0:
+			free += 1
+		_solid_rock[free] = i
+		_slot_of[i] = free
+		_shapes[free].radius = layout.solid_radius(i)
+		_bodies[free].position = layout.positions[i]
+		_colliders[free].disabled = false
+	solid_count = found
 
 
-func _set_solid(count: int) -> void:
-	if count == solid_count:
+func _set_solid_none() -> void:
+	if solid_count == 0:
 		return
-	for k in _colliders.size():
-		var on := k < count
-		_colliders[k].disabled = not on
-		if not on:
-			_solid_rock[k] = -1
-	solid_count = count
+	for k in _solid_rock.size():
+		if _solid_rock[k] >= 0:
+			_free_slot(k)
+	solid_count = 0
+
+
+func _free_slot(k: int) -> void:
+	_slot_of[_solid_rock[k]] = -1
+	_solid_rock[k] = -1
+	_colliders[k].disabled = true
 
 
 func _build_chunks() -> void:
@@ -171,6 +195,10 @@ func _build_pool() -> void:
 	_best_d.resize(tuning.solid_rocks)
 	_solid_rock.resize(tuning.solid_rocks)
 	_solid_rock.fill(-1)
+	_slot_of.resize(layout.count())
+	_slot_of.fill(-1)
+	_wanted.resize(layout.count())
+	_wanted.fill(0)
 	for k in tuning.solid_rocks:
 		var ball := SphereShape3D.new()
 		var shape := CollisionShape3D.new()

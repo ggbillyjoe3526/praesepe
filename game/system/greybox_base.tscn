@@ -83,7 +83,6 @@ script = ExtResource("1_landmark")
 display_name = "Tollgate"
 radius = 150.0
 drop_distance = 4000.0
-obstacle = false
 
 [node name="Structure" type="StaticBody3D" parent="."]
 
