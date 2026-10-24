@@ -1,0 +1,14 @@
+# Godot 4
+.godot/
+build/
+dist/
+*.tmp
+# Test logs (tools/smoke_test.sh, tools/unit_tests.sh)
+import.log
+smoke.log
+unit.log
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+__pycache__/

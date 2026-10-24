@@ -1,0 +1,47 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
+
+[sub_resource type="Environment" id="Environment_space"]
+background_mode = 1
+background_color = Color(0.01, 0.01, 0.03, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.25, 0.27, 0.35, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_plate"]
+bg_color = Color(0.03, 0.04, 0.08, 0.92)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 24.0
+content_margin_top = 16.0
+content_margin_right = 24.0
+content_margin_bottom = 16.0
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_space")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+
+[node name="Hud" type="CanvasLayer" parent="."]
+
+[node name="Plate" type="PanelContainer" parent="Hud"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = -160.0
+offset_right = 640.0
+offset_bottom = -32.0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_plate")
+
+[node name="Status" type="Label" parent="Hud/Plate"]
+unique_name_in_owner = true
+theme_override_font_sizes/font_size = 28
+text = "Project Praesepe"

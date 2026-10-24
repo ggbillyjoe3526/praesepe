@@ -1,0 +1,16 @@
+# Normalise line endings so Windows and Linux checkouts match (Godot writes LF).
+* text=auto eol=lf
+
+# Binary assets
+*.wav binary
+*.ogg binary
+*.mp3 binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.glb binary
+*.blend binary
+*.tpz binary
