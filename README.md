@@ -25,7 +25,7 @@ Given after `--`, for example `godot --path . -- --seed 1234`.
 ## Tests
 | Command | What it checks |
 | --- | --- |
-| `tools/smoke_test.sh` | Imports the project and runs `--smoke` headless; fails on any script error. |
+| `tools/smoke_test.sh` | Imports the project and runs `--smoke` headless; fails on any script error or `ERROR:` line. |
 | `tools/unit_tests.sh` | The Gut unit tests in `test/unit/`. |
 | `gdlint game test tools` | Code style ([gdtoolkit](https://github.com/Scony/godot-gdscript-toolkit) 4.5.0). |
 | `tools/changelog.sh check` | The changelog notes in `changelog.d/`. |

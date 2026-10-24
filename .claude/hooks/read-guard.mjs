@@ -1,4 +1,4 @@
-// PreToolUse hook on Read: a whole-file read of a text file over 40 KB (spec.md is about 90 KB) is stopped and Claude is
+// PreToolUse hook on Read: a whole-file read of a text file over 40 KB is stopped and Claude is
 // told to grep for the heading first and read a range. Fails open: any problem lets the read through.
 import { readFileSync, statSync } from 'node:fs';
 

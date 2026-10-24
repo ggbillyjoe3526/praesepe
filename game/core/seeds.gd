@@ -14,7 +14,8 @@ const FNV_OFFSET := 2166136261
 const FNV_PRIME := 16777619
 
 
-## `seed × multiplier + add`, wrapped to 32 bits (GDScript's 64-bit integers keep the low 32 bits exact).
+## `seed × multiplier + add`, wrapped to 32 bits. A large seed times a large multiplier overflows GDScript's 64-bit
+## integers, which wrap around; the low 32 bits of a wrapped product are still exact, so the masked result is right.
 static func derive(seed_value: int, multiplier: int, add: int) -> int:
 	return ((seed_value & MASK_32) * multiplier + add) & MASK_32
 

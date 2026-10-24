@@ -204,6 +204,7 @@ Newest first. Each line: date, the decision, who made it.
 - 2026-10-24: Stack fixed: Godot 4.7.2-stable (standard build), typed GDScript, Forward+, Blender models exported as glTF. Desktop only, Windows first, single player, offline (owner, project instructions).
 - 2026-10-24: Large-world precision uses a floating origin, not the double-precision build, until the owner decides otherwise (project instructions).
 - 2026-10-24: Until the owner decides, losing the ship respawns the player at the last base with a small towing fee (project instructions).
+- 2026-10-24: Until the owner decides, versions are named like the other games ("0.1 Dev 1", then Dev 2, Beta 1 and so on); the game starts at 0.1 Dev 1 (default, Claude).
 - 2026-10-24: Changelog notes go in `changelog.d/` (one small file per pull request) and are gathered into `CHANGELOG.md` at release, the same system as the owner's other Godot games, so parallel pull requests never collide (default, Claude).
 
 ## Open decisions

@@ -5,7 +5,7 @@ OFL assets; no GPL code in the game.
 
 | Name | What it is | Source | Licence | Author | Ships in the game? |
 | --- | --- | --- | --- | --- | --- |
-| Gut 9.7.1 | Unit test framework (`addons/gut/`, licence in `addons/gut/LICENSE.md`) | https://github.com/bitwes/Gut, copied from the owner's katanashotgun project | MIT | Tom "Butch" Wesley | No: tests only, to be excluded from every export preset |
+| Gut 9.7.1 | Unit test framework (`addons/gut/`, licence in `addons/gut/LICENSE.md`) | https://github.com/bitwes/Gut, copied from the owner's katanashotgun project | MIT | Tom "Butch" Wesley | No: tests only, excluded in `export_presets.cfg` |
 | Anonymous Pro, Courier Prime, Lobster Two | Fonts of Gut's test runner (`addons/gut/fonts/`, licence in `addons/gut/fonts/OFL.txt`) | Bundled with Gut | SIL OFL 1.1 | See `addons/gut/fonts/OFL.txt` | No |
 
 Code reused from the owner's own games (katanashotgun, Airsoft-Next) is the owner's and is noted in each file's header,

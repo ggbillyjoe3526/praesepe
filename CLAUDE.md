@@ -10,8 +10,8 @@ flags. The project instructions hold the full rules; this file holds what is spe
   together, and only with the owner.
 - **Cloud sessions:** the SessionStart hook (`.claude/hooks/session-start.mjs`) installs that Godot as `godot` on PATH.
   Export templates are not installed. Cloud machines have no GPU: never judge feel or report frame rates from here.
-- **Checks** (CI runs all of them on every pull request): `tools/smoke_test.sh` (import, then `-- --smoke`, fails on
-  any script error), `tools/unit_tests.sh` (Gut, tests in `test/unit/`), `gdlint game test tools` (settings in
+- **Checks** (CI runs all of them on every pull request): `tools/smoke_test.sh` (import, then `-- --smoke`, fails on any
+  script error or `ERROR:` line), `tools/unit_tests.sh` (Gut, tests in `test/unit/`), `gdlint game test tools` (settings in
   `gdlintrc`), `tools/changelog.sh check`.
 - **Seeds are law:** gameplay draws only from `Game.rng(<stream>)` (`game/core/game.gd`); presentation uses
   `Game.FX_STREAM`. Never the global `randi()`/`randf()`.

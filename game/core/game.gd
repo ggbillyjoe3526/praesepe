@@ -27,11 +27,13 @@ func _physics_process(delta: float) -> void:
 	clock += delta
 
 
-## Starts a world on `seed_value`: every stream restarts from its first draw and the clock from zero.
+## Starts a world on `seed_value`: every stream restarts from its first draw and the clock from zero. Streams are
+## reseeded in place, so a generator someone kept from `rng()` follows the new world too.
 func start_world(seed_value: int) -> void:
 	world_seed = seed_value & Seeds.MASK_32
 	clock = 0.0
-	_streams.clear()
+	for stream_name: StringName in _streams:
+		_streams[stream_name].seed = Seeds.stream_seed(world_seed, stream_name)
 
 
 ## The random stream `stream_name` (one of GAMEPLAY_STREAMS, or FX_STREAM), created on first use.
@@ -49,3 +51,27 @@ func rng(stream_name: StringName) -> RandomNumberGenerator:
 ## Moves the in-game clock forward without waiting, for sleeping or ending a shift.
 func skip_time(seconds: float) -> void:
 	clock += maxf(seconds, 0.0)
+
+
+## The world seed, the clock and where each gameplay stream has got to, for a save file. A stream's state is a 64-bit
+## number that JSON can't hold exactly, so it is written as a string. The FX stream is presentation only and not saved.
+func snapshot() -> Dictionary:
+	var states := {}
+	for stream_name: StringName in _streams:
+		if stream_name != FX_STREAM:
+			states[String(stream_name)] = str(_streams[stream_name].state)
+	return {"world_seed": world_seed, "clock": clock, "streams": states}
+
+
+## Puts back a snapshot(): the same seed, clock and stream positions, so the next draws match the saved game's. A
+## missing or unreadable value starts that part fresh.
+func restore(data: Dictionary) -> void:
+	start_world(int(data.get("world_seed", 0)))
+	clock = maxf(float(data.get("clock", 0.0)), 0.0)
+	var states: Variant = data.get("streams", {})
+	if not states is Dictionary:
+		return
+	for key: Variant in states:
+		var value := str(states[key])
+		if GAMEPLAY_STREAMS.has(StringName(str(key))) and value.is_valid_int():
+			rng(StringName(str(key))).state = value.to_int()
