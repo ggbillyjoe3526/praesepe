@@ -1,12 +1,13 @@
 extends Node3D
-## The first scene: flight in an empty sky. A greybox ship among a few buoys, with space dust and stars to judge
-## motion by. Launched with `-- --smoke`, the autopilot flies it instead of the player (game/debug/smoke_run.gd).
+## The first scene: flight in an empty sky. A greybox ship with a cockpit among a few buoys, with space dust and stars
+## to judge motion by, seen from the cockpit or the chase camera (ShipCameras). Launched with `-- --smoke`, the autopilot flies it instead of the player (game/debug/smoke_run.gd).
 
 @onready var _ship: Ship = $World/Ship
 @onready var _origin: FloatingOrigin = $FloatingOrigin
 @onready var _pilot: PilotControls = $PilotControls
 @onready var _hud: FlightHud = $Hud/FlightHud
 @onready var _pause: PauseScreen = $PauseScreen
+@onready var _cameras: ShipCameras = $ShipCameras
 
 
 func _ready() -> void:
@@ -21,4 +22,5 @@ func _ready() -> void:
 	smoke.ship = _ship
 	smoke.origin = _origin
 	smoke.pause = _pause
+	smoke.cameras = _cameras
 	add_child(smoke)
