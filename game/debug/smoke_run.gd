@@ -258,7 +258,7 @@ func _check_clear_of(body: StaticBody3D, box_size: Vector3) -> void:
 	_bar_reach = minf(_bar_reach, cameras.chase.reach)
 	var local := body.global_transform.affine_inverse() * cameras.chase.global_position
 	var gap := (local.abs() - box_size * 0.5).max(Vector3.ZERO).length()
-	_expect(gap > cameras.chase.tuning.clip_radius * 0.5,
+	_expect(gap > cameras.chase.tuning.clip_radius * 0.9,
 			"keeps the chase camera out of the bar at speed (%.2f m from it, frame %d)" % [gap, _frames])
 
 
