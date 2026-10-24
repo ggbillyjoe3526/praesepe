@@ -3,7 +3,8 @@
 A casual, first-person space game: buy a ship on a loan, then earn money flying contracts around one solar system.
 Working title. Made with Godot 4.7.2, Blender and Claude Code. The design is in [DESIGN.md](DESIGN.md).
 
-**Status:** project skeleton. It boots to a placeholder screen; there is nothing to fly yet.
+**Status:** flight in an empty sky. A greybox ship flies among a few buoys, with Newtonian flight, flight assist, a
+velocity marker and pause. No cockpit, chase camera, planets or jobs yet.
 
 ## Running it
 1. Install [Godot 4.7.2-stable](https://godotengine.org/download/archive/4.7.2-stable/) (the standard build, not
@@ -12,7 +13,20 @@ Working title. Made with Godot 4.7.2, Blender and Claude Code. The design is in 
 3. Press **F5** to play.
 
 ## Controls
-None yet. Flight controls arrive with the first playable.
+| Key | Does |
+| --- | --- |
+| W / S | Speed up / slow down (with flight assist on, let go to hold the speed) |
+| A / D | Slide left / right |
+| Space / Ctrl (or C) | Slide up / down |
+| Mouse | Steer (pitch and yaw); the stick eases back to the centre |
+| Q / E | Roll left / right |
+| Z | Flight assist on or off |
+| X | Full stop (turns flight assist on) |
+| Esc | Pause; the game also pauses when the window loses focus or lets go of the mouse |
+| Click | Capture the mouse again |
+| F3 | Debug overlay: frame rate, draw calls, nodes, seed, speed and true position |
+
+How flying works, and the tuning values, are in [DESIGN.md](DESIGN.md) ("Flight and camera").
 
 ## Debug flags
 Given after `--`, for example `godot --path . -- --seed 1234`.
@@ -20,12 +34,13 @@ Given after `--`, for example `godot --path . -- --seed 1234`.
 | Flag | What it does |
 | --- | --- |
 | `--seed <n>` (or `--seed=<n>`) | Starts the world on seed `n` (0 to 4294967295). The same seed gives the same world. Without it, each launch picks a fresh seed, shown on screen. |
-| `--smoke` | Runs the headless smoke test: plays a few seconds, prints `SMOKE: ok`, then quits. |
+| `--smoke` | Runs the headless smoke test: an autopilot flies the ship (speeds up, turns, drifts with assist off, stops, pauses), checking it at every step, prints `SMOKE: ok`, then quits. Use with `--fixed-fps 60` before `--`. |
+| `--perf` | Logs draw calls and node counts every 2 s and a summary at exit (the F3 overlay's numbers). |
 
 ## Tests
 | Command | What it checks |
 | --- | --- |
-| `tools/smoke_test.sh` | Imports the project and runs `--smoke` headless; fails on any script error or `ERROR:` line. |
+| `tools/smoke_test.sh` | Imports the project and runs `--smoke` headless; fails on any script error, `ERROR:` line or failed flight check, or if a second run on the same seed ends anywhere else. |
 | `tools/unit_tests.sh` | The Gut unit tests in `test/unit/`. |
 | `gdlint game test tools` | Code style ([gdtoolkit](https://github.com/Scony/godot-gdscript-toolkit) 4.5.0). |
 | `tools/changelog.sh check` | The changelog notes in `changelog.d/`. |
@@ -36,9 +51,14 @@ CI runs all four on every pull request. Set `GODOT=/path/to/godot` if `godot` is
 | Path | What lives there |
 | --- | --- |
 | `game/core/` | The `Game` autoload (world seed, random streams, in-game clock) and launch options. |
+| `game/flight/` | The flight model, the ship's input, the pilot's controls and their tuning. |
+| `game/ship/` | The greybox ship and its tuning. |
+| `game/world/` | The floating origin, space dust, the starfield sky and buoys. |
+| `game/hud/` | The flight HUD and velocity marker. |
+| `game/ui/` | The pause screen. |
 | `game/save/` | Crash-safe save files. |
 | `game/main/` | The first scene. |
-| `game/debug/` | The smoke test runner. |
+| `game/debug/` | The smoke test autopilot and the F3 overlay. |
 | `test/unit/` | Unit tests. |
 | `tools/` | Test and changelog scripts. |
 | `addons/gut/` | The Gut test framework (tests only, never shipped). |

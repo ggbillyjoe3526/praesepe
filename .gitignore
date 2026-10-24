@@ -6,6 +6,7 @@ dist/
 # Test logs (tools/smoke_test.sh, tools/unit_tests.sh)
 import.log
 smoke.log
+smoke.log.again
 unit.log
 # OS / editors
 .DS_Store

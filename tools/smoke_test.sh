@@ -2,7 +2,8 @@
 # Headless smoke test: imports the project, runs the game with `-- --smoke`
 # (game/debug/smoke_run.gd) and fails on any script error, any engine or
 # push_error() ERROR line (the known exit-time leak lines aside), or if the run
-# never reports. Today it boots, ticks and quits; it grows to fly and dock.
+# never reports, then runs it again and fails unless both runs end the same.
+# It flies on autopilot today; it grows to dock as docking lands.
 # Usage: tools/smoke_test.sh            (GODOT=/path/to/godot to override)
 set -uo pipefail
 GODOT="${GODOT:-godot}"
@@ -18,7 +19,7 @@ if errors_in import.log; then
 fi
 
 # A script error that stops the run from quitting fails here after two minutes.
-timeout 120 "$GODOT" --headless --path . -- --smoke --seed 1234 > "$LOG" 2>&1
+timeout 120 "$GODOT" --headless --fixed-fps 60 --path . -- --smoke --seed 1234 > "$LOG" 2>&1
 status=$?
 if errors_in "$LOG"; then
   echo "FAIL: errors during the smoke run (see $LOG)"; exit 1
@@ -28,4 +29,11 @@ if ! grep -q "^SMOKE: ok" "$LOG"; then
   echo "FAIL: the smoke run never reported (exit $status, see $LOG)"; exit 1
 fi
 grep "^SMOKE: ok" "$LOG"
-echo "PASS: smoke run with zero errors"
+
+# Seeds are law: a second run on the same seed must fly to exactly the same place.
+timeout 120 "$GODOT" --headless --fixed-fps 60 --path . -- --smoke --seed 1234 > "$LOG.again" 2>&1
+if [ "$(grep "^SMOKE: ok" "$LOG")" != "$(grep "^SMOKE: ok" "$LOG.again")" ]; then
+  grep "^SMOKE" "$LOG.again"
+  echo "FAIL: a second run on the same seed ended differently (see $LOG.again)"; exit 1
+fi
+echo "PASS: smoke run with zero errors, the same on a second run"

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ShipTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/flight/ship_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+forward_accel = 40.0
+reverse_accel = 25.0
+lateral_accel = 30.0
+vertical_accel = 30.0
+max_speed = 200.0
+max_reverse_speed = 50.0
+pitch_rate = 50.0
+yaw_rate = 35.0
+roll_rate = 100.0
+pitch_accel = 120.0
+yaw_accel = 90.0
+roll_accel = 250.0
+assist_response = 0.35
+assist_turn_response = 0.12

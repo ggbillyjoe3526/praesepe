@@ -8,16 +8,20 @@ extends RefCounted
 const NO_SEED := -1
 const SEED := "--seed"
 const SMOKE := "--smoke"
+const PERF := "--perf"
 
 ## The world seed asked for, or NO_SEED.
 var seed_value: int = NO_SEED
 ## Run the headless smoke test (game/debug/smoke_run.gd) and quit.
 var smoke: bool = false
+## Log performance counters every 2 s and a summary at exit (game/debug/debug_perf.gd).
+var perf: bool = false
 
 
 static func parse(args: PackedStringArray) -> LaunchArgs:
 	var out := LaunchArgs.new()
 	out.smoke = args.has(SMOKE)
+	out.perf = args.has(PERF)
 	out.seed_value = _parse_seed(args)
 	return out
 
