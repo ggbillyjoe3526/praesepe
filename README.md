@@ -3,8 +3,8 @@
 A casual, first-person space game: buy a ship on a loan, then earn money flying contracts around one solar system.
 Working title. Made with Godot 4.7.2, Blender and Claude Code. The design is in [DESIGN.md](DESIGN.md).
 
-**Status:** flight in an empty sky. A greybox ship flies among a few buoys, with Newtonian flight, flight assist, a
-velocity marker and pause. No cockpit, chase camera, planets or jobs yet.
+**Status:** flight in an empty sky. A greybox ship with a simple cockpit flies among a few buoys, with Newtonian flight,
+flight assist, a velocity marker, a chase camera, comfort settings and pause. No planets or jobs yet.
 
 ## Running it
 1. Install [Godot 4.7.2-stable](https://godotengine.org/download/archive/4.7.2-stable/) (the standard build, not
@@ -22,11 +22,12 @@ velocity marker and pause. No cockpit, chase camera, planets or jobs yet.
 | Q / E | Roll left / right |
 | Z | Flight assist on or off |
 | X | Full stop (turns flight assist on) |
-| Esc | Pause; the game also pauses when the window loses focus or lets go of the mouse |
+| V | Cockpit or chase camera |
+| Esc | Pause; the game also pauses when the window loses focus or lets go of the mouse. The pause screen holds the comfort settings: field of view, camera shake, head bob, reduce motion |
 | Click | Capture the mouse again |
 | F3 | Debug overlay: frame rate, draw calls, nodes, seed, speed and true position |
 
-How flying works, and the tuning values, are in [DESIGN.md](DESIGN.md) ("Flight and camera").
+How flying and the cameras work, and their tuning values, are in [DESIGN.md](DESIGN.md) ("Flight and camera").
 
 ## Debug flags
 Given after `--`, for example `godot --path . -- --seed 1234`.
@@ -34,7 +35,7 @@ Given after `--`, for example `godot --path . -- --seed 1234`.
 | Flag | What it does |
 | --- | --- |
 | `--seed <n>` (or `--seed=<n>`) | Starts the world on seed `n` (0 to 4294967295). The same seed gives the same world. Without it, each launch picks a fresh seed, shown on screen. |
-| `--smoke` | Runs the headless smoke test: an autopilot flies the ship (speeds up, turns, drifts with assist off, stops, pauses), checking it at every step, prints `SMOKE: ok`, then quits. Use with `--fixed-fps 60` before `--`. |
+| `--smoke` | Runs the headless smoke test: an autopilot flies the ship (speeds up, turns, drifts with assist off, stops, pauses), checking it and both cameras at every step (the chase camera's lag and lean, and that it never goes through a wall), prints `SMOKE: ok`, then quits. It never reads or writes your settings. Use with `--fixed-fps 60` before `--`. |
 | `--perf` | Logs draw calls and node counts every 2 s and a summary at exit (the F3 overlay's numbers). |
 
 ## Tests
@@ -52,11 +53,12 @@ CI runs all four on every pull request. Set `GODOT=/path/to/godot` if `godot` is
 | --- | --- |
 | `game/core/` | The `Game` autoload (world seed, random streams, in-game clock) and launch options. |
 | `game/flight/` | The flight model, the ship's input, the pilot's controls and their tuning. |
-| `game/ship/` | The greybox ship and its tuning. |
+| `game/ship/` | The greybox ship, its cockpit and its tuning. |
+| `game/camera/` | The cockpit and chase cameras, camera shake and their tuning. |
 | `game/world/` | The floating origin, space dust, the starfield sky and buoys. |
-| `game/hud/` | The flight HUD and velocity marker. |
-| `game/ui/` | The pause screen. |
-| `game/save/` | Crash-safe save files. |
+| `game/hud/` | The flight HUD, velocity marker and the cockpit's dashboard screen. |
+| `game/ui/` | The pause screen and its comfort settings. |
+| `game/save/` | Crash-safe save files and the player's settings (the `Settings` autoload). |
 | `game/main/` | The first scene. |
 | `game/debug/` | The smoke test autopilot and the F3 overlay. |
 | `test/unit/` | Unit tests. |
@@ -64,4 +66,4 @@ CI runs all four on every pull request. Set `GODOT=/path/to/godot` if `godot` is
 | `addons/gut/` | The Gut test framework (tests only, never shipped). |
 | `changelog.d/` | One changelog note per pull request, gathered into `CHANGELOG.md` at release. |
 
-Saves and settings go to the user folder `ProjectPraesepe` (on Windows, `%APPDATA%\Godot\app_userdata\ProjectPraesepe`).
+Saves and settings (`settings.json`) go to the user folder `ProjectPraesepe` (on Windows, `%APPDATA%\Godot\app_userdata\ProjectPraesepe`).

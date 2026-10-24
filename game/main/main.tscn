@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_ship.tscn" id="2_ship"]
@@ -12,6 +12,10 @@
 [ext_resource type="Script" path="res://game/hud/flight_hud.gd" id="10_hud"]
 [ext_resource type="Script" path="res://game/ui/pause_screen.gd" id="11_pause"]
 [ext_resource type="Script" path="res://game/debug/debug_perf.gd" id="12_perf"]
+[ext_resource type="Script" path="res://game/camera/ship_cameras.gd" id="13_cameras"]
+[ext_resource type="Resource" path="res://game/camera/camera_tuning.tres" id="14_camera_tuning"]
+[ext_resource type="Script" path="res://game/camera/cockpit_camera.gd" id="15_cockpit_camera"]
+[ext_resource type="Script" path="res://game/camera/chase_camera.gd" id="16_chase_camera"]
 
 [sub_resource type="ShaderMaterial" id="Mat_sky"]
 shader = ExtResource("3_sky")
@@ -38,6 +42,17 @@ content_margin_left = 28.0
 content_margin_top = 14.0
 content_margin_right = 28.0
 content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_keys"]
+bg_color = Color(0.03, 0.04, 0.08, 0.85)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
@@ -104,6 +119,24 @@ script = ExtResource("6_dust")
 origin = NodePath("../FloatingOrigin")
 ship = NodePath("../World/Ship")
 
+[node name="ShipCameras" type="Node" parent="." node_paths=PackedStringArray("ship")]
+script = ExtResource("13_cameras")
+ship = NodePath("../World/Ship")
+tuning = ExtResource("14_camera_tuning")
+
+[node name="CockpitCamera" type="Camera3D" parent="ShipCameras"]
+current = true
+fov = 75.0
+near = 0.05
+far = 20000.0
+script = ExtResource("15_cockpit_camera")
+
+[node name="ChaseCamera" type="Camera3D" parent="ShipCameras"]
+fov = 75.0
+near = 0.2
+far = 20000.0
+script = ExtResource("16_chase_camera")
+
 [node name="PilotControls" type="Node" parent="." node_paths=PackedStringArray("ship")]
 script = ExtResource("8_pilot")
 ship = NodePath("../World/Ship")
@@ -111,7 +144,7 @@ controls = ExtResource("9_controls")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
-[node name="FlightHud" type="Control" parent="Hud" node_paths=PackedStringArray("ship", "camera", "controls")]
+[node name="FlightHud" type="Control" parent="Hud" node_paths=PackedStringArray("ship", "cameras", "controls")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -121,10 +154,12 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("10_hud")
 ship = NodePath("../../World/Ship")
-camera = NodePath("../../World/Ship/PilotCamera")
+cameras = NodePath("../../ShipCameras")
 controls = NodePath("../../PilotControls")
 
 [node name="Readout" type="PanelContainer" parent="Hud/FlightHud"]
+unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
@@ -132,7 +167,7 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -330.0
-offset_top = -190.0
+offset_top = -150.0
 offset_right = 330.0
 offset_bottom = -32.0
 grow_horizontal = 2
@@ -158,11 +193,24 @@ theme_override_font_sizes/font_size = 24
 text = "FLIGHT ASSIST ON"
 horizontal_alignment = 1
 
-[node name="Keys" type="Label" parent="Hud/FlightHud/Readout/Lines"]
+[node name="KeysPlate" type="PanelContainer" parent="Hud/FlightHud"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -480.0
+offset_top = 16.0
+offset_right = 480.0
+offset_bottom = 60.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_keys")
+
+[node name="Keys" type="Label" parent="Hud/FlightHud/KeysPlate"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.76, 0.86, 1)
 theme_override_font_sizes/font_size = 18
-text = "W/S speed · A/D/Space/Ctrl slide · Mouse steer · Q/E roll · Z assist · X stop · Esc pause"
+text = "W/S speed · A/D/Space/Ctrl slide · Mouse steer · Q/E roll · Z assist · X stop · V camera · Esc pause"
 horizontal_alignment = 1
 
 [node name="ToastPlate" type="PanelContainer" parent="Hud/FlightHud"]

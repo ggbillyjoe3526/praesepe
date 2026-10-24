@@ -90,6 +90,31 @@ The values live in `game/ship/greybox_ship_tuning.tres` (per ship) and `game/fli
 - The chase camera lags slightly in turns. With flight assist off, it leans toward the velocity direction so drift stays readable.
 - On foot is always first person. A third-person on-foot view may come later.
 
+**How the cameras work (first values, to be tuned with the owner)**
+
+- The game starts in the cockpit. V switches to the chase camera and back while flying.
+- Cockpit: the speed and flight assist show on the dashboard screen, in the same words as the HUD. The nose mark, the velocity marker and the mouse stick stay on the screen in both views; in the chase view a plate at the bottom shows the speed and flight assist instead of the dashboard.
+- Head bob in the cockpit: the pilot's head sways a few centimetres against the thrusters' push (back when speeding up, sideways when sliding), easing in and out.
+- Camera shake: a faint rumble while the thrusters push, and a wobble after a bump that dies away in under a second.
+- Chase camera: behind and above the ship, looking down at it a little, turning a moment after the ship does. With flight assist off it turns toward where the ship is really moving, by half the angle between nose and motion, at most 25°. Anything between it and the ship pulls it in at once; it eases back out when the way is clear.
+- Comfort settings, on the pause screen until the settings menu exists, saved between sessions: field of view, camera shake, head bob and reduce motion (no shake or head bob, and a chase camera that swings half as much).
+
+**Camera tuning**
+
+The values live in `game/camera/camera_tuning.tres` (shared by every ship). Where the pilot's eye and the chase camera sit is part of each ship's scene (its `Eye` and `ChaseAnchor` markers).
+
+| Value | First value | What it does |
+| --- | --- | --- |
+| Field of view | 75° (60° to 100°), vertical | Player setting, both cameras |
+| Pilot's eye | 1.15 m up, 4 m forward of the greybox's centre | Greybox ship scene |
+| Head sway | 1.2 mm per m/s² of push, at most 6 cm, eased over 0.15 s | 4.8 cm back at full main engine |
+| Engine rumble | 0.12° at full thrust | Times the shake setting |
+| Bump wobble | Up to 2° for a 6 m/s knock, gone in about 0.6 s; knocks under 0.3 m/s ignored | Times the shake setting |
+| Chase camera place | 4 m up, 18 m behind, looking 8° down | Greybox ship scene |
+| Chase lag | 0.18 s (half with reduce motion) | 35°/s yaw shows as about 6° of swing |
+| Chase lean (assist off) | Half the drift angle, at most 25°, from 5 m/s, full by 40 m/s, eased over 0.6 s | Keeps drift readable |
+| Chase clearance | 0.5 m from anything in the way, eases back out over 0.5 s | No clipping |
+
 ## Contracts
 
 All jobs come from one contract system built on three verbs. Job types are variations on those verbs.
@@ -226,6 +251,9 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-24: Cameras until the owner tunes them: start in the cockpit, V switches to the chase camera; the field of view is vertical, 60° to 100°, starting at 75° (what flight was approved with); shake starts full (it is faint), head bob on, reduce motion off; the comfort settings sit on the pause screen until the settings menu and are saved in `settings.json` in the user folder (default, Claude).
+- 2026-10-24: The greybox ship's centre of mass stays where it was when flight was approved (0, -0.07, 0.41 m), so the cockpit canopy's new collision shape doesn't change how it flies (default, Claude).
+- 2026-10-24: Flight approved: William played the flight from PR #2 and said the controls feel good. "How it flies" and "Flight tuning" are now the baseline; changes to them go to the owner (owner).
 - 2026-10-24: Until the owner's flight verdict (build step 4), flight works as described in "How it flies": assist holds a set speed rather than braking when W is released, the mouse is a self-centring stick, assist off lets spin drift too, and X is a full stop. Keys: W/S, A/D, Space/Ctrl (or C), Q/E, Z, X, Esc (default, Claude).
 - 2026-10-24: The floating origin re-centres the world when the ship is 2048 m from it; true positions are kept in 64-bit (default, Claude).
 - 2026-10-24: Stack fixed: Godot 4.7.2-stable (standard build), typed GDScript, Forward+, Blender models exported as glTF. Desktop only, Windows first, single player, offline (owner, project instructions).

@@ -1,13 +1,14 @@
 class_name FlightHud
 extends Control
 ## The flight HUD (design doc, "Flight and camera"): the nose's aim point, the velocity marker showing where the ship
-## is really going, the mouse stick, and a readout of speed and flight assist on a solid plate. Text is rebuilt only
-## when the whole number shown changes (so while speeding up, not in steady flight). A placeholder look until the
-## cockpit and art style arrive.
+## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus the keys and
+## short messages. In the chase view a plate at the bottom also shows speed and flight assist; in the cockpit the
+## dashboard screen shows them (CockpitDisplay), in the same words. Text is rebuilt only when the whole number shown
+## changes (so while speeding up, not in steady flight). A placeholder look until the art style is chosen.
 
 ## Below this speed (m/s) the ship counts as stopped and no velocity marker shows.
 const STOPPED := 0.5
-## How long (s) the flight assist message stays up.
+## How long (s) a message (flight assist, camera) stays up.
 const TOAST_TIME := 2.5
 ## How close (px at 1080p) markers come to the screen's edge.
 const EDGE := 64.0
@@ -29,7 +30,7 @@ const MARKER_CROSS := 8.0
 const LINE_WIDTH := 2.5
 
 @export var ship: Ship
-@export var camera: Camera3D
+@export var cameras: ShipCameras
 @export var controls: PilotControls
 
 var _speed_shown: int = -1
@@ -41,6 +42,7 @@ var _toast_left: float = 0.0
 @onready var _assist: Label = %Assist
 @onready var _toast: Label = %Toast
 @onready var _toast_plate: Control = %ToastPlate
+@onready var _readout: Control = %Readout
 
 
 func _ready() -> void:
@@ -48,11 +50,30 @@ func _ready() -> void:
 	_toast_plate.visible = false
 	if ship != null:
 		ship.assist_changed.connect(_on_assist_changed)
+	if cameras != null:
+		cameras.view_changed.connect(_on_view_changed)
+		_readout.visible = cameras.view == ShipCameras.View.CHASE
+	# A new field of view on the pause screen moves the markers while the game is paused.
+	Settings.changed.connect(queue_redraw)
 
 
 func _exit_tree() -> void:
 	if ship != null and ship.assist_changed.is_connected(_on_assist_changed):
 		ship.assist_changed.disconnect(_on_assist_changed)
+	if cameras != null and cameras.view_changed.is_connected(_on_view_changed):
+		cameras.view_changed.disconnect(_on_view_changed)
+	if Settings.changed.is_connected(queue_redraw):
+		Settings.changed.disconnect(queue_redraw)
+
+
+## The speed as the HUD and the dashboard show it.
+static func speed_text(speed: int) -> String:
+	return "%d m/s" % speed
+
+
+## Flight assist as the HUD and the dashboard show it, with the speed it is holding.
+static func assist_text(on: bool, held: int) -> String:
+	return "FLIGHT ASSIST ON  ·  holding %d m/s" % held if on else "FLIGHT ASSIST OFF  ·  drifting"
 
 
 func _process(delta: float) -> void:
@@ -69,7 +90,7 @@ func _update_text() -> void:
 	var speed := roundi(ship.speed())
 	if speed != _speed_shown:
 		_speed_shown = speed
-		_speed.text = "%d m/s" % speed
+		_speed.text = FlightHud.speed_text(speed)
 	var on := 1 if ship.assist_on() else 0
 	var held := roundi(ship.held_speed())
 	if on != _assist_shown:
@@ -77,30 +98,41 @@ func _update_text() -> void:
 	if on != _assist_shown or (on == 1 and held != _set_shown):
 		_assist_shown = on
 		_set_shown = held
-		if on == 1:
-			_assist.text = "FLIGHT ASSIST ON  ·  holding %d m/s" % held
-		else:
-			_assist.text = "FLIGHT ASSIST OFF  ·  drifting"
+		_assist.text = FlightHud.assist_text(on == 1, held)
 
 
 func _on_assist_changed(on: bool) -> void:
-	_toast.text = "Flight assist ON" if on else "Flight assist OFF: the ship keeps drifting and spinning"
-	_toast.add_theme_color_override("font_color", ON_COLOUR if on else OFF_COLOUR)
+	_show_toast("Flight assist ON" if on else "Flight assist OFF: the ship keeps drifting and spinning",
+			ON_COLOUR if on else OFF_COLOUR)
+
+
+func _on_view_changed(view: ShipCameras.View) -> void:
+	var chase := view == ShipCameras.View.CHASE
+	_readout.visible = chase
+	_show_toast("Chase camera  ·  V for the cockpit" if chase else "Cockpit  ·  V for the chase camera", NOSE_COLOUR)
+
+
+func _show_toast(words: String, colour: Color) -> void:
+	_toast.text = words
+	_toast.add_theme_color_override("font_color", colour)
 	_toast_left = TOAST_TIME
 	_toast_plate.visible = true
 
 
 func _draw() -> void:
-	if ship == null or camera == null:
+	if ship == null or cameras == null:
 		return
 	var screen := size
-	var centre := screen * 0.5
-	_draw_nose(centre)
+	var camera := cameras.current()
+	var view := camera.global_transform
+	# The nose's aim point: the screen's centre in the cockpit, ahead of the ship in the chase view.
+	var nose_at := ScreenMarker.project(view, camera.fov, screen, -ship.get_global_transform_interpolated().basis.z)
+	var nose := ScreenMarker.clamp_to_screen(Vector2(nose_at.x, nose_at.y), screen, EDGE)
+	_draw_nose(nose)
 	if controls != null:
-		_draw_stick(centre, controls.stick)
+		_draw_stick(nose, controls.stick)
 	if ship.speed() < STOPPED:
 		return
-	var view := camera.get_global_transform_interpolated()
 	var at := ScreenMarker.project(view, camera.fov, screen, ship.linear_velocity)
 	var point := Vector2(at.x, at.y)
 	var clamped := ScreenMarker.clamp_to_screen(point, screen, EDGE)

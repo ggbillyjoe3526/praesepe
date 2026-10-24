@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="CameraTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/camera/camera_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+head_sway = 0.0012
+head_sway_max = 0.06
+head_sway_time = 0.15
+rumble_angle = 0.12
+bump_angle = 2.0
+bump_full = 6.0
+bump_floor = 0.3
+bump_decay = 1.6
+shake_speed = 22.0
+chase_lag = 0.18
+chase_lag_reduced = 0.5
+chase_look_down = 8.0
+lean_share = 0.5
+lean_max = 25.0
+lean_min_speed = 5.0
+lean_full_speed = 40.0
+lean_blend = 0.6
+clip_radius = 0.5
+clip_ease_out = 0.5
