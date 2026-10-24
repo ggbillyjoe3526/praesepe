@@ -55,10 +55,6 @@ func _exit_tree() -> void:
 				_orphans_max])
 
 
-func is_shown() -> bool:
-	return _label.visible
-
-
 func _active() -> bool:
 	return _log or _label.visible
 

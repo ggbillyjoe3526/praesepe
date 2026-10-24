@@ -1,8 +1,9 @@
 class_name FlightHud
 extends Control
 ## The flight HUD (design doc, "Flight and camera"): the nose's aim point, the velocity marker showing where the ship
-## is really going, the mouse stick, and a readout of speed and flight assist on a solid plate. Text changes only when
-## the number shown changes, so flying builds no strings. A placeholder look until the cockpit and art style arrive.
+## is really going, the mouse stick, and a readout of speed and flight assist on a solid plate. Text is rebuilt only
+## when the whole number shown changes (so while speeding up, not in steady flight). A placeholder look until the
+## cockpit and art style arrive.
 
 ## Below this speed (m/s) the ship counts as stopped and no velocity marker shows.
 const STOPPED := 0.5
@@ -17,6 +18,15 @@ const STICK_COLOUR := Color(0.92, 0.95, 1.0, 0.5)
 const OFF_COLOUR := Color(1.0, 0.72, 0.3)
 const ON_COLOUR := Color(0.55, 0.95, 0.75)
 const NOSE_ARMS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
+## Sizes in px at 1080p: the nose mark's arms, the mouse stick's ring (a full push) and dot, and the velocity markers.
+const NOSE_GAP := 6.0
+const NOSE_ARM := 16.0
+const STICK_RING := 90.0
+const STICK_DOT := 4.0
+const MARKER_RADIUS := 11.0
+const MARKER_WING := 11.0
+const MARKER_CROSS := 8.0
+const LINE_WIDTH := 2.5
 
 @export var ship: Ship
 @export var camera: Camera3D
@@ -61,16 +71,16 @@ func _update_text() -> void:
 		_speed_shown = speed
 		_speed.text = "%d m/s" % speed
 	var on := 1 if ship.assist_on() else 0
-	var held := roundi(ship.set_speed())
+	var held := roundi(ship.held_speed())
+	if on != _assist_shown:
+		_assist.add_theme_color_override("font_color", ON_COLOUR if on == 1 else OFF_COLOUR)
 	if on != _assist_shown or (on == 1 and held != _set_shown):
 		_assist_shown = on
 		_set_shown = held
 		if on == 1:
 			_assist.text = "FLIGHT ASSIST ON  ·  holding %d m/s" % held
-			_assist.add_theme_color_override("font_color", ON_COLOUR)
 		else:
 			_assist.text = "FLIGHT ASSIST OFF  ·  drifting"
-			_assist.add_theme_color_override("font_color", OFF_COLOUR)
 
 
 func _on_assist_changed(on: bool) -> void:
@@ -103,29 +113,31 @@ func _draw() -> void:
 
 func _draw_nose(c: Vector2) -> void:
 	for dir: Vector2 in NOSE_ARMS:
-		draw_line(c + dir * 6.0, c + dir * 16.0, NOSE_COLOUR, 2.0, true)
+		draw_line(c + dir * NOSE_GAP, c + dir * NOSE_ARM, NOSE_COLOUR, 2.0, true)
 
 
 ## The mouse stick: a faint ring the size of a full deflection, and a dot where the stick is.
 func _draw_stick(c: Vector2, stick: Vector2) -> void:
 	if stick.length() < 0.02:
 		return
-	draw_arc(c, 90.0, 0.0, TAU, 48, Color(STICK_COLOUR, 0.18), 1.5, true)
-	draw_circle(c + stick * 90.0, 4.0, STICK_COLOUR)
+	draw_arc(c, STICK_RING, 0.0, TAU, 48, Color(STICK_COLOUR, 0.18), 1.5, true)
+	draw_circle(c + stick * STICK_RING, STICK_DOT, STICK_COLOUR)
 
 
 ## Where the ship is going: a ring with three short wings.
 func _draw_prograde(p: Vector2, faded: bool) -> void:
 	var col := Color(PROGRADE_COLOUR, 0.55 if faded else 1.0)
-	draw_arc(p, 11.0, 0.0, TAU, 32, col, 2.5, true)
-	draw_line(p + Vector2(-11, 0), p + Vector2(-22, 0), col, 2.5, true)
-	draw_line(p + Vector2(11, 0), p + Vector2(22, 0), col, 2.5, true)
-	draw_line(p + Vector2(0, -11), p + Vector2(0, -20), col, 2.5, true)
+	var r := MARKER_RADIUS
+	draw_arc(p, r, 0.0, TAU, 32, col, LINE_WIDTH, true)
+	draw_line(p + Vector2(-r, 0), p + Vector2(-r - MARKER_WING, 0), col, LINE_WIDTH, true)
+	draw_line(p + Vector2(r, 0), p + Vector2(r + MARKER_WING, 0), col, LINE_WIDTH, true)
+	draw_line(p + Vector2(0, -r), p + Vector2(0, -r - MARKER_WING * 0.8), col, LINE_WIDTH, true)
 
 
 ## Going backwards: a ring with a cross, where the ship is moving away from.
 func _draw_retrograde(p: Vector2, faded: bool) -> void:
 	var col := Color(RETROGRADE_COLOUR, 0.55 if faded else 1.0)
-	draw_arc(p, 11.0, 0.0, TAU, 32, col, 2.5, true)
-	draw_line(p + Vector2(-8, -8), p + Vector2(8, 8), col, 2.5, true)
-	draw_line(p + Vector2(-8, 8), p + Vector2(8, -8), col, 2.5, true)
+	var x := MARKER_CROSS
+	draw_arc(p, MARKER_RADIUS, 0.0, TAU, 32, col, LINE_WIDTH, true)
+	draw_line(p + Vector2(-x, -x), p + Vector2(x, x), col, LINE_WIDTH, true)
+	draw_line(p + Vector2(-x, x), p + Vector2(x, -x), col, LINE_WIDTH, true)

@@ -55,13 +55,6 @@ func assist_on() -> bool:
 	return model.assist
 
 
-func set_speed() -> float:
+## The forward speed (m/s) flight assist is holding.
+func held_speed() -> float:
 	return model.set_speed
-
-
-## Switches flight assist directly (the pause-free path the smoke test and settings use; players press the key).
-func set_assist(on: bool) -> void:
-	if on == model.assist:
-		return
-	model.set_assist(on, pilot_velocity().z)
-	assist_changed.emit(on)

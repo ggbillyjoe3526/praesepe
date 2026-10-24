@@ -32,6 +32,9 @@ grep "^SMOKE: ok" "$LOG"
 
 # Seeds are law: a second run on the same seed must fly to exactly the same place.
 timeout 120 "$GODOT" --headless --fixed-fps 60 --path . -- --smoke --seed 1234 > "$LOG.again" 2>&1
+if errors_in "$LOG.again"; then
+  echo "FAIL: errors during the second smoke run (see $LOG.again)"; exit 1
+fi
 if [ "$(grep "^SMOKE: ok" "$LOG")" != "$(grep "^SMOKE: ok" "$LOG.again")" ]; then
   grep "^SMOKE" "$LOG.again"
   echo "FAIL: a second run on the same seed ended differently (see $LOG.again)"; exit 1

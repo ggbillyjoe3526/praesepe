@@ -66,9 +66,9 @@ func _physics_process(_delta: float) -> void:
 				_next()
 		1: # Let go: assist holds the speed.
 			if _phase_ticks >= HOLD:
-				_expect(absf(ship.speed() - ship.set_speed()) < 0.5, "holds its speed (%.2f, set %.2f)" % [ship.speed(),
-						ship.set_speed()])
-				_expect(ship.set_speed() > ship.tuning.max_speed - 1.0, "keeps the set speed (%.2f)" % ship.set_speed())
+				_expect(absf(ship.speed() - ship.held_speed()) < 0.5, "holds its speed (%.2f, set %.2f)" % [ship.speed(),
+						ship.held_speed()])
+				_expect(ship.held_speed() > ship.tuning.max_speed - 1.0, "keeps the set speed (%.2f)" % ship.held_speed())
 				_start_forward = _forward()
 				_next()
 		2: # Turn right.

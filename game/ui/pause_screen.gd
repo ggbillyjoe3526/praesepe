@@ -5,11 +5,18 @@ extends CanvasLayer
 ## still) and shows this screen with the mouse free. Esc or Resume carries on; the mouse is captured again. The pause
 ## mechanic follows the owner's Airsoft-Next project (game/ui/pause_menu.gd); its look is a placeholder.
 
-signal resumed
-
 const LAYER := 50
 const PLATE_COLOUR := Color(0.03, 0.04, 0.08, 0.96)
 const SHADE_COLOUR := Color(0.0, 0.0, 0.0, 0.45)
+const SEED_COLOUR := Color(0.7, 0.75, 0.85)
+## Sizes in px at 1080p.
+const PLATE_MARGIN := 36.0
+const PLATE_WIDTH := 460.0
+const GAP := 16
+const TITLE_SIZE := 48
+const SEED_SIZE := 22
+const BUTTON_HEIGHT := 64.0
+const BUTTON_TEXT_SIZE := 28
 
 ## Who to hand the mouse back to on resume, and whether losing the mouse pauses (off when nobody is flying by hand,
 ## as in the smoke test).
@@ -25,10 +32,6 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
 	visible = false
-
-
-func is_open() -> bool:
-	return visible
 
 
 func open() -> void:
@@ -49,7 +52,6 @@ func close() -> void:
 	get_tree().paused = false
 	if controls != null:
 		controls.capture_mouse()
-	resumed.emit()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -89,21 +91,21 @@ func _build() -> void:
 	var box := StyleBoxFlat.new()
 	box.bg_color = PLATE_COLOUR
 	box.set_corner_radius_all(10)
-	box.set_content_margin_all(36.0)
+	box.set_content_margin_all(PLATE_MARGIN)
 	plate.add_theme_stylebox_override("panel", box)
 	centre.add_child(plate)
 	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 16)
-	list.custom_minimum_size = Vector2(460, 0)
+	list.add_theme_constant_override("separation", GAP)
+	list.custom_minimum_size = Vector2(PLATE_WIDTH, 0)
 	plate.add_child(list)
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 48)
+	title.add_theme_font_size_override("font_size", TITLE_SIZE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	list.add_child(title)
 	_seed = Label.new()
-	_seed.add_theme_font_size_override("font_size", 22)
-	_seed.add_theme_color_override("font_color", Color(0.7, 0.75, 0.85))
+	_seed.add_theme_font_size_override("font_size", SEED_SIZE)
+	_seed.add_theme_color_override("font_color", SEED_COLOUR)
 	_seed.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	list.add_child(_seed)
 	_resume = _button(list, "Resume (Esc)")
@@ -115,7 +117,7 @@ func _build() -> void:
 func _button(parent: Control, words: String) -> Button:
 	var b := Button.new()
 	b.text = words
-	b.custom_minimum_size = Vector2(0, 64)
-	b.add_theme_font_size_override("font_size", 28)
+	b.custom_minimum_size = Vector2(0, BUTTON_HEIGHT)
+	b.add_theme_font_size_override("font_size", BUTTON_TEXT_SIZE)
 	parent.add_child(b)
 	return b

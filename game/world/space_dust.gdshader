@@ -42,6 +42,10 @@ void vertex() {
 	// Long streaks are fainter, so the dust's brightness stays even at speed.
 	v_fade *= clamp(speck_size * 4.0 / len, 0.15, 1.0);
 	POSITION = PROJECTION_MATRIX * VIEW_MATRIX * vec4(world_pos, 1.0);
+	if (v_fade <= 0.0) {
+		// Faded out entirely: collapse the quad so it costs no drawing.
+		POSITION = vec4(0.0);
+	}
 }
 
 void fragment() {
