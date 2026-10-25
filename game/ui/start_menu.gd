@@ -103,7 +103,7 @@ static func save_note(state: SaveState) -> String:
 		SaveState.LOCKED:
 			return "Your saved game is open in another program. Close that program, then restart the game to continue."
 		SaveState.NEWER:
-			return "Your saved game is from a newer version of the game. Play it there; a new game here won't delete it."
+			return "Your saved game is from a newer version of the game. Play it in that version."
 	return ""
 
 
@@ -154,8 +154,9 @@ func _choose_ship(id: StringName) -> void:
 	_chosen = id
 	var ship := ships.find(id)
 	_replace_words.text = StartMenu.replace_question(ship.display_name if ship != null else String(id), save_state)
-	# A saved game another program holds can't be written over, so a new game couldn't be saved either.
-	replace_button.visible = save_state != SaveState.LOCKED
+	# A saved game another program holds, or one from a newer version, is never written over, so a new game couldn't
+	# be saved.
+	replace_button.visible = save_state != SaveState.LOCKED and save_state != SaveState.NEWER
 	show_page(Page.REPLACE)
 
 
@@ -166,6 +167,8 @@ static func replace_question(ship_name: String, state: SaveState) -> String:
 	if state == SaveState.LOCKED:
 		return "Your saved game is open in another program, so a new game couldn't be saved.\nClose that program, " \
 				+ "then restart the game."
+	if state == SaveState.NEWER:
+		return "Your saved game is from a newer version of the game, so a new game here couldn't be saved over it."
 	return "Start a new game in the %s?\nYour old saved game is set aside in the save folder, never deleted." \
 			% ship_name
 

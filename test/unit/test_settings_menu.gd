@@ -113,6 +113,19 @@ func test_interface_size() -> void:
 	assert_eq(page.size_choice.get_item_text(page.size_choice.selected), "125%")
 
 
+func test_place_markers_and_names() -> void:
+	var page := _page(_menu(), InterfacePage) as InterfacePage
+	assert_eq(page.marker_icons_choice.get_item_text(page.marker_icons_choice.selected), "Always")
+	assert_eq(page.marker_names_choice.get_item_text(page.marker_names_choice.selected), "Near or looked at")
+	page.marker_names_choice.item_selected.emit(LandmarkMarkers.Show.OFF)
+	assert_eq(Settings.marker_names, LandmarkMarkers.Show.OFF)
+	page.marker_icons_choice.item_selected.emit(LandmarkMarkers.Show.NEARBY)
+	assert_eq(Settings.marker_icons, LandmarkMarkers.Show.NEARBY)
+	page.defaults()
+	assert_eq(page.marker_names_choice.selected, LandmarkMarkers.Show.NEARBY, "Defaults puts them back")
+	assert_eq(Settings.marker_icons, LandmarkMarkers.Show.ALWAYS)
+
+
 func test_the_controls_page_lists_the_keys() -> void:
 	var controls := _page(_menu(), ControlsPage) as ControlsPage
 	assert_eq(controls.key_labels.size(), ControlsPage.KEYS.size())

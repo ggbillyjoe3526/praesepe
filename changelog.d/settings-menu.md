@@ -2,7 +2,7 @@
 - The game now opens fullscreen on your main display.
 - The pause screen has a new **Settings** button. The settings menu has four pages:
   - **Display:** fullscreen, exclusive fullscreen or a window, which display to use, V-Sync and a frame-rate limit.
-  - **Interface:** the size of the HUD, its text and the menus, for big or high-resolution screens.
+  - **Interface:** the size (90% to 125%) of the HUD, its text and the menus, for big or high-resolution screens.
   - **Comfort:** field of view, camera shake, head bob and reduce motion (moved here from the pause screen).
   - **Controls:** mouse sensitivity, invert mouse, and every key the game uses.
 - Each page has a button to put its own settings back to their defaults. Changes show at once and are kept for next time.

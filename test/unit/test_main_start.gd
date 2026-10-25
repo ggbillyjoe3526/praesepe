@@ -32,6 +32,7 @@ func test_continuing_in_space_puts_the_ship_back_in_the_real_system() -> void:
 	var turn := Quaternion(Vector3.UP, 0.8)
 	var velocity := Vector3(0, 0, -30).rotated(Vector3.UP, 0.8)
 	GameStart.continue_game({"v": 2, "world": {"world_seed": 4321, "clock": 600.0, "streams": {}}, "berth": "",
+			"home": String(GameStart.START_PORT),
 			"ship": {"model": "hauler", "at": [at.x, at.y, at.z], "turn": [turn.x, turn.y, turn.z, turn.w],
 			"velocity": [velocity.x, velocity.y, velocity.z], "spin": [0, 0, 0], "assist": true, "held": 30.0,
 			"orbit": {}}})
@@ -48,6 +49,17 @@ func test_continuing_in_space_puts_the_ship_back_in_the_real_system() -> void:
 	assert_null(ship.berth)
 	var hud: FlightHud = main.get_node("Hud/FlightHud")
 	assert_eq(hud.toast_text(), FlightHud.welcome_message(null))
+	assert_eq(ship.model_id, &"hauler")
+	# Saved again now, it says the same: the autosave's format and the loader agree.
+	var arrivals: Arrivals = main.get_node("Arrivals")
+	assert_eq(arrivals.home.id, GameStart.START_PORT)
+	var again: Dictionary = SaveGame.snapshot(null, arrivals.home, ship, origin)
+	var place := GameStart.numbers(again.ship.at, 3)
+	assert_lt(Vector3(place[0], place[1], place[2]).distance_to(at), velocity.length() * 10.0 / 60.0, "a few ticks on")
+	var facing := GameStart.numbers(again.ship.turn, 4)
+	assert_true(Quaternion(facing[0], facing[1], facing[2], facing[3]).is_equal_approx(turn))
+	assert_eq(again.home, String(GameStart.START_PORT))
+	assert_eq(again.ship.model, "hauler")
 
 
 func test_continuing_docked_is_in_the_bay() -> void:

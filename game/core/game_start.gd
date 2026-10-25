@@ -75,6 +75,10 @@ static func begin(ship: Ship, origin: FloatingOrigin, arrivals: Arrivals) -> Beg
 		return _dock(berth, origin, arrivals, true)
 	var block: Variant = saved.get("ship", null)
 	if block is Dictionary and _place_in_space(block, ship, origin):
+		# The tow goes back to the last port it arrived at, as before the save.
+		var home := GameStart.port(arrivals, StringName(str(saved.get("home", ""))))
+		if home != null:
+			arrivals.home = home
 		return Began.IN_SPACE
 	return _dock(GameStart.port(arrivals, START_PORT), origin, arrivals, true)
 

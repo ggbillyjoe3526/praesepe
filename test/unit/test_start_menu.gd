@@ -99,6 +99,11 @@ func test_new_game_over_a_save_asks_first() -> void:
 
 
 func test_no_new_game_over_a_save_another_program_holds() -> void:
+	_menu.set_save_state(StartMenu.SaveState.NEWER)
+	_menu.new_game_button.pressed.emit()
+	_menu.ship_buttons[0].pressed.emit()
+	assert_false(_menu.replace_button.visible, "a newer game's save is never written over")
+	_menu.show_page(StartMenu.Page.MAIN)
 	_menu.set_save_state(StartMenu.SaveState.LOCKED)
 	_menu.new_game_button.pressed.emit()
 	_menu.ship_buttons[0].pressed.emit()
@@ -121,9 +126,8 @@ func test_esc_goes_back_a_page() -> void:
 
 
 func test_the_title_screen_reads_what_the_save_folder_holds() -> void:
-	assert_eq(TitleScreen.save_state_of({"ok": true, "version": SaveGame.VERSION, "data": {}}),
-			StartMenu.SaveState.GOOD)
-	assert_eq(TitleScreen.save_state_of({"ok": true, "version": SaveGame.VERSION + 1, "data": {}}),
+	assert_eq(TitleScreen.save_state_of({"ok": true, "data": {}}), StartMenu.SaveState.GOOD)
+	assert_eq(TitleScreen.save_state_of({"ok": false, "found": true, "locked": false, "newer": true}),
 			StartMenu.SaveState.NEWER, "a newer game's save is kept, not loaded")
 	assert_eq(TitleScreen.save_state_of({"ok": false, "found": false, "locked": false}), StartMenu.SaveState.NONE)
 	assert_eq(TitleScreen.save_state_of({"ok": false, "found": true, "locked": false}), StartMenu.SaveState.DAMAGED)

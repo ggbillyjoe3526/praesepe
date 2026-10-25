@@ -25,7 +25,8 @@ const WINDOW_MIN := Vector2i(1280, 720)
 ## The interface sizes offered: the HUD, its text and the menus, times the size made for the screen (the 2D canvas is
 ## laid out for 1920 × 1080 and stretched to fit the window, so 100% already grows with the screen).
 ## Bigger than 125% and the HUD's prompts would crowd the middle of the view.
-const UI_SCALES: Array[float] = [0.8, 0.9, 1.0, 1.1, 1.25]
+## Smaller than 90% and the HUD's smallest text gets hard to read in a small window.
+const UI_SCALES: Array[float] = [0.9, 1.0, 1.1, 1.25]
 
 static var _screens: Screens = null
 

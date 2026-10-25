@@ -1,10 +1,10 @@
 extends Node
 ## The Settings autoload: the player's own choices, kept apart from any saved game, changed in the settings menu
-## (game/ui/settings/): the display (window mode, monitor, V-Sync, frame-rate limit), the interface size, comfort (project instructions,
-## "Comfort": field of view, camera shake, head bob and reduce motion) and the mouse (sensitivity, invert). Audio
-## volumes and key rebinding come here later. The shape (to_dict and from_dict with a version and one-step migrations,
-## damaged values ignored) follows the owner's katanashotgun project (scripts/settings.gd); the file is written by
-## SaveFile, crash-safe with one backup.
+## (game/ui/settings/): the display (window mode, monitor, V-Sync, frame-rate limit), the interface size, comfort
+## (project instructions, "Comfort": field of view, camera shake, head bob and reduce motion), the mouse (sensitivity,
+## invert) and when the places' HUD markers show (LandmarkMarkers). Audio volumes and key rebinding come here later.
+## The shape (to_dict and from_dict with a version and one-step migrations, damaged values ignored) follows the owner's
+## katanashotgun project (scripts/settings.gd); the file is written by SaveFile, crash-safe with one backup.
 ##
 ## A change takes effect at once (`changed`; the display ones through DisplayApply), and is written when the settings
 ## menu or the pause screen closes or the game quits, so dragging a slider writes once. F11 and Alt+Enter switch
@@ -53,6 +53,10 @@ var sensitivity: float = 1.0
 var invert_mouse: bool = false
 ## The size of the HUD, its text and the menus, times the size made for the screen (one of DisplayApply.UI_SCALES).
 var ui_scale: float = 1.0
+## When the places' HUD markers show their diamonds and their names (LandmarkMarkers.Show): always, only when the
+## place is near or looked at, or never. Names default to near or looked at, so the screen stays clear.
+var marker_icons: int = LandmarkMarkers.Show.ALWAYS
+var marker_names: int = LandmarkMarkers.Show.NEARBY
 
 var _dirty: bool = false
 
@@ -142,6 +146,14 @@ func set_invert_mouse(on: bool) -> void:
 	_change(&"invert_mouse", on)
 
 
+func set_marker_icons(mode: int) -> void:
+	_change(&"marker_icons", clampi(mode, 0, LandmarkMarkers.Show.size() - 1))
+
+
+func set_marker_names(mode: int) -> void:
+	_change(&"marker_names", clampi(mode, 0, LandmarkMarkers.Show.size() - 1))
+
+
 ## The display settings into the window (with `place`, onto the chosen display first), and the interface size.
 func apply_display(place: bool = false) -> void:
 	DisplayApply.apply(window_mode, monitor, vsync, frame_limit, place)
@@ -155,7 +167,10 @@ func reset(keys: PackedStringArray = PackedStringArray()) -> void:
 	if not keys.is_empty():
 		var only := {}
 		for k in keys:
-			only[k] = d[k]
+			if d.has(k):
+				only[k] = d[k]
+			else:
+				push_warning("settings: no setting %s to reset" % k)
 		d = only
 	from_dict(d)
 	if d.has("window_mode") and window_mode != DisplayApply.WindowMode.WINDOWED:
@@ -204,6 +219,7 @@ func to_dict() -> Dictionary:
 		"v": VERSION, "fov": fov, "shake": shake, "head_bob": head_bob, "reduce_motion": reduce_motion,
 		"window_mode": int(window_mode), "last_fullscreen": int(last_fullscreen), "monitor": monitor, "vsync": vsync,
 		"frame_limit": frame_limit, "sensitivity": sensitivity, "invert_mouse": invert_mouse, "ui_scale": ui_scale,
+		"marker_icons": marker_icons, "marker_names": marker_names,
 	}
 
 
@@ -226,6 +242,9 @@ func from_dict(d: Dictionary) -> void:
 	if _is_whole(d.get("last_fullscreen"), 0, DisplayApply.WindowMode.size() - 1) \
 			and int(d.last_fullscreen) != DisplayApply.WindowMode.WINDOWED:
 		last_fullscreen = int(d.last_fullscreen) as DisplayApply.WindowMode
+	elif not d.has("last_fullscreen") and d.has("window_mode") and window_mode != DisplayApply.WindowMode.WINDOWED:
+		# A file without it: F11 goes back to the fullscreen kind the game is in.
+		last_fullscreen = window_mode
 	if _is_whole(d.get("monitor"), DisplayApply.MONITOR_MAIN, DisplayApply.MONITOR_MOST):
 		monitor = int(d.monitor)
 	if d.get("vsync") is bool:
@@ -238,6 +257,10 @@ func from_dict(d: Dictionary) -> void:
 		invert_mouse = d.invert_mouse
 	if _is_num(d.get("ui_scale")):
 		ui_scale = DisplayApply.nearest_ui_scale(float(d.ui_scale))
+	if _is_whole(d.get("marker_icons"), 0, LandmarkMarkers.Show.size() - 1):
+		marker_icons = int(d.marker_icons)
+	if _is_whole(d.get("marker_names"), 0, LandmarkMarkers.Show.size() - 1):
+		marker_names = int(d.marker_names)
 
 
 ## Version 1 saved the field of view whenever any setting changed, so the old default (75°) almost always means the
@@ -255,8 +278,9 @@ func _defaults() -> Dictionary:
 	return {
 		"fov": DEFAULT_FOV, "shake": 1.0, "head_bob": true, "reduce_motion": false,
 		"window_mode": DisplayApply.WindowMode.FULLSCREEN, "last_fullscreen": DisplayApply.WindowMode.FULLSCREEN,
-		"monitor": DisplayApply.MONITOR_MAIN, "vsync": true, "frame_limit": DisplayApply.UNLIMITED, "sensitivity": 1.0, "invert_mouse": false,
-		"ui_scale": 1.0,
+		"monitor": DisplayApply.MONITOR_MAIN, "vsync": true, "frame_limit": DisplayApply.UNLIMITED,
+		"sensitivity": 1.0, "invert_mouse": false, "ui_scale": 1.0, "marker_icons": LandmarkMarkers.Show.ALWAYS,
+		"marker_names": LandmarkMarkers.Show.NEARBY,
 	}
 
 

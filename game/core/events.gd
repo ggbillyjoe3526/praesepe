@@ -10,5 +10,8 @@ signal arrived(port: Port)
 signal resumed_at(port: Port)
 ## The ship started leaving `port` (undocking or taking off).
 signal departed(port: Port)
+## The ship was towed to `port` ("Tow me to base" on the pause screen). It has already arrived there (arrived came
+## first); the towing fee is charged here once money exists.
+signal towed(port: Port)
 ## The game was saved (`ok`), or a save failed and the last good save was kept.
 signal game_saved(ok: bool)

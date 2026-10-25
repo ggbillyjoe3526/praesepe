@@ -15,7 +15,7 @@ const DRIFT_RATE := 1.2
 @export var menu: StartMenu
 @export var view: Camera3D
 
-## The saved game found at start (SaveFile.read's result).
+## The saved game found at start (SaveGame.read's result: brought up to date when it is from an older version).
 var save: Dictionary = {}
 
 
@@ -24,7 +24,7 @@ func _ready() -> void:
 		get_tree().change_scene_to_file.call_deferred(MAIN_SCENE)
 		return
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	save = SaveFile.read(save_path, SaveGame.KIND)
+	save = SaveGame.read(save_path)
 	menu.set_save_state(TitleScreen.save_state_of(save))
 	menu.continue_chosen.connect(_continue)
 	menu.new_game_chosen.connect(_new_game)
@@ -36,10 +36,12 @@ func _process(delta: float) -> void:
 		view.rotate_y(deg_to_rad(DRIFT_RATE) * delta)
 
 
-## What the start menu should offer for a save read with SaveFile.read.
+## What the start menu should offer for a save read with SaveGame.read.
 static func save_state_of(read: Dictionary) -> StartMenu.SaveState:
 	if read.get("ok", false):
-		return StartMenu.SaveState.NEWER if int(read.get("version", 0)) > SaveGame.VERSION else StartMenu.SaveState.GOOD
+		return StartMenu.SaveState.GOOD
+	if read.get("newer", false):
+		return StartMenu.SaveState.NEWER
 	if read.get("locked", false):
 		return StartMenu.SaveState.LOCKED
 	return StartMenu.SaveState.DAMAGED if read.get("found", false) else StartMenu.SaveState.NONE

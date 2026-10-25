@@ -96,6 +96,7 @@ func _space_save(at: Vector3, turn: Quaternion, velocity: Vector3, spin: Vector3
 		"v": 2,
 		"world": {"world_seed": 777, "clock": 1234.5, "streams": {}},
 		"berth": "",
+		"home": "test_base",
 		"ship": {
 			"model": "hauler",
 			"at": [at.x, at.y, at.z],
@@ -168,6 +169,7 @@ func test_continuing_in_space_puts_the_ship_back_exactly_where_it_was() -> void:
 	assert_eq(_ship.linear_velocity, velocity)
 	assert_eq(_ship.angular_velocity, spin)
 	assert_false(_ship.assist_on(), "flight assist off, as saved")
+	assert_eq(_arrivals.home, _pad, "the tow still goes to the last port it arrived at")
 	await wait_physics_frames(1)
 	assert_lt(_ship.jolt, 0.01, "putting it back is no bump")
 	assert_almost_eq(_true_position(), at + velocity * DT, Vector3.ONE * 0.05, "and it carries on as it was")
