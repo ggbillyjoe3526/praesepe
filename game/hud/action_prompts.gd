@@ -15,8 +15,9 @@ const HINT_COLOUR := Color(1.0, 0.86, 0.5)
 const ORBIT_COLOUR := Color(0.78, 0.72, 1.0)
 const CRUISE_COLOUR := FlightHud.CRUISE_COLOUR
 ## Where the plate sits: its bottom this far (px at 1080p) above the screen's bottom, above the cockpit's dashboard
-## and the chase view's plate, a little under the middle of the view. It stays there at any interface size
-## (Settings.ui_scale), so a bigger plate never covers the nose mark or the cockpit's dashboard.
+## and the chase view's plate, a little under the middle of the view. The bottom stays at the same height on the screen
+## at any interface size (Settings.ui_scale), so a bigger plate never slides down over the cockpit's dashboard; it
+## grows upward, which UI_SCALES' 125% cap keeps clear of the nose mark for two lines.
 const BOTTOM := 400.0
 ## The state keys below fold their parts together like a hash: each part times MIX, and the distance's own key
 ## (LandmarkMarkers.distance_key, always far under DISTANCE_KEYS) added last, so different states give different keys.

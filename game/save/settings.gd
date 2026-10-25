@@ -2,9 +2,9 @@ extends Node
 ## The Settings autoload: the player's own choices, kept apart from any saved game, changed in the settings menu
 ## (game/ui/settings/): the display (window mode, monitor, V-Sync, frame-rate limit), the interface size, comfort
 ## (project instructions, "Comfort": field of view, camera shake, head bob and reduce motion), the mouse (sensitivity,
-## invert) and when the places' HUD markers show (LandmarkMarkers). Audio volumes and key rebinding come here later. The shape (to_dict and from_dict with a version and one-step migrations,
-## damaged values ignored) follows the owner's katanashotgun project (scripts/settings.gd); the file is written by
-## SaveFile, crash-safe with one backup.
+## invert) and when the places' HUD markers show (LandmarkMarkers). Audio volumes and key rebinding come here later.
+## The shape (to_dict and from_dict with a version and one-step migrations, damaged values ignored) follows the owner's
+## katanashotgun project (scripts/settings.gd); the file is written by SaveFile, crash-safe with one backup.
 ##
 ## A change takes effect at once (`changed`; the display ones through DisplayApply), and is written when the settings
 ## menu or the pause screen closes or the game quits, so dragging a slider writes once. F11 and Alt+Enter switch
@@ -167,7 +167,10 @@ func reset(keys: PackedStringArray = PackedStringArray()) -> void:
 	if not keys.is_empty():
 		var only := {}
 		for k in keys:
-			only[k] = d[k]
+			if d.has(k):
+				only[k] = d[k]
+			else:
+				push_warning("settings: no setting %s to reset" % k)
 		d = only
 	from_dict(d)
 	if d.has("window_mode") and window_mode != DisplayApply.WindowMode.WINDOWED:
@@ -239,6 +242,9 @@ func from_dict(d: Dictionary) -> void:
 	if _is_whole(d.get("last_fullscreen"), 0, DisplayApply.WindowMode.size() - 1) \
 			and int(d.last_fullscreen) != DisplayApply.WindowMode.WINDOWED:
 		last_fullscreen = int(d.last_fullscreen) as DisplayApply.WindowMode
+	elif not d.has("last_fullscreen") and d.has("window_mode") and window_mode != DisplayApply.WindowMode.WINDOWED:
+		# A file without it: F11 goes back to the fullscreen kind the game is in.
+		last_fullscreen = window_mode
 	if _is_whole(d.get("monitor"), DisplayApply.MONITOR_MAIN, DisplayApply.MONITOR_MOST):
 		monitor = int(d.monitor)
 	if d.get("vsync") is bool:
@@ -272,8 +278,9 @@ func _defaults() -> Dictionary:
 	return {
 		"fov": DEFAULT_FOV, "shake": 1.0, "head_bob": true, "reduce_motion": false,
 		"window_mode": DisplayApply.WindowMode.FULLSCREEN, "last_fullscreen": DisplayApply.WindowMode.FULLSCREEN,
-		"monitor": DisplayApply.MONITOR_MAIN, "vsync": true, "frame_limit": DisplayApply.UNLIMITED, "sensitivity": 1.0, "invert_mouse": false,
-		"ui_scale": 1.0, "marker_icons": LandmarkMarkers.Show.ALWAYS, "marker_names": LandmarkMarkers.Show.NEARBY,
+		"monitor": DisplayApply.MONITOR_MAIN, "vsync": true, "frame_limit": DisplayApply.UNLIMITED,
+		"sensitivity": 1.0, "invert_mouse": false, "ui_scale": 1.0, "marker_icons": LandmarkMarkers.Show.ALWAYS,
+		"marker_names": LandmarkMarkers.Show.NEARBY,
 	}
 
 

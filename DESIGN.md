@@ -102,9 +102,9 @@ The values live in `game/ship/greybox_ship_tuning.tres` (per ship) and `game/fli
 **Settings menu**
 
 - The game opens fullscreen (borderless) on the main display. Esc pauses; the pause screen's Settings button opens the settings menu, and Esc or Back goes back. No key hints sit on the screen; a message for the first 8 s says "Esc · pause, settings and controls".
-- Pages: **Display** (window mode: fullscreen, exclusive fullscreen or windowed; which display; V-Sync, on by default; frame-rate limit: none by default, or 30, 60, 120, 144, 165 or 240), **Interface** (interface size, 80% to 125%, default 100%: the HUD, its text and the menus together; 3D is unchanged), **Comfort** (as above) and **Controls** (mouse sensitivity 0.25× to 3×, default 1×, times the flight tuning's mouse gain; invert mouse, off; the list of keys, read from the input map). Each page has its own Defaults button.
+- Pages: **Display** (window mode: fullscreen, exclusive fullscreen or windowed; which display; V-Sync, on by default; frame-rate limit: none by default, or 30, 60, 120, 144, 165 or 240), **Interface** (interface size, 90% to 125%, default 100%: the HUD, its text and the menus together; 3D is unchanged), **Comfort** (as above) and **Controls** (mouse sensitivity 0.25× to 3×, default 1×, times the flight tuning's mouse gain; invert mouse, off; the list of keys, read from the input map). Each page has its own Defaults button.
 - F11 or Alt+Enter switches between fullscreen and a window at any time. A window opens at 80% of the display, centred. In the background the game draws at most 30 frames a second.
-- Every change shows at once and is saved to `settings.json` when the menu closes. Audio volumes and changing keys join the menu when there is audio and when the HUD prompts can follow a changed key.
+- Every change shows at once and is saved to `settings.json` when the menu closes. Audio volumes and changing keys join the menu when there is audio and when the HUD prompts can follow a changed key. Graphics quality presets and render scale wait for the open decision on performance targets (the game draws at the display's full resolution until then). A window's size and place are not remembered between launches, and a window mode changed by the system itself (Win+Up, dragging to another display) is not read back.
 
 **Camera tuning**
 
