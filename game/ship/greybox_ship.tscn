@@ -111,7 +111,7 @@ transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 1.3,
 mesh = SubResource("Mesh_nozzle")
 
 [node name="Eye" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, -3.54)
 
 [node name="ChaseAnchor" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 18)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.3, 24)

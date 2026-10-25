@@ -10,12 +10,15 @@ extends Node
 
 signal changed
 
-const VERSION := 1
+const VERSION := 2
 const KIND := "settings"
-## The vertical field of view (degrees) of both ship cameras.
-const FOV_MIN := 60.0
-const FOV_MAX := 100.0
-const DEFAULT_FOV := 75.0
+## The vertical field of view (degrees) of both ship cameras. 60° tall is about 90° across on a 16:9 screen. Wider
+## views stretch round things near the screen's edges (a planet looks oval there), so the range stops at 90°.
+const FOV_MIN := 50.0
+const FOV_MAX := 90.0
+const DEFAULT_FOV := 60.0
+## The default field of view before version 2, which stretched planets near the screen's edges.
+const OLD_DEFAULT_FOV := 75.0
 ## Camera shake is set in steps of this (of full shake).
 const SHAKE_STEP := 0.1
 
@@ -113,7 +116,9 @@ func to_dict() -> Dictionary:
 ## Reads `d` over the current values. Anything missing, of the wrong type or out of range keeps its current value, so
 ## an old or damaged file never breaks the game. JSON gives numbers back as floats.
 func from_dict(d: Dictionary) -> void:
-	# Migrations go here, one step at a time, as VERSION grows (katanashotgun's _migrate_v1 and so on).
+	# Migrations, one step at a time, as VERSION grows (after katanashotgun's _migrate_v1 and so on).
+	if _is_num(d.get("v")) and int(d.v) < 2:
+		d = _migrate_v1(d)
 	if _is_num(d.get("fov")):
 		fov = clampf(roundf(float(d.fov)), FOV_MIN, FOV_MAX)
 	if _is_num(d.get("shake")):
@@ -122,6 +127,16 @@ func from_dict(d: Dictionary) -> void:
 		head_bob = d.head_bob
 	if d.get("reduce_motion") is bool:
 		reduce_motion = d.reduce_motion
+
+
+## Version 1 saved the field of view whenever any setting changed, so the old default (75°) almost always means the
+## player never moved the slider: it moves to the new default. Any other choice is kept, within the new range.
+static func _migrate_v1(d: Dictionary) -> Dictionary:
+	var out := d.duplicate()
+	if _is_num(out.get("fov")) and is_equal_approx(float(out.fov), OLD_DEFAULT_FOV):
+		out.erase("fov")
+	out["v"] = 2
+	return out
 
 
 func _defaults() -> Dictionary:
