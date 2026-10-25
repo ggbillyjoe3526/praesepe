@@ -6,8 +6,8 @@ flags. The project instructions hold the full rules; this file holds what is spe
 
 ## Repo notes
 - **Godot 4.7.2-stable**, standard build, typed GDScript, Forward+, Jolt physics at a fixed 60 Hz tick. The version is
-  pinned in `project.godot` (`config/features`) and `GODOT_VERSION` in `.github/workflows/ci.yml`; they change
-  together, and only with the owner.
+  pinned in `project.godot` (`config/features`) and `GODOT_VERSION` in `.github/workflows/ci.yml` and
+  `release.yml`; they change together, and only with the owner.
 - **Cloud sessions:** the SessionStart hook (`.claude/hooks/session-start.mjs`) installs that Godot as `godot` on PATH.
   Export templates are not installed. Cloud machines have no GPU: never judge feel or report frame rates from here.
 - **Checks** (CI runs all of them on every pull request): `tools/smoke_test.sh` (import, then `-- --smoke`, fails on

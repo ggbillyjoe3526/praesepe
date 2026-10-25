@@ -14,7 +14,8 @@ Saved games live in `%APPDATA%\ProjectPraesepe`, never in the install folder, so
 touches them. Dev and Beta versions are marked as pre-releases.
 
 ## Version names
-Versions are named the way players see them, and each name has one tag (DESIGN.md decisions log, 2026-10-24):
+Versions are named the way players see them, and each name has one tag (DESIGN.md decisions log, 2026-10-25; still
+an open decision for the owner):
 
 | Name | Tag and file names | Windows version number | On GitHub |
 | --- | --- | --- | --- |
@@ -24,8 +25,8 @@ Versions are named the way players see them, and each name has one tag (DESIGN.m
 
 Windows wants four plain numbers, so the third is the stage (1 Dev, 2 Beta, 3 released) and the fourth the count:
 the number always goes up. Check any name or tag with `tools/version.sh "0.1 Beta 2"` or `tools/version.sh v0.1-beta.2`.
-The version released is written into that build (the game's version and the exe's version number), so nothing has
-to be bumped by hand first.
+The version released is the one in `config/version` in `project.godot`; the workflow also stamps it into the exe's
+version number.
 
 ## Making a release
 1. **Gather the notes (a pull request, Claude does this when the owner asks for a release).** Run
@@ -33,10 +34,10 @@ to be bumped by hand first.
    section of `CHANGELOG.md`. Set `config/version` in `project.godot` to the same name, check the player wiki is
    current, and open the pull request. The owner merges it.
 2. **Release (the owner).** Either:
-   - **Button:** on GitHub, *Actions → Release → Run workflow*, leave "Use workflow from" on `main`, type the version
-     (like `0.1 Dev 1`) or leave it empty for the one in `project.godot`, tick **Publish**, and *Run workflow*. It
-     creates the tag for you.
-   - **Tag:** push a tag like `v0.1-dev.1` on a commit on `main`.
+   - **Button:** on GitHub, *Actions → Release → Run workflow*, leave "Use workflow from" on `main` and the version
+     empty, tick **Publish**, and *Run workflow*. It releases the version in `project.godot` and creates the tag for
+     you.
+   - **Tag:** push the version's tag (like `v0.1-dev.1`) on a commit on `main`.
 
    Don't make the release by hand on the Releases page: the workflow makes it, with the downloads attached.
 3. **Wait about 20 minutes.** The workflow runs the smoke test, exports the Windows game, checks the exported game
@@ -44,12 +45,16 @@ to be bumped by hand first.
    installed game, uninstalls it, and only then publishes. If any step fails nothing is published; the run's page says
    which step and why.
 
-A version that has already been released can't be released again with the button. A tag that isn't in the form
-above, or isn't on `main`, stops the workflow with a message before anything is built.
+Before building anything, publishing stops with a message if: the tag isn't in the form above or isn't on `main`;
+`project.godot` on that commit names another version; `CHANGELOG.md` has no section for it (step 1 wasn't merged);
+or, with the button, the version has already been released.
+
+4. **Next version (a small pull request, Claude).** Set `config/version` to the next name (`0.1 Dev 2`) so the game
+   shows what is being worked on.
 
 ## Trying a build without releasing
-*Actions → Release → Run workflow* with **Publish** unticked builds and tests everything and publishes nothing. The
-installer and zip are under *Artifacts* at the bottom of the run's page (kept 14 days). Every pull request that
+*Actions → Release → Run workflow* with **Publish** unticked builds and tests everything and publishes nothing; type a
+version to build as another one. The installer and zip are under *Artifacts* at the bottom of the run's page (kept 14 days). Every pull request that
 changes the release pipeline does the same.
 
 ## The "Windows protected your PC" warning
