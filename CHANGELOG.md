@@ -30,8 +30,12 @@ come next (see the wiki's Roadmap). Everything below is new.
 - Press R to roll upright: the ship rolls round its nose until the nearest planet or moon is below you and its horizon
   is level. Q or E stops it.
 
-### A cockpit and a chase camera
-- You fly from a simple cockpit, with your speed and flight assist on the dashboard screen.
+### Your ship, its cockpit and a chase camera
+- A small test ship stands in for the Hauler while the flying is tuned, with a simple model of its own: light grey
+  with orange panels, a flat windscreen sloping down to the nose, two engine pods with glowing nozzles and short swept
+  wings.
+- You fly from a simple cockpit: a slim, dark dashboard low across the bottom of the view, showing your speed and
+  flight assist, with no frame bars across the window.
 - Press V to switch to a chase camera behind the ship. It swings a little behind your turns, and with flight assist
   off it leans toward where the ship is really drifting. It never goes through things: it moves in close instead.
 - Hold the right mouse button to look round the cockpit without steering; in the chase view it swings the camera round
