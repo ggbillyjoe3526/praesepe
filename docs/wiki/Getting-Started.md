@@ -1,6 +1,12 @@
 # Getting Started
 
-There is no download yet (see the [FAQ](FAQ#is-there-a-download)). Once there is, this is your first flight.
+## Installing
+
+Open the [Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases), download the
+`Windows-Setup.exe` from the newest version and run it. Windows may say "Windows protected your PC" because the game
+isn't code-signed yet: click **More info**, then **Run anyway** ([FAQ](FAQ#windows-says-windows-protected-your-pc)).
+The installer adds Project Praesepe to the Start menu. To play without installing, download the
+`Windows-Portable.zip` instead, unzip it anywhere and run `ProjectPraesepe.exe`.
 
 ## Your first flight
 
