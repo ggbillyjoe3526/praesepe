@@ -15,7 +15,7 @@ There is no download yet (see the [FAQ](FAQ#is-there-a-download)). Once there is
    **G  Dock at Halfway Station**, press **G** and your ship flies itself into the docking bay. **G** again undocks. See
    [Docking and Landing](Docking-and-Landing).
 5. **Cruise somewhere.** Put the nose on a place's marker (try Mote, the moon) until it is framed in corner brackets
-   and the HUD says **F  Cruise to Mote**, then press **F**. After a two-second charge the cruise drive flies you there
+   and the HUD says **F  Cruise**, then press **F**. After a two-second charge the cruise drive flies you there
    by itself and drops out when you arrive. See [Cruise Drive](Cruise-Drive).
 6. **Park in orbit.** Head for Calder and climb to its orbit line, 3 km up: once you're off the ground a ring on the
    HUD shows where to join it. Close to the line, press **O** when the HUD offers it to circle the planet and enjoy

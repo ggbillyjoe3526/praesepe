@@ -102,33 +102,35 @@ func test_the_prompts_say_what_to_do_next() -> void:
 	station.add_child(dock)
 	add_child_autofree(station)
 	var flying := Arrivals.Stage.FLYING
-	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.NONE, 900.0), "G   Dock at Halfway Station")
+	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.NONE, 900.0), "G   Dock")
 	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.TOO_FAST, 900.0),
-			"Slow below 100 m/s to dock at Halfway Station")
+			"Slow below 100 m/s to dock")
 	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.TOO_FAR, 2340.0),
-			"Fly within 1.5 km of Halfway Station to dock (2.3 km)")
+			"Fly within 1.5 km to dock (2.3 km)")
 	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.CRUISING, 900.0), "", "nothing while cruising")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.DOCKED, dock, Arrivals.Refusal.NONE, 0.0), "G   Undock")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.APPROACHING, dock, Arrivals.Refusal.NONE, 0.0),
-			"Docking at Halfway Station   ·   G to cancel")
+			"Docking   ·   G to cancel")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.LEAVING, dock, Arrivals.Refusal.NONE, 0.0), "", "nothing leaving")
 	dock.kind = Port.Kind.PAD
-	dock.offer_range = 4000.0
+	dock.offer_range = 600.0
 	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.TOO_FAR, 5240.0),
-			"Descend below 4.0 km to land at Halfway Station (5.2 km up)")
+			"Fly within 600 m to land (5.2 km)")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.DOCKED, dock, Arrivals.Refusal.NONE, 0.0), "G   Take off")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.APPROACHING, dock, Arrivals.Refusal.NONE, 0.0),
-			"Landing at Halfway Station   ·   G to cancel")
+			"Landing   ·   G to cancel")
 	assert_eq(ActionPrompts.port_text(flying, null, Arrivals.Refusal.TOO_FAR, INF), "", "no port, no words")
+	assert_eq(ActionPrompts.warning_text(station, 3.2), "SLOW DOWN   ·   Halfway Station in 4 s")
+	assert_eq(ActionPrompts.warning_text(null, 0.4), "SLOW DOWN   ·   Obstacle in 1 s", "something that is no place")
 	var calder := CelestialBody.new()
 	calder.display_name = "Calder"
 	autofree(calder)
 	var off := Orbit.Phase.OFF
-	assert_eq(ActionPrompts.orbit_text(off, calder, Orbit.Refusal.NONE, 250.0), "O   Enter orbit round Calder")
+	assert_eq(ActionPrompts.orbit_text(off, calder, Orbit.Refusal.NONE, 250.0), "O   Enter orbit")
 	assert_eq(ActionPrompts.orbit_text(off, calder, Orbit.Refusal.TOO_FAST, 250.0),
-			"Slow below 250 m/s to enter orbit round Calder")
+			"Slow below 250 m/s to enter orbit")
 	assert_eq(ActionPrompts.orbit_text(Orbit.Phase.ORBITING, calder, Orbit.Refusal.NONE, 250.0),
-			"O   Leave orbit round Calder")
+			"O   Leave orbit")
 	assert_eq(ActionPrompts.orbit_text(off, null, Orbit.Refusal.FAR, 250.0), "")
 	assert_eq(ActionPrompts.orbit_text(off, calder, Orbit.Refusal.TOO_LOW, 250.0), "", "no O prompt below the line")
 	assert_eq(ActionPrompts.orbit_text(off, calder, Orbit.Refusal.TOO_HIGH, 250.0), "", "nor above it")
@@ -166,5 +168,5 @@ func test_the_cruise_lock_has_words_on_the_hud_and_the_dashboard() -> void:
 func test_the_cruise_prompt_names_the_aimed_place() -> void:
 	var mote := Landmark.new()
 	mote.display_name = "Mote"
-	assert_eq(ActionPrompts.cruise_text(mote), "F   Cruise to Mote")
+	assert_eq(ActionPrompts.cruise_text(mote), "F   Cruise")
 	mote.free()
