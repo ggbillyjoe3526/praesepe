@@ -23,6 +23,8 @@ signal orbit_changed(event: Orbit.Event, body: CelestialBody)
 ## Rolling upright started, finished or had nothing to roll to (Upright.Event), against `body` where there is one.
 signal upright_changed(event: Upright.Event, body: CelestialBody)
 
+## Which ship this is (saved with the game; the greybox stands in for the Hauler until the three starter ships exist).
+@export var model_id: StringName = &"hauler"
 @export var tuning: ShipTuning
 @export var cruise_tuning: CruiseTuning
 @export var orbit_tuning: OrbitTuning

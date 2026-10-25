@@ -131,7 +131,14 @@ func test_the_station_docks_and_the_base_lands() -> void:
 	assert_lt(station.radius + station.drop_distance + dock.position.length(), dock.hint_range)
 	var calder := _system.landmark("Calder")
 	assert_lt(calder.drop_distance, pad.offer_range, "cruising to Calder ends where landing is offered")
-	assert_lt(pad.offer_range, calder.orbit_max_altitude + 1.0, "and orbit too")
+	# Orbit lines are up in space, well clear of the air, and Tollgate's landing is offered from orbit over it.
+	var reach := (load("res://game/ship/greybox_orbit_tuning.tres") as OrbitTuning).guide_reach
+	for body: CelestialBody in _system.bodies:
+		assert_gt(body.orbit_altitude - body.orbit_window, body.atmosphere_height + 500.0, body.display_name)
+		assert_lt(body.drop_distance, body.orbit_altitude * reach,
+				"the orbit line shows on arriving at %s" % body.display_name)
+	assert_lt(calder.orbit_altitude + calder.orbit_window, pad.offer_range + 1.0, "landing from orbit over Tollgate")
+	assert_lt(calder.orbit_speed, pad.max_speed, "at the orbit's speed")
 
 
 func test_the_ship_fits_its_berths_and_leaves_without_touching_anything() -> void:

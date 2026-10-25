@@ -275,8 +275,8 @@ static func cruise_message(event: CruiseDrive.Event, place: String) -> String:
 
 
 ## The message for something that happened with an orbit (Orbit.Event) round the body called `body`; `why` says why
-## entering was refused.
-static func orbit_message(event: Orbit.Event, body: String, why: Orbit.Refusal) -> String:
+## entering was refused, and `to_climb` how far (m) the orbit line is above the ship (Orbit.to_climb).
+static func orbit_message(event: Orbit.Event, body: String, why: Orbit.Refusal, to_climb: float = 0.0) -> String:
 	match event:
 		Orbit.Event.ENTERING:
 			return "Entering orbit round %s" % body
@@ -293,7 +293,11 @@ static func orbit_message(event: Orbit.Event, body: String, why: Orbit.Refusal) 
 				Orbit.Refusal.TOO_FAST:
 					return "Too fast to enter orbit round %s. Slow down first" % body
 				Orbit.Refusal.TOO_STEEP:
-					return "Diving too steeply to enter orbit round %s. Level out first" % body
+					return "Too steep to enter orbit round %s. Level out first" % body
+				Orbit.Refusal.TOO_LOW:
+					return "Climb %s to %s's orbit line first" % [LandmarkMarkers.distance_text(to_climb), body]
+				Orbit.Refusal.TOO_HIGH:
+					return "Descend %s to %s's orbit line first" % [LandmarkMarkers.distance_text(-to_climb), body]
 			return "Nothing to orbit here. Fly closer to a planet or moon"
 	return ""
 
@@ -395,7 +399,8 @@ func _on_cruise_changed(event: CruiseDrive.Event, place: Landmark) -> void:
 
 
 func _on_orbit_changed(event: Orbit.Event, body: CelestialBody) -> void:
-	var words := FlightHud.orbit_message(event, body.display_name if body != null else "", ship.orbit.refusal)
+	var words := FlightHud.orbit_message(event, body.display_name if body != null else "", ship.orbit.refusal,
+			ship.orbit.to_climb)
 	var warn := event == Orbit.Event.BUMPED or event == Orbit.Event.REFUSED
 	_show_toast(words, OFF_COLOUR if warn else ORBIT_COLOUR)
 
