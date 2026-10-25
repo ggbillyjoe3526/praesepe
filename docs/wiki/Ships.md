@@ -4,9 +4,11 @@
 
 **Great for:** porters and miners. A steady workhorse with room for cargo, and the one ship a new game offers for now.
 
-For now a simple test model stands in for the Hauler while the flying is tuned: a cockpit with a dashboard screen,
-two engines and short wings. Its own model, cargo hold and handling come later, and it can't carry cargo or take
-damage yet. The flight numbers below are the test model's.
+For now a small test ship stands in for the Hauler while the flying is tuned: light grey with orange panels, a flat
+windscreen sloping down to its nose, two engine pods and short swept wings. Its model is a simple placeholder. Inside,
+a slim dashboard runs across the bottom of the view and the windows have no frame bars in the way. The Hauler's own
+cargo hold and handling come later, and it can't carry cargo or take damage yet. The flight numbers below are the test
+ship's.
 
 ![The Hauler (its stand-in model), docked at Halfway Station](images/docked-chase.jpg)
 
@@ -20,7 +22,7 @@ damage yet. The flight numbers below are the test model's.
 | Braking thrusters | 25 m/s² |
 | Side and up/down thrusters | 30 m/s² |
 | Turn rate, full stick | nose up/down 50°/s, left/right 35°/s, roll 100°/s |
-| Wingspan | about 17 m |
+| Size | about 14 m long and 14 m across the wings |
 
 ### Cruise drive
 

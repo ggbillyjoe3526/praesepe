@@ -3,8 +3,8 @@
 A casual, first-person space game: buy a ship on a loan, then earn money flying contracts around one solar system.
 Working title. Made with Godot 4.7.2, Blender and Claude Code. The design is in [DESIGN.md](DESIGN.md).
 
-**Status:** a tiny solar system to fly around. The game opens on a start menu (Continue, New game, Settings, Quit);
-a new game picks the ship (one so far, the Hauler, a greybox with a simple cockpit) and starts docked at a space
+**Status:** a tiny solar system to fly around. The game opens on a start menu (Continue, New game, Settings, Quit); a
+new game picks the ship (one so far, the Hauler, a simple placeholder model and cockpit) and starts docked at a space
 station, with a planet and its base, a moon and an asteroid belt to cruise to. Newtonian flight, flight assist, a
 velocity marker, a cruise drive, a chase camera, pause and a settings menu. The ship docks at the station, lands at
 the base and parks in orbit round the planet or the moon; docking and landing autosave the game, and so does flying,
@@ -85,7 +85,7 @@ CI runs all five on every pull request (the wiki check in the Wiki workflow, whi
 | `game/core/` | The `Game` autoload (world seed, random streams, in-game clock), the `Events` autoload (the event bus: docking, landing, saving), how a game starts (new or continued) and launch options. |
 | `game/flight/` | The flight model, the cruise drive, orbit, the ship's input, the pilot's controls and their tuning. |
 | `game/arrival/` | Docking and landing: ports, the way in (the ship flying itself to its berth), the one arrival function and their tuning. |
-| `game/ship/` | The greybox ship, its cockpit and its tuning, and the starter ships a new game offers. |
+| `game/ship/` | The test ship, its cockpit and its tuning, and the starter ships a new game offers; `models/` holds their glTF models (made from `tools/blender/`). |
 | `game/camera/` | The cockpit and chase cameras, camera shake and their tuning. |
 | `game/system/` | The solar system scene: the planet, its base and landing pad, the moon, the station and its docking bay, the seeded asteroid belt and their tuning. |
 | `game/world/` | The floating origin, space dust, the starfield sky and the orbit line round a planet. |
@@ -95,7 +95,7 @@ CI runs all five on every pull request (the wiki check in the Wiki workflow, whi
 | `game/main/` | The game scene, opened from the title screen. |
 | `game/debug/` | The smoke test autopilot and the F3 overlay. |
 | `test/unit/` | Unit tests. |
-| `tools/` | Test, changelog and wiki scripts. |
+| `tools/` | Test, changelog and wiki scripts; `blender/` builds and exports the ship models in Blender (its `README.md` says how). |
 | `addons/gut/` | The Gut test framework (tests only, never shipped). |
 | `docs/wiki/` | The player wiki, one page per file, published to the [GitHub wiki](https://github.com/ggbillyjoe3526/project-praesepe/wiki) on every merge to `main`. Its `README.md` has the conventions. |
 | `changelog.d/` | One changelog note per pull request, gathered into `CHANGELOG.md` at release. |
