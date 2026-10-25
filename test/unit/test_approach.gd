@@ -186,16 +186,23 @@ func test_speed_eases_down_to_a_soft_touch() -> void:
 
 
 func test_carries_on_at_about_the_speed_it_was_going() -> void:
-	assert_eq(Approach.speed_limit(0.0, _tuning), _tuning.least_speed, "from rest, its least speed")
-	assert_almost_eq(Approach.speed_limit(80.0, _tuning), 80.0 * _tuning.speed_up, 0.001, "a little faster at most")
-	assert_eq(Approach.speed_limit(1000.0, _tuning), _tuning.top_speed, "never past its top speed")
+	assert_eq(Approach.speed_limit(0.0, 4000.0, _tuning), _tuning.least_speed, "from rest far out, its least speed")
+	assert_almost_eq(Approach.speed_limit(0.0, 300.0, _tuning), 300.0 / _tuning.least_time, 0.001,
+			"from rest close in, slower")
+	assert_eq(Approach.speed_limit(0.0, 20.0, _tuning), _tuning.slowest_speed, "but never crawling")
+	assert_almost_eq(Approach.speed_limit(8.0, 200.0, _tuning), 10.0, 0.001, "slow and close in, it stays slow")
+	assert_almost_eq(Approach.speed_limit(80.0, 1000.0, _tuning), 80.0 * _tuning.speed_up, 0.001,
+			"a little faster at most")
+	assert_eq(Approach.speed_limit(1000.0, 1000.0, _tuning), _tuning.top_speed, "never past its top speed")
 	assert_eq(Approach.speed_for(100000.0, 200.0, _tuning, 50.0), 50.0, "no faster than it is told")
 	var dock := _station()
 	for speed: float in [10.0, 80.0]:
-		var f := _fly(dock, dock.gate() + Vector3(1200, 100, 300), Vector3(-speed, 0, 0), Basis(Vector3.UP, PI / 2.0))
+		var start := dock.gate() + Vector3(1200, 100, 300)
+		var f := _fly(dock, start, Vector3(-speed, 0, 0), Basis(Vector3.UP, PI / 2.0))
 		assert_true(f.done, "arrives from %.0f m/s" % speed)
 		gut.p("docked from %.0f m/s in %.1f s, top %.0f m/s" % [speed, f.time, f.top])
-		assert_lte(f.top, Approach.speed_limit(speed, _tuning) + 0.01, "never much faster than it was going")
+		assert_lte(f.top, Approach.speed_limit(speed, INF, _tuning) + 0.01,
+				"never much faster than it was going")
 
 
 func test_going_round_never_comes_nearer_the_centre() -> void:
@@ -318,6 +325,15 @@ func test_docks_from_anywhere_inside_the_bay() -> void:
 		assert_eq(into, 0.0, "never touches the bay from %s (%.1f m into it)" % [start, into])
 		assert_lt(f.time, 60.0, "takes under a minute from %s" % start)
 	assert_false(dock.in_lane(station.global_position + Vector3(20, 185, 0)), "over the roof is not")
+	# Just over the floor, flown in by hand: it stays low rather than climbing to the middle of the mouth first.
+	for start: Vector3 in [Vector3(5, 139.4, 3), Vector3(30, 140, -8), Vector3(-10, 139.4, 0)]:
+		var f := _fly(dock, station.global_position + start)
+		assert_true(f.done, "arrives from the floor at %s" % start)
+		var highest := -INF
+		for at in f.path + f.settle_path:
+			highest = maxf(highest, (at - dock.global_position).dot(dock.global_basis.y))
+		assert_lt(highest, _tuning.low_line + 0.5, "never climbs up the bay from %s (%.1f m up)" % [start, highest])
+		assert_lt(f.time, 40.0, "takes under 40 s from %s" % start)
 	assert_false(dock.in_lane(station.global_position + Vector3(20, 155, 40)), "beside the wall is not")
 
 
@@ -351,7 +367,8 @@ func test_lands_from_low_and_far_without_climbing_higher_than_it_must() -> void:
 			% [f.time, f.top, f.highest - base_height])
 	assert_lt(f.highest - base_height, pad.low_gate + 5.0, "climbs only as high as it must to clear the base")
 	assert_gt(f.nearest, planet.radius + 40.0, "never near the ground")
-	assert_lte(f.top, Approach.speed_limit(50.0, _tuning) + 0.01, "never much faster than it was going")
+	assert_lte(f.top, Approach.speed_limit(50.0, INF, _tuning) + 0.01,
+			"never much faster than it was going")
 	_check_final(pad, f)
 
 

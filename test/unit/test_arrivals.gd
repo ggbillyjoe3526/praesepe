@@ -373,7 +373,7 @@ func test_g_carries_on_at_about_the_speed_the_ship_was_going() -> void:
 		await wait_physics_frames(1)
 		top = maxf(top, _ship.speed())
 	assert_eq(_arrivals.stage, Arrivals.Stage.APPROACHING, "still on its way")
-	assert_lte(top, Approach.speed_limit(20.0, _arrivals.tuning) + 0.01, "never much faster than it was going")
+	assert_lte(top, Approach.speed_limit(20.0, INF, _arrivals.tuning) + 0.01, "never much faster than it was going")
 
 
 func test_warns_when_coming_at_something_too_fast() -> void:

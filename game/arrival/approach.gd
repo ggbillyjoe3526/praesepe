@@ -5,8 +5,8 @@ extends RefCounted
 ## G is pressed and hands its velocity and spin to the ship each tick (Ship.guide).
 ##
 ## It starts from where the ship is and how it is moving when G is pressed (start_from): it may slow down, but never
-## goes more than speed_up faster than the ship was going (and never slower than least_speed, so a ship at rest still
-## gets there), and a ship flying low over a planet never climbs higher than it must (Port.gate_distance).
+## goes more than speed_up faster than the ship was going (and, so a ship at rest still gets there, never slower than
+## what would get it there in about least_time, between slowest_speed and least_speed), and a ship flying low over a planet never climbs higher than it must (Port.gate_distance).
 ##
 ## The way in has two legs. First the ship flies to the port's gate (Port.gate): out in front of the bay's mouth, or
 ## above the pad. On the way it goes round the station or planet (Port.centre) rather than through it, never
@@ -30,6 +30,9 @@ var tuning: ArrivalTuning
 ## how fast it is going when it starts (start_from).
 var gate_distance: float
 var top_speed: float
+## In a bay, how high (m) over the berth the final leg runs: the middle of the mouth (Port.settle), or lower for a ship
+## already in the lane lower down (never under low_line), so one that flew in by hand doesn't climb before settling.
+var line_height: float
 ## On the final leg (once on, it stays on).
 var final: bool = false
 ## Facing along the final leg (from line_up_lead before the gate on), and lined up: on the final leg's line and
@@ -60,13 +63,26 @@ func _init(to: Port, approach_tuning: ArrivalTuning) -> void:
 	tuning = approach_tuning
 	gate_distance = to.approach_distance
 	top_speed = approach_tuning.top_speed
+	line_height = to.settle
 
 
 ## Starts from a ship at `at` moving at `moving` (world space): the gate at its height if it is low over a planet, and
-## no faster than a little more than it is going.
+## no faster than a little more than it is going (or than it takes to get there in least_time, the way it will go).
 func start_from(at: Vector3, moving: Vector3) -> void:
 	gate_distance = port.gate_distance(at)
-	top_speed = Approach.speed_limit(moving.length(), tuning)
+	# How far it has to go: straight in from the lane, or round to the gate and in.
+	var way := (at - port.lane_origin()).dot(port.exit_direction())
+	var gate := port.gate(gate_distance)
+	if not port.in_lane(at):
+		way = Approach.round_length(at - port.centre(), gate - port.centre()) + gate_distance
+	top_speed = Approach.speed_limit(moving.length(), absf(way), tuning)
+	if port.body == null and not port.in_lane(at) \
+			and (at - port.centre()).length() < (gate - port.centre()).length():
+		# Tucked in among a station's parts: it climbs out at its usual pace, feeling well ahead for what is in its way.
+		top_speed = maxf(top_speed, tuning.least_speed)
+	if port.settle > 0.0 and port.in_lane(at):
+		var height := (at - port.global_position).dot(port.global_basis.y.normalized())
+		line_height = clampf(height, minf(tuning.low_line, port.settle), port.settle)
 
 
 ## One tick for a ship at `at` with attitude `ship_basis`, moving at `moving` and spinning at `spinning` (world space),
@@ -76,7 +92,7 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 	if settling:
 		_settle(at, ship_basis, moving, spinning, rates, accels, delta)
 		return
-	var berth := port.lane_origin()
+	var berth := port.global_position + port.global_basis.y.normalized() * line_height
 	var out := port.exit_direction()
 	var along := (at - berth).dot(out)
 	var side := (at - berth) - out * along
@@ -134,7 +150,7 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 		target = -out * speed - (side / tuning.side_time).limit_length(tuning.cornering_speed())
 		done = absf(along) <= tuning.arrive_distance and lined_up \
 				and (port.turn_round_at <= 0.0 or turned_round)
-		if done and port.settle > 0.0:
+		if done and line_height > 0.0:
 			# Over the berth in a bay: now down onto the floor.
 			done = false
 			settling = true
@@ -180,6 +196,10 @@ func _settle(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3,
 	velocity = across + up * moving.dot(up)
 	var vertical := tuning.settle_accel * delta
 	velocity += up * clampf(-down - velocity.dot(up), -vertical, vertical)
+	# Never down past the floor: the last bit is the touch.
+	var falling := -velocity.dot(up)
+	if falling > left / delta:
+		velocity += up * (falling - left / delta)
 	var berth := port.global_basis.orthonormalized()
 	spin = Approach.turn(ship_basis.orthonormalized(), berth, spinning, rates, accels, tuning.turn_time, delta)
 	done = left <= tuning.arrive_distance and drift.length() <= tuning.settle_drift
@@ -239,10 +259,14 @@ static func speed_for(left: float, final_leg: float, approach_tuning: ArrivalTun
 	return clampf(speed, approach_tuning.touch_speed, minf(top, approach_tuning.top_speed))
 
 
-## The fastest (m/s) the way in goes for a ship going at `speed` when it starts: no more than speed_up times that,
-## and no less than least_speed (nor more than top_speed).
-static func speed_limit(speed: float, approach_tuning: ArrivalTuning) -> float:
-	return clampf(speed * approach_tuning.speed_up, approach_tuning.least_speed, approach_tuning.top_speed)
+## The fastest (m/s) the way in goes for a ship going at `speed` when it starts `distance` metres from the berth (the
+## way it will go): no
+## more than speed_up times that, but at least enough to get there in about least_time (no less than slowest_speed and
+## no more than least_speed), and never more than top_speed. So close in and slow, it stays slow.
+static func speed_limit(speed: float, distance: float, approach_tuning: ArrivalTuning) -> float:
+	var floor_speed := clampf(distance / approach_tuning.least_time, approach_tuning.slowest_speed,
+			approach_tuning.least_speed)
+	return minf(maxf(speed * approach_tuning.speed_up, floor_speed), approach_tuning.top_speed)
 
 
 ## How far (m) it is from `from` to `to` (both from the centre it goes round) going round the centre: the arc, with

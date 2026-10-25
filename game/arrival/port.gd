@@ -62,7 +62,15 @@ var place: Landmark
 var body: CelestialBody
 ## Set by Arrivals while the ship is in the port's lane or flying itself in: the guide light shines brighter, so the
 ## pilot sees they are lined up.
-var guiding: bool = false
+var guiding: bool = false:
+	set(on):
+		if on != guiding:
+			guiding = on
+			if _light != null:
+				_light.wake()
+
+
+var _light: GuideLight = null
 
 
 func _ready() -> void:
@@ -75,10 +83,10 @@ func _ready() -> void:
 			break
 		node = node.get_parent()
 	if guide_reach > 0.0:
-		var light := GuideLight.new()
-		light.name = "GuideLight"
-		light.port = self
-		add_child(light)
+		_light = GuideLight.new()
+		_light.name = "GuideLight"
+		_light.port = self
+		add_child(_light)
 
 
 ## The name the HUD and messages use: the station's or base's.

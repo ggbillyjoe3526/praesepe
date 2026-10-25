@@ -8,8 +8,12 @@ extends Resource
 ## The fastest (m/s) it ever goes on the way.
 @export var top_speed: float = 400.0
 ## It carries on from the speed the ship was going when G was pressed: it may slow down, but goes no more than this
-## many times as fast (and never slower than least_speed, m/s, so a ship at rest still gets there).
+## many times as fast. So a ship at rest still gets there, it may always go fast enough to get there in about
+## least_time (s), but never needs to go slower than slowest_speed (m/s), nor is it ever pushed past least_speed (m/s)
+## for that.
 @export var speed_up: float = 1.25
+@export var least_time: float = 30.0
+@export var slowest_speed: float = 5.0
 @export var least_speed: float = 40.0
 ## The push (m/s²) that changes its velocity on the way, and slows it before the final leg: the main engine's.
 @export var travel_accel: float = 40.0
@@ -37,6 +41,9 @@ extends Resource
 @export var hold_short: float = 60.0
 ## Over the berth in a bay, it settles down onto the floor at this (m/s²), no faster than settle_speed (m/s), until
 ## within settle_drift (m) of the berth across; leaving, it lifts back up the same way.
+## A ship already in a bay's lane below the middle of its mouth flies the final leg at its own height, but no lower
+## than low_line (m) over the berth.
+@export var low_line: float = 3.0
 @export var settle_accel: float = 2.0
 @export var settle_speed: float = 4.0
 @export var settle_drift: float = 0.2

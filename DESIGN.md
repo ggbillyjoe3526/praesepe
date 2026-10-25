@@ -298,9 +298,11 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
   "DOCKING · G to cancel" (or "LANDING"), and the HUD "Docking at Halfway Station · G to cancel".
 - The docking computer carries on from where the ship is and how it is moving when G is pressed (the owner's call,
   2026-10-25: "the docking/landing assist should proceed from the player's location and velocity ... shouldn't speed up
-  significantly"). It can slow down, but never goes more than a quarter faster than the ship was going, and never
-  slower than 40 m/s, so a ship at rest still gets there. Pressed low over the planet, it never climbs higher than it
-  must: the pad's gate sits at the ship's own height, but no lower than 120 m (above Tollgate's tower).
+  significantly"). It can slow down, but never goes more than a quarter faster than the ship was going. So a
+  ship at rest still gets there, it may go fast enough to arrive in about 30 s, but no faster than 40 m/s for that
+  (and never slower than 5 m/s): slow and close in, it stays slow; at rest 1.5 km out, it goes 40 m/s. Pressed low
+  over the planet, it never climbs higher than it must: the pad's gate sits at the ship's own height, but no lower than
+  120 m (above Tollgate's tower).
 - The way in has two legs. First the ship flies to the port's gate: 180 m out in front of the bay's mouth, or 250 m
   above the pad (lower when the ship is lower, as above). It goes round the station or the planet rather than through them, keeping at least as far from
   their centre as the gate is, so it clears the station's ring and panels and Tollgate's tower. Starting nearer than
@@ -346,10 +348,10 @@ the station's and base's scenes (`game/system/greybox_station.tscn`, `game/syste
 | Docking offered | Within 1.5 km of the bay, below 100 m/s; hints from 3.5 km | The cruise drive drops out about 2.8 km away |
 | Landing offered | Within 4 km of the pad, below 100 m/s; hints from 8 km | Like docking; a cruise to Tollgate ends about 4.2 km away, inside the hint |
 | Gate | 220 m out from the berth in the bay (180 m in front of its mouth); 250 m above the pad, or the ship's own height if lower, but at least 120 m | Outside everything at the station, above Tollgate's tower (87 m with its beacon); a low ship never climbs more than it must |
-| Speed on the way | At most 1.25 times the ship's speed when G was pressed, at least 40 m/s (never over 400 m/s), slowing at 20 m/s²; going round, no faster than half of 40 m/s² can curve it | Carries on from the pilot's own speed, never racing off |
+| Speed on the way | At most 1.25 times the ship's speed when G was pressed, but at least its way in over 30 s, from 5 to 40 m/s (never over 400 m/s), slowing at 20 m/s²; going round, no faster than half of 40 m/s² can curve it; tucked in among the station's parts, at least 40 m/s on the way out round them | Carries on from the pilot's own speed, never racing off |
 | Berths | The bay's on its floor (15.75 m under the middle of its mouth); the pad's on the pad; the ship's underside 5 cm above each | Sits on the ground, not hovering |
-| Settling in the bay, lifting off it | Straight down (or up) 15.75 m at up to 4 m/s, speeding up and slowing at 2 m/s², touching at 1.5 m/s; within 0.2 m over the berth | About 6 s each way, gentle |
-| Guide lights | Bay: green, 2.5 m round the line in, from its mouth to 400 m out; pad: cyan, 2 m round, straight up 400 m. Faint (strength 0.3), brighter (0.7) while lined up or flying in, easing over 0.4 s; fading out toward the far end and within 30 m of the camera | Line up by eye; never dazzles when flown through |
+| Settling in the bay, lifting off it | Straight down (or up) 15.75 m at up to 4 m/s, speeding up and slowing at 2 m/s², touching at 1.5 m/s; within 0.2 m over the berth. A ship already low in the bay's lane flies in at its own height (at least 3 m up) and settles from there | About 6 s each way, gentle; G pressed on the floor never climbs first |
+| Guide lights | Bay: green, 2.5 m round the line in, from its mouth to 400 m out; pad: cyan, 2 m round, straight up 400 m. Faint (strength 0.3), brighter (0.7) while lined up or flying in, easing over 0.4 s; fading out toward the far end and within 30 m of the camera; drawn only within 8 km | Line up by eye; never dazzles when flown through |
 | Speed warning | From 6 m/s: anything along the velocity within the stopping distance at half the weakest push (25 m/s² on the greybox), plus 1 s at its speed, swept with a 3 m ball | Warns early enough to brake; quiet when slow or flying alongside things |
 | Corner onto the final leg | Starts 80 m from the gate, at 40 m/s | Comes onto the line well before the berth |
 | Final leg | Slows at 6 m/s² to touch at 1.5 m/s; waits 60 m short until within 1.5° and 1 m of the line | Never goes in crooked; the touch is a soft bump |
