@@ -3,16 +3,17 @@ extends Control
 ## The start menu on the title screen (design doc, "Starting a game"): Continue, New game, Settings and Quit. New game
 ## opens the ship choice, one card per starter ship (StarterShips) with its "Great for:" hint; choosing one starts the
 ## game in it, after asking first when that would replace a saved game. Continue is there only when a saved game can
-## be read; when one exists but can't be, it says why and keeps the file. The menu only says what was chosen (its
-## signals); the title screen does it. Esc goes back a page. Its look is a placeholder, like the pause screen's.
+## be read; when one exists but can't be, it says why and keeps the file. Settings opens the settings menu
+## (SettingsMenu) over it, as the pause screen does. For the rest the menu only says what was chosen (its signals); the
+## title screen does it. Esc goes back a page. Its look is a placeholder, like the pause screen's.
 
 signal continue_chosen
 signal new_game_chosen(ship: StringName)
-signal settings_chosen
 signal quit_chosen
 
 enum Page {
 	MAIN, ## Continue, New game, Settings, Quit.
+	SETTINGS, ## The settings menu.
 	SHIPS, ## Choose your ship.
 	REPLACE, ## A new game would replace the saved game: start it, or go back.
 }
@@ -63,6 +64,8 @@ var ship_buttons: Array[Button] = []
 var ships_back_button: Button
 var replace_button: Button
 var replace_back_button: Button
+## The settings menu, a child so it hears Esc before the menu does (public for the tests).
+var settings_menu: SettingsMenu
 
 var _pages: Dictionary[Page, Control] = {}
 var _title: Label
@@ -107,7 +110,11 @@ func show_page(to: Page) -> void:
 		_pages[p].visible = p == to
 	# The game's name heads the first page only; the others have their own heading or question.
 	_title.visible = to == Page.MAIN
-	_focus_first()
+	if to == Page.SETTINGS:
+		settings_menu.open()
+	else:
+		settings_menu.visible = false
+		_focus_first()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -172,6 +179,16 @@ func _build() -> void:
 	_pages[Page.MAIN] = _build_main()
 	_pages[Page.SHIPS] = _build_ships()
 	_pages[Page.REPLACE] = _build_replace()
+	settings_menu = SettingsMenu.new()
+	settings_menu.visible = false
+	settings_menu.closed.connect(_settings_closed)
+	add_child(settings_menu)
+
+
+## Back from the settings menu (it saved any change as it closed): the first page, on its Settings button.
+func _settings_closed() -> void:
+	show_page(Page.MAIN)
+	settings_button.grab_focus()
 
 
 func _build_main() -> Control:
@@ -182,7 +199,7 @@ func _build_main() -> Control:
 	new_game_button = _button(list, "New game")
 	new_game_button.pressed.connect(show_page.bind(Page.SHIPS))
 	settings_button = _button(list, "Settings")
-	settings_button.pressed.connect(settings_chosen.emit)
+	settings_button.pressed.connect(show_page.bind(Page.SETTINGS))
 	quit_button = _button(list, "Quit")
 	quit_button.pressed.connect(quit_chosen.emit)
 	_save_note = _label(list, "", NOTE_SIZE, NOTE_COLOUR)

@@ -9,20 +9,17 @@ const SHIPS: StarterShips = preload("res://game/ship/starter_ships.tres")
 var _menu: StartMenu
 var _continued: int = 0
 var _new_games: Array[StringName] = []
-var _settings: int = 0
 var _quits: int = 0
 
 
 func before_each() -> void:
 	_continued = 0
 	_new_games.clear()
-	_settings = 0
 	_quits = 0
 	_menu = StartMenu.new()
 	_menu.ships = SHIPS
 	_menu.continue_chosen.connect(func() -> void: _continued += 1)
 	_menu.new_game_chosen.connect(func(ship: StringName) -> void: _new_games.append(ship))
-	_menu.settings_chosen.connect(func() -> void: _settings += 1)
 	_menu.quit_chosen.connect(func() -> void: _quits += 1)
 	add_child_autofree(_menu)
 
@@ -58,10 +55,20 @@ func test_continue_shows_only_for_a_good_save() -> void:
 		assert_ne(StartMenu.save_note(state), "", "says why there is no Continue")
 
 
-func test_settings_and_quit_say_so() -> void:
+func test_settings_opens_the_settings_menu_and_esc_comes_back() -> void:
 	_menu.settings_button.pressed.emit()
+	assert_eq(_menu.page, StartMenu.Page.SETTINGS)
+	assert_true(_menu.settings_menu.visible)
+	assert_false(_menu.settings_button.is_visible_in_tree(), "the start menu's own page is hidden behind it")
+	_menu.settings_menu.close()
+	assert_eq(_menu.page, StartMenu.Page.MAIN)
+	assert_false(_menu.settings_menu.visible)
+	assert_true(_menu.settings_button.has_focus(), "back on Settings")
+
+
+func test_quit_says_so() -> void:
 	_menu.quit_button.pressed.emit()
-	assert_eq([_settings, _quits], [1, 1])
+	assert_eq(_quits, 1)
 
 
 func test_new_game_with_no_save_starts_in_the_chosen_ship() -> void:
