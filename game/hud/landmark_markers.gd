@@ -4,8 +4,10 @@ extends Control
 ## is: a diamond on each place with its name and distance on a dark plate, drawn through whichever camera is active
 ## (ShipCameras). A place off the screen or behind the camera sits at the screen's edge on the side to turn to, as a
 ## hollow diamond. Labels that would cover each other stack instead. The place the ship is docked or landed at (and
-## the planet under it) has no marker until it leaves. A label is rebuilt only when its distance, as shown, changes. A
-## placeholder look until the art style is chosen.
+## the planet under it) has no marker until it leaves. The place the nose is aimed at, which F would lock the cruise
+## drive onto (CruiseDrive.aimed), is framed in corner brackets; the place the drive is locked onto is framed and drawn
+## in the cruise colour. A label is rebuilt only when its distance, as shown, changes. A placeholder look until the art
+## style is chosen.
 
 const COLOUR := Color(1.0, 0.86, 0.5)
 const PLATE_COLOUR := Color(0.03, 0.04, 0.08, 0.85)
@@ -17,6 +19,10 @@ const FONT_SIZE := 20
 const PAD := Vector2(8.0, 3.0)
 const EDGE := 90.0
 const LINE_WIDTH := 2.0
+## The corner brackets round an aimed or locked marker: how far (px at 1080p) from its middle, and how long each arm is.
+const BRACKET := 17.0
+const BRACKET_ARM := 7.0
+const CORNERS: Array[Vector2] = [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]
 
 @export var ship: Ship
 @export var cameras: ShipCameras
@@ -111,6 +117,8 @@ func _draw() -> void:
 	# the ship has left.
 	var here: Landmark = ship.berth.place if ship.berth != null else null
 	var under: Landmark = ship.berth.body if ship.berth != null else null
+	var aimed := ship.cruise.aimed
+	var locked := FlightHud.target_of(ship)
 	for i in _places.size():
 		if _places[i] == here or _places[i] == under:
 			continue
@@ -121,22 +129,27 @@ func _draw() -> void:
 			var off := centre - point
 			point = centre + (off.normalized() if off.length_squared() > 1.0 else Vector2.DOWN) * screen.length()
 		var clamped := ScreenMarker.clamp_to_screen(point, screen, EDGE)
-		_draw_marker(clamped, clamped == point, _labels[i], _label_sizes[i], screen)
+		var colour := FlightHud.CRUISE_COLOUR if _places[i] == locked else COLOUR
+		_draw_marker(clamped, clamped == point, _labels[i], _label_sizes[i], screen, colour,
+				_places[i] == locked or _places[i] == aimed)
 
 
-func _draw_marker(p: Vector2, ahead: bool, label: String, label_size: Vector2, screen: Vector2) -> void:
+func _draw_marker(p: Vector2, ahead: bool, label: String, label_size: Vector2, screen: Vector2, colour: Color,
+		framed: bool) -> void:
 	var d := DIAMOND
 	_diamond[0] = p + Vector2(0, -d)
 	_diamond[1] = p + Vector2(d, 0)
 	_diamond[2] = p + Vector2(0, d)
 	_diamond[3] = p + Vector2(-d, 0)
 	if ahead:
-		draw_colored_polygon(_diamond, COLOUR)
+		draw_colored_polygon(_diamond, colour)
 	else:
 		for k in 4:
 			_outline[k] = _diamond[k]
 		_outline[4] = _diamond[0]
-		draw_polyline(_outline, COLOUR, LINE_WIDTH, true)
+		draw_polyline(_outline, colour, LINE_WIDTH, true)
+	if framed:
+		_draw_brackets(p, colour)
 	# The label goes under the diamond, or over it near the bottom, and always wholly on the screen.
 	var top_left := p + Vector2(-label_size.x * 0.5, d + LABEL_GAP * 0.5)
 	if top_left.y + label_size.y + PAD.y > screen.y:
@@ -149,4 +162,12 @@ func _draw_marker(p: Vector2, ahead: bool, label: String, label_size: Vector2, s
 	_plate_count += 1
 	draw_rect(plate, PLATE_COLOUR)
 	draw_string(_font, plate.position + PAD + Vector2(0, _font.get_ascent(FONT_SIZE)), label,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, COLOUR)
+			HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, colour)
+
+
+## Four corner brackets round the marker at `p`, like a sight's frame.
+func _draw_brackets(p: Vector2, colour: Color) -> void:
+	for c: Vector2 in CORNERS:
+		var corner := p + c * BRACKET
+		draw_line(corner, corner - Vector2(c.x * BRACKET_ARM, 0.0), colour, LINE_WIDTH, true)
+		draw_line(corner, corner - Vector2(0.0, c.y * BRACKET_ARM), colour, LINE_WIDTH, true)

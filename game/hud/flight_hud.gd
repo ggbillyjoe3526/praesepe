@@ -3,8 +3,8 @@ extends Control
 ## The flight HUD (design doc, "Flight and camera"): the nose's aim point, the velocity marker showing where the ship
 ## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus the keys and
 ## short messages, such as the cruise drive's (CruiseDrive) and the orbit's (Orbit). In the chase view a plate at the
-## bottom also shows speed and flight assist; in the cockpit the dashboard screen shows them (CockpitDisplay), in the
-## same words. Text is rebuilt only when the whole number shown
+## bottom also shows speed and flight assist, and the place the cruise drive is locked onto with its distance; in the
+## cockpit the dashboard screen shows them (CockpitDisplay), in the same words. Text is rebuilt only when the whole number shown
 ## changes (so while speeding up, not in steady flight; in cruise, speeds over 1 km/s show in tenths of a km/s). A
 ## placeholder look until the art style is chosen.
 
@@ -27,8 +27,11 @@ const BERTH_COLOUR := Color(0.92, 0.95, 1.0)
 ## orbit, docked or landed, or leaving.
 enum Mode {
 	ASSIST_OFF, ASSIST_ON, CHARGING, CRUISING, ENTERING_ORBIT, ORBITING, LEAVING_ORBIT, DOCKED, LANDED, UNDOCKING,
-	TAKING_OFF,
+	TAKING_OFF, CRUISE_LOCKED,
 }
+## The target line's state key folds the place in like a hash, the distance's own key (LandmarkMarkers.distance_key,
+## always far under DISTANCE_KEYS) added last.
+const DISTANCE_KEYS := 1000003
 const NOSE_ARMS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 ## Sizes in px at 1080p: the nose mark's arms, the mouse stick's ring (a full push) and dot, and the velocity markers.
 const NOSE_GAP := 6.0
@@ -49,6 +52,8 @@ var _speed_shown: int = -1
 var _set_shown: int = -1
 var _mode_shown: int = -1
 var _toast_left: float = 0.0
+var _target_shown: int = -1
+var _target: Label
 
 @onready var _speed: Label = %Speed
 @onready var _assist: Label = %Assist
@@ -60,6 +65,7 @@ var _toast_left: float = 0.0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toast_plate.visible = false
+	_build_target_line()
 	if ship != null:
 		ship.assist_changed.connect(_on_assist_changed)
 		ship.cruise_changed.connect(_on_cruise_changed)
@@ -115,7 +121,7 @@ static func mode_of(ship: Ship) -> Mode:
 		CruiseDrive.Phase.CHARGING:
 			return Mode.CHARGING
 		CruiseDrive.Phase.CRUISING:
-			return Mode.CRUISING
+			return Mode.CRUISE_LOCKED if ship.cruise.target != null else Mode.CRUISING
 	match ship.orbit.phase:
 		Orbit.Phase.ENTERING:
 			return Mode.ENTERING_ORBIT
@@ -133,6 +139,8 @@ static func mode_text(mode: Mode, held: int) -> String:
 			return "CRUISE CHARGING  ·  F to cancel"
 		Mode.CRUISING:
 			return "CRUISE  ·  F to drop out"
+		Mode.CRUISE_LOCKED:
+			return "CRUISE LOCKED  ·  F to drop out"
 		Mode.ENTERING_ORBIT:
 			return "ENTERING ORBIT  ·  O to cancel"
 		Mode.ORBITING:
@@ -163,14 +171,39 @@ static func mode_colour(mode: Mode) -> Color:
 	return CRUISE_COLOUR
 
 
-## The message for something the cruise drive did (CruiseDrive.Event) at the place called `place`.
+## The place the cruise drive is locked onto while it charges or cruises, or null.
+static func target_of(ship: Ship) -> Landmark:
+	return ship.cruise.target if ship.cruise.phase != CruiseDrive.Phase.OFF else null
+
+
+## The target line, on the HUD and the dashboard: where the cruise drive is locked onto and how far it is (`metres`,
+## Landmark.marker_distance).
+static func target_text(place: String, metres: float) -> String:
+	return "TARGET  %s  ·  %s" % [place, LandmarkMarkers.distance_text(metres)]
+
+
+## A number that changes exactly when the target line's words do (worked out without allocating, every frame); 0 when
+## there is no target.
+static func target_key(ship: Ship) -> int:
+	var t := FlightHud.target_of(ship)
+	if t == null:
+		return 0
+	return t.get_instance_id() * DISTANCE_KEYS + LandmarkMarkers.distance_key(t.marker_distance(ship.global_position))
+
+
+## The message for something the cruise drive did (CruiseDrive.Event) at the place called `place` (where it is
+## locked onto, for charging and engaging; empty without a lock).
 static func cruise_message(event: CruiseDrive.Event, place: String) -> String:
 	match event:
 		CruiseDrive.Event.CHARGING:
+			if not place.is_empty():
+				return "Cruise drive charging  ·  locked onto %s  ·  F to cancel" % place
 			return "Cruise drive charging  ·  F to cancel"
 		CruiseDrive.Event.CANCELLED:
 			return "Cruise cancelled"
 		CruiseDrive.Event.ENGAGED:
+			if not place.is_empty():
+				return "Cruising to %s  ·  move the mouse to steer yourself" % place
 			return "Cruising  ·  steer with the mouse, F to drop out"
 		CruiseDrive.Event.BLOCKED:
 			return "Can't cruise: %s is too close ahead. Turn away first" % place
@@ -184,6 +217,8 @@ static func cruise_message(event: CruiseDrive.Event, place: String) -> String:
 			return "Dropped out of cruise: %s is close" % place
 		CruiseDrive.Event.BUMPED:
 			return "Bump! Dropped out of cruise"
+		CruiseDrive.Event.UNLOCKED:
+			return "Lock released  ·  steering yourself, F to drop out"
 	return ""
 
 
@@ -247,6 +282,24 @@ func _update_text() -> void:
 		_mode_shown = mode
 		_set_shown = held
 		_assist.text = FlightHud.mode_text(mode, held)
+	var key := FlightHud.target_key(ship)
+	if key != _target_shown:
+		_target_shown = key
+		var t := FlightHud.target_of(ship)
+		_target.visible = t != null
+		if t != null:
+			_target.text = FlightHud.target_text(t.display_name, t.marker_distance(ship.global_position))
+
+
+## The target line goes under the chase view's readout lines, shown only while the cruise drive is locked onto a place.
+func _build_target_line() -> void:
+	_target = Label.new()
+	_target.add_theme_font_size_override("font_size", 24)
+	_target.add_theme_color_override("font_color", CRUISE_COLOUR)
+	_target.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_target.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_target.visible = false
+	_assist.get_parent().add_child(_target)
 
 
 func _on_assist_changed(on: bool) -> void:

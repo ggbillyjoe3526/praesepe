@@ -2,8 +2,9 @@ class_name ActionPrompts
 extends Control
 ## The HUD's prompts for docking, landing and orbit (design doc, "Docking and landing", "Orbit"), so the player always
 ## knows what they can do here and what to do first: "G  Dock at Halfway Station", "Slow below 100 m/s to land at
-## Tollgate", "O  Enter orbit round Calder", "G  Undock". Up to two lines on a dark plate a little under the middle of
-## the view, hidden when there is nothing to say. Each line is rebuilt only when what it says changes (a distance, as
+## Tollgate", "O  Enter orbit round Calder", "G  Undock", and "F  Cruise to Mote" while the nose is aimed at a place
+## the cruise drive would lock onto. Up to three lines on a dark plate a little under the middle of the view, hidden
+## when there is nothing to say. Each line is rebuilt only when what it says changes (a distance, as
 ## shown, counts). Placeholder look until the art style is chosen.
 
 const FONT_SIZE := 26
@@ -11,6 +12,7 @@ const GAP := 6
 const KEY_COLOUR := Color(0.92, 0.95, 1.0)
 const HINT_COLOUR := Color(1.0, 0.86, 0.5)
 const ORBIT_COLOUR := Color(0.78, 0.72, 1.0)
+const CRUISE_COLOUR := FlightHud.CRUISE_COLOUR
 ## Where the plate sits: its bottom this far (px at 1080p) above the screen's bottom, above the cockpit's dashboard
 ## and the chase view's plate, a little under the middle of the view.
 const BOTTOM := 400.0
@@ -25,8 +27,10 @@ const DISTANCE_KEYS := 1000003
 var _plate: PanelContainer
 var _port_line: Label
 var _orbit_line: Label
+var _cruise_line: Label
 var _port_key: int = -1
 var _orbit_key: int = -1
+var _cruise_key: int = -1
 
 
 func _ready() -> void:
@@ -53,7 +57,13 @@ func _process(_delta: float) -> void:
 		_orbit_line.text = ActionPrompts.orbit_text(o.phase, o.body if o.active() else o.offered, o.refusal,
 				o.tuning.max_entry_speed) if flying else ""
 		_orbit_line.visible = not _orbit_line.text.is_empty()
-	_plate.visible = _port_line.visible or _orbit_line.visible
+	var aimed := ship.cruise.aimed if arrivals.stage == Arrivals.Stage.FLYING else null
+	key = aimed.get_instance_id() if aimed != null else 0
+	if key != _cruise_key:
+		_cruise_key = key
+		_cruise_line.text = ActionPrompts.cruise_text(aimed)
+		_cruise_line.visible = not _cruise_line.text.is_empty()
+	_plate.visible = _port_line.visible or _orbit_line.visible or _cruise_line.visible
 
 
 ## The docking or landing line: at `stage`, about port `p` (the nearest one while flying, the berth once there),
@@ -103,6 +113,11 @@ static func orbit_text(phase: Orbit.Phase, body: CelestialBody, why: Orbit.Refus
 	return ""
 
 
+## The cruise line: F locks the cruise drive onto `aimed` (CruiseDrive.aimed). Empty when nothing is aimed at.
+static func cruise_text(aimed: Landmark) -> String:
+	return "F   Cruise to %s" % aimed.display_name if aimed != null else ""
+
+
 ## A number that changes exactly when the docking line's words do (worked out without allocating, every frame).
 func _port_state() -> int:
 	var p := arrivals.nearest if arrivals.stage == Arrivals.Stage.FLYING else arrivals.port
@@ -144,6 +159,7 @@ func _build() -> void:
 	_plate.add_child(list)
 	_port_line = _line(list, KEY_COLOUR)
 	_orbit_line = _line(list, ORBIT_COLOUR)
+	_cruise_line = _line(list, CRUISE_COLOUR)
 	_plate.visible = false
 
 
