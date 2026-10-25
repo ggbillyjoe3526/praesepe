@@ -16,7 +16,6 @@ extends Node3D
 @onready var _markers: LandmarkMarkers = $Hud/LandmarkMarkers
 @onready var _arrivals: Arrivals = $Arrivals
 @onready var _autosave: Autosave = $Autosave
-@onready var _transition: TransitionScreen = $TransitionScreen
 
 
 func _ready() -> void:
@@ -44,5 +43,5 @@ func _ready() -> void:
 	smoke.system = _system
 	smoke.arrivals = _arrivals
 	smoke.autosave = _autosave
-	smoke.transition = _transition
+	smoke.hud = _hud
 	add_child(smoke)

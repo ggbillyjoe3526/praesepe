@@ -29,7 +29,6 @@ func _ready() -> void:
 	cockpit.shake = shake
 	chase.setup(ship, tuning, shake)
 	Settings.changed.connect(_apply_settings)
-	Events.arrived.connect(_on_arrived)
 	_apply_settings()
 	set_view(View.COCKPIT)
 
@@ -37,8 +36,6 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if Settings.changed.is_connected(_apply_settings):
 		Settings.changed.disconnect(_apply_settings)
-	if Events.arrived.is_connected(_on_arrived):
-		Events.arrived.disconnect(_on_arrived)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -85,10 +82,6 @@ func snap() -> void:
 ## The camera the player is looking through.
 func current() -> Camera3D:
 	return chase if view == View.CHASE else cockpit
-
-
-func _on_arrived(_port: Port) -> void:
-	snap()
 
 
 func _apply_settings() -> void:

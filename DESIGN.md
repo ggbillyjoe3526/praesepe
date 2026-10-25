@@ -257,7 +257,7 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
 - Only the rocks within 2.5 km of the ship are solid (a pool of 48 spheres, picked again every 10 ticks; a sphere stays on its rock while that rock stays near); all are drawn, in 64 pieces round the ring, as lumpy rocks within 9 km and simple shapes out to 70 km, with a faint haze along the band beyond that.
 - Calder and Mote are drawn as fine spheres close up and coarse ones from far away (past 40 km and 15 km). The station and base lose their detail at 12 km and 20 km. Everything is visible to 150 km.
 
-**Landing:** for now, approach the planet, see a prompt to land, then a transition screen. Seamless landing is a later goal.
+**Landing:** seamless, with no transition or loading screen (the owner's call, 2026-10-25): approach the planet, see a prompt to land, press it, and the ship flies itself down onto the base's pad while the player watches. Docking works the same way.
 
 **How docking and landing work (first values, to be tuned with the owner)**
 
@@ -267,26 +267,48 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
   100 m/s to dock at Halfway Station", then "G  Dock at Halfway Station". Landing at Tollgate is offered anywhere
   within 4 km of Calder's surface, so approaching the planet (or orbiting it) is enough: "G  Land at Tollgate".
   Nothing is offered while the cruise drive charges or runs.
-- G fades the view to black ("Docking at Halfway Station"), the ship arrives, the screen says "Docked at Halfway
-  Station" and "Game saved", and the view fades back in with the ship held still in the bay, looking out of its mouth
-  (or on the pad, facing the hangar). The dashboard shows "DOCKED · G to undock" or "LANDED · G to take off".
+- G hands the ship to its docking computer, and it flies itself in, in real time: no fade, no loading screen, and the
+  camera never cuts. The pilot watches from the cockpit or the chase camera (V still switches). The dashboard shows
+  "DOCKING · G to cancel" (or "LANDING"), and the HUD "Docking at Halfway Station · G to cancel".
+- The way in has two legs. First the ship flies to the port's gate: 180 m out in front of the bay's mouth, or 250 m
+  above the pad. It goes round the station or the planet rather than through them, never nearer their centre than
+  the gate is, so it clears the station's ring and panels and Tollgate's tower, and climbs first if it starts low.
+  It faces where it is going, then, from 600 m before the gate, turns to the berth's attitude. At the gate it eases
+  round the corner onto the final leg: backing straight into the bay, or settling straight down onto the pad, slowing
+  all the way to a soft touch that the camera feels as a gentle bump. If it isn't lined up yet, it waits 60 m short
+  until it is, so it never goes in crooked.
+- Its pushes are the ship's own (the main engine's 40 m/s², the ship's turn rates), so the pilot's head sways and the
+  engines rumble as in normal flight. It goes faster the farther it has to go, up to 400 m/s, slower the closer it
+  goes round a planet or station, and gently (4 m/s²) on the final leg. From the edge of the docking offer it takes
+  about 20 to 30 s; landing from orbit about 30 to 45 s; from the far side of Calder about 80 s.
+- G (cancelled) or X (cancelled, then a full stop) hands the ship straight back, as it is moving; so does a bump on
+  the way ("Bump! Docking stopped. G to try again"), and the ship then comes to rest.
+- Once there, the ship is held still in the bay, looking out of its mouth (or on the pad, facing the hangar), and the
+  HUD says "Docked at Halfway Station · Game saved". The dashboard shows "DOCKED · G to undock" or "LANDED · G to
+  take off".
 - G again leaves: the ship is eased straight out of the bay (or straight up off the pad), speeding up evenly, then
   handed back with flight assist holding the speed it left with (25 m/s out of the bay; a hover above the pad).
 - Every docking and landing goes through one arrival function (`Arrivals.arrive`), which tells the rest of the game
-  through the event bus (`Events.arrived`). The autosave listens there and writes the game; contracts will too. Seamless
-  landing can later replace the fade without touching them.
+  through the event bus (`Events.arrived`). The autosave listens there and writes the game; contracts will too. How
+  the ship gets to its berth (`Approach`) can change without touching them.
 - Mote has no landing site yet; landing on it comes with surface mining.
 
 **Docking and landing tuning**
 
-The transition's timing lives in `game/arrival/arrival_tuning.tres`; each port's values on the port itself, in the
-station's and base's scenes (`game/system/greybox_station.tscn`, `game/system/greybox_base.tscn`).
+How the ship flies itself in lives in `game/arrival/arrival_tuning.tres`; each port's values on the port itself, in
+the station's and base's scenes (`game/system/greybox_station.tscn`, `game/system/greybox_base.tscn`).
 
 | Value | First value | What it does |
 | --- | --- | --- |
 | Docking offered | Within 1.5 km of the bay, below 100 m/s; hints from 3.5 km | The cruise drive drops out about 2.8 km away |
 | Landing offered | Within 4 km of Calder's surface, below 100 m/s; hints from 8 km | Cruising to Calder or Tollgate ends inside it |
-| Transition | 0.6 s fade out, 1.4 s black, 0.6 s fade in | Names the place and says the game saved |
+| Gate | 220 m out from the berth in the bay (180 m in front of its mouth); 250 m above the pad | Outside everything at the station, above Tollgate's tower (83 m) |
+| Speed on the way | Up to 400 m/s, slowing at 20 m/s²; going round, no faster than half of 40 m/s² can curve it | Long ways in stay short; never runs wide round the planet |
+| Corner onto the final leg | Starts 80 m from the gate, at 40 m/s | Comes onto the line well before the berth |
+| Final leg | Slows at 4 m/s² to touch at 1.5 m/s; waits 60 m short until within 1.5° and 1 m of the line | Never goes in crooked; the touch is a soft bump |
+| Turning to the berth | From 600 m before the gate, closing the angle over 0.8 s within the ship's turn rates | Lined up before the final leg |
+| Pushes | 40 m/s² (the main engine's) | The head sway and engine rumble feel like flight |
+| Bump limit | 3 m/s | A harder knock stops the way in |
 | Leaving the bay | 60 m, speeding up to 25 m/s (about 5 s) | Clear of the bay's mouth before the pilot has it |
 | Taking off | 30 m straight up, speeding up to 15 m/s (about 4 s) | Then flight assist brings it to a hover |
 
@@ -318,7 +340,7 @@ The goal of the first playable is to prove that flying, delivering and mining ar
 - [ ] Third-person chase camera while flying
 - [ ] Cruise drive between locations
 - [ ] Docking at the base and station
-- [ ] Landing prompt and transition screen
+- [ ] Seamless docking and landing: a prompt, then the ship flies itself in, with no transition or loading screen (the owner's call, 2026-10-25)
 - [ ] Parking in orbit round a planet or moon with an "Enter orbit" prompt (added by the owner, 2026-10-24)
 - [ ] Contract board with two job types: delivery and asteroid mining
 - [ ] Ship mining laser for blasting asteroids
@@ -334,7 +356,7 @@ The goal of the first playable is to prove that flying, delivering and mining ar
 A few early decisions avoid costly rework later.
 
 - **Large-world precision:** space scenes jitter far from the origin. Plan a floating-origin system or use Godot's double-precision build from the start.
-- **One arrival function for landing:** route all landings through a single function that loads the planet scene and places the ship. Seamless landing can later replace its internals without touching jobs, bases or saves.
+- **One arrival function for landing:** route all landings and dockings through a single function that places the ship at its berth and tells the rest of the game. How the ship gets there (today it flies itself in, seamlessly) can change without touching jobs, bases or saves.
 - **Two controllers with a clean hand-off:** a ship controller and an on-foot controller, with entering and leaving the seat as one well-defined transition.
 - **Data-driven contracts:** define contracts as data (verb, origin, destination, reward, steps) so new job types need little new code.
 - **Modular on-foot tasks:** drill, collect, carry and scan as separate pieces, ready for helper robots later.
@@ -366,11 +388,14 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 2. **Owning more:** buy more ships (outright or on loan), a hangar to store them, buy a station or outpost (bought, not built).
 3. **Automation:** helper robots for on-foot work (mining, survey, cargo and repair bots), then hired pilot agents to run other ships.
 4. **Expansion:** a jump gate or flight route to new areas, then a universe of predefined solar systems placed by seed.
-5. **Later polish:** seamless planet landing, walkable ship interiors, a codex of discoveries, a third-person on-foot view.
+5. **Later polish:** walkable ship interiors, a codex of discoveries, a third-person on-foot view.
 
 ## Decisions log
 
 Newest first. Each line: date, the decision, who made it.
+
+- 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, backing into the bay (so the docked view still looks out of its mouth) or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).
+- 2026-10-25: Seamless docking and landing join the first playable, moved up from the future roadmap: after playing PR #5 William said "I want to remove the transitions. The player should be able to enter/land at any station/planet seamlessly. No loading screens." The transition screen is gone (owner).
 
 - 2026-10-24: Docking, landing and orbit until the owner tunes them: values as in "How docking and landing work" and "How orbit works"; G docks, lands, undocks and takes off, O enters and leaves orbit; landing at a planet's base is offered anywhere close to the planet; the docked ship sits in an open bay on the station (the station's dock is no longer a solid block); the autosave writes the game on every docking and landing (seed, clock, random streams and where the ship is), and loading it comes with save and load (build step 7), so a new launch still starts in flight; the event bus is an autoload, `Events` (default, Claude).
 - 2026-10-24: Orbit joins the first playable: William asked for ships to "sit in orbit of objects", not a simulation like Kerbal Space Program, "just a simple 'Enter Orbit' button prompt. The player can enter orbit and stay there" (owner).

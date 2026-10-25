@@ -2,7 +2,8 @@ class_name FlightHud
 extends Control
 ## The flight HUD (design doc, "Flight and camera"): the nose's aim point, the velocity marker showing where the ship
 ## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus the keys and
-## short messages, such as the cruise drive's (CruiseDrive) and the orbit's (Orbit). In the chase view a plate at the
+## short messages, such as the cruise drive's (CruiseDrive), the orbit's (Orbit) and where the ship docked or landed
+## and whether the game saved (Events). In the chase view a plate at the
 ## bottom also shows speed and flight assist; in the cockpit the dashboard screen shows them (CockpitDisplay), in the
 ## same words. Text is rebuilt only when the whole number shown
 ## changes (so while speeding up, not in steady flight; in cruise, speeds over 1 km/s show in tenths of a km/s). A
@@ -10,8 +11,9 @@ extends Control
 
 ## Below this speed (m/s) the ship counts as stopped and no velocity marker shows.
 const STOPPED := 0.5
-## How long (s) a message (flight assist, camera) stays up.
+## How long (s) a message (flight assist, camera) stays up; the one saying where the ship docked or landed stays longer.
 const TOAST_TIME := 2.5
+const ARRIVAL_TOAST_TIME := 4.0
 ## How close (px at 1080p) markers come to the screen's edge.
 const EDGE := 64.0
 const NOSE_COLOUR := Color(0.92, 0.95, 1.0, 0.85)
@@ -23,11 +25,12 @@ const ON_COLOUR := Color(0.55, 0.95, 0.75)
 const CRUISE_COLOUR := Color(0.55, 0.8, 1.0)
 const ORBIT_COLOUR := Color(0.78, 0.72, 1.0)
 const BERTH_COLOUR := Color(0.92, 0.95, 1.0)
+const SAVED_COLOUR := Color(0.55, 0.95, 0.75)
 ## What the second readout line shows: flight assist off or on, the cruise drive charging or cruising, entering or in
-## orbit, docked or landed, or leaving.
+## orbit, flying itself in to dock or land, docked or landed, or leaving.
 enum Mode {
 	ASSIST_OFF, ASSIST_ON, CHARGING, CRUISING, ENTERING_ORBIT, ORBITING, LEAVING_ORBIT, DOCKED, LANDED, UNDOCKING,
-	TAKING_OFF,
+	TAKING_OFF, DOCKING, LANDING,
 }
 const NOSE_ARMS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 ## Sizes in px at 1080p: the nose mark's arms, the mouse stick's ring (a full push) and dot, and the velocity markers.
@@ -49,6 +52,8 @@ var _speed_shown: int = -1
 var _set_shown: int = -1
 var _mode_shown: int = -1
 var _toast_left: float = 0.0
+## Whether the last autosave worked, once the ship has docked or landed, for the message saying so (-1: none yet).
+var _saved: int = -1
 
 @onready var _speed: Label = %Speed
 @onready var _assist: Label = %Assist
@@ -66,6 +71,9 @@ func _ready() -> void:
 		ship.orbit_changed.connect(_on_orbit_changed)
 	if arrivals != null:
 		arrivals.refused.connect(_on_dock_refused)
+		arrivals.stopped.connect(_on_dock_stopped)
+	Events.arrived.connect(_on_arrived)
+	Events.game_saved.connect(_on_saved)
 	if cameras != null:
 		cameras.view_changed.connect(_on_view_changed)
 		_readout.visible = cameras.view == ShipCameras.View.CHASE
@@ -82,6 +90,12 @@ func _exit_tree() -> void:
 		ship.orbit_changed.disconnect(_on_orbit_changed)
 	if arrivals != null and arrivals.refused.is_connected(_on_dock_refused):
 		arrivals.refused.disconnect(_on_dock_refused)
+	if arrivals != null and arrivals.stopped.is_connected(_on_dock_stopped):
+		arrivals.stopped.disconnect(_on_dock_stopped)
+	if Events.arrived.is_connected(_on_arrived):
+		Events.arrived.disconnect(_on_arrived)
+	if Events.game_saved.is_connected(_on_saved):
+		Events.game_saved.disconnect(_on_saved)
 	if cameras != null and cameras.view_changed.is_connected(_on_view_changed):
 		cameras.view_changed.disconnect(_on_view_changed)
 	if Settings.changed.is_connected(queue_redraw):
@@ -105,6 +119,8 @@ static func assist_text(on: bool, held: int) -> String:
 
 ## What `ship` is flying in, for the second readout line.
 static func mode_of(ship: Ship) -> Mode:
+	if ship.bound_for != null:
+		return Mode.DOCKING if ship.bound_for.kind == Port.Kind.DOCK else Mode.LANDING
 	if ship.berth != null:
 		var dock := ship.berth.kind == Port.Kind.DOCK
 		if ship.guided:
@@ -147,6 +163,10 @@ static func mode_text(mode: Mode, held: int) -> String:
 			return "UNDOCKING"
 		Mode.TAKING_OFF:
 			return "TAKING OFF"
+		Mode.DOCKING:
+			return "DOCKING  ·  G to cancel"
+		Mode.LANDING:
+			return "LANDING  ·  G to cancel"
 	return FlightHud.assist_text(mode == Mode.ASSIST_ON, held)
 
 
@@ -158,7 +178,7 @@ static func mode_colour(mode: Mode) -> Color:
 			return ON_COLOUR
 		Mode.ENTERING_ORBIT, Mode.ORBITING, Mode.LEAVING_ORBIT:
 			return ORBIT_COLOUR
-		Mode.DOCKED, Mode.LANDED, Mode.UNDOCKING, Mode.TAKING_OFF:
+		Mode.DOCKED, Mode.LANDED, Mode.UNDOCKING, Mode.TAKING_OFF, Mode.DOCKING, Mode.LANDING:
 			return BERTH_COLOUR
 	return CRUISE_COLOUR
 
@@ -224,6 +244,31 @@ static func dock_refused_message(port: Port, why: Arrivals.Refusal) -> String:
 	return "Come closer to %s %s" % [verb, port.place_name()]
 
 
+## The message when the way in to `port` stops short: the pilot took the ship back, or a bump (`blocked`) stopped it.
+static func dock_stopped_message(port: Port, blocked: bool) -> String:
+	var dock := port != null and port.kind == Port.Kind.DOCK
+	if blocked:
+		return "Bump! %s stopped. G to try again" % ("Docking" if dock else "Landing")
+	return "%s cancelled" % ("Docking" if dock else "Landing")
+
+
+## The message once the ship has docked or landed at `port`: where, and whether the game saved (`saved`: 1 yes, 0 no,
+## -1 not known).
+static func arrival_message(port: Port, saved: int) -> String:
+	var words := ("Docked at %s" if port.kind == Port.Kind.DOCK else "Landed at %s") % port.place_name()
+	match saved:
+		1:
+			return words + "  ·  Game saved"
+		0:
+			return words + "  ·  The game couldn't be saved this time. Your last save is safe"
+	return words
+
+
+## The message on screen now, or empty when none is up (for the smoke test).
+func toast_text() -> String:
+	return _toast.text if _toast_plate.visible else ""
+
+
 func _process(delta: float) -> void:
 	if ship == null:
 		return
@@ -271,16 +316,39 @@ func _on_dock_refused(port: Port, why: Arrivals.Refusal) -> void:
 	_show_toast(FlightHud.dock_refused_message(port, why), OFF_COLOUR)
 
 
+func _on_dock_stopped(port: Port, blocked: bool) -> void:
+	_show_toast(FlightHud.dock_stopped_message(port, blocked), OFF_COLOUR if blocked else BERTH_COLOUR)
+
+
+## The autosave answers while the ship arrives (Events.game_saved, during Events.arrived), before or after this hears
+## of the arrival, so the message goes up at the end of the tick, once both are known.
+func _on_arrived(_port: Port) -> void:
+	_show_arrival.call_deferred()
+
+
+func _on_saved(ok: bool) -> void:
+	_saved = 1 if ok else 0
+
+
+func _show_arrival() -> void:
+	if ship == null or ship.berth == null:
+		_saved = -1
+		return
+	_show_toast(FlightHud.arrival_message(ship.berth, _saved), OFF_COLOUR if _saved == 0 else SAVED_COLOUR,
+			ARRIVAL_TOAST_TIME)
+	_saved = -1
+
+
 func _on_view_changed(view: ShipCameras.View) -> void:
 	var chase := view == ShipCameras.View.CHASE
 	_readout.visible = chase
 	_show_toast("Chase camera  ·  V for the cockpit" if chase else "Cockpit  ·  V for the chase camera", NOSE_COLOUR)
 
 
-func _show_toast(words: String, colour: Color) -> void:
+func _show_toast(words: String, colour: Color, time: float = TOAST_TIME) -> void:
 	_toast.text = words
 	_toast.add_theme_color_override("font_color", colour)
-	_toast_left = TOAST_TIME
+	_toast_left = time
 	_toast_plate.visible = true
 
 

@@ -449,3 +449,4 @@ hint_range = 3500.0
 max_speed = 100.0
 exit_distance = 60.0
 exit_speed = 25.0
+approach_distance = 220.0

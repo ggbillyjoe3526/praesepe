@@ -2,18 +2,19 @@ class_name Arrivals
 extends Node
 ## Docking and landing (design doc, "Docking and landing"). Each physics tick it looks for the nearest port (Port) the
 ## ship is close to and says whether docking or landing there is offered, or what the pilot must do first (come
-## closer, slow down, leave the cruise drive). G, when offered, fades to the transition screen and the ship arrives;
-## G again undocks or takes off, easing the ship out along the port's way out before handing it back.
+## closer, slow down, leave the cruise drive). G, when offered, hands the ship to the way in (Approach): it flies
+## itself to its berth in real time, with no fade or loading screen, and arrives. G or X on the way takes it back, and
+## a bump on the way stops it. G again undocks or takes off, easing the ship out along the port's way out before
+## handing it back.
 ##
 ## arrive() is the one arrival function (project instructions, "One arrival function for every landing and docking"):
-## every docking and every landing goes through it, and it is all the rest of the game sees (Events.arrived), so
-## seamless landing can later replace what happens on screen without touching contracts, bases or saves. Loading a
-## game docked and the tow back to a base will use it too.
+## every docking and every landing goes through it, and it is all the rest of the game sees (Events.arrived), so how
+## the ship gets there can change without touching contracts, bases or saves. Loading a game docked and the tow back
+## to a base will use it too.
 
 enum Stage {
 	FLYING, ## Free flight: ports may be offered.
-	ARRIVING, ## Fading out on the way in.
-	SETTLING, ## Black, then fading in at the berth.
+	APPROACHING, ## Flying itself in to the berth.
 	DOCKED, ## At the berth: G leaves.
 	LEAVING, ## Easing out along the port's way out.
 }
@@ -27,9 +28,10 @@ enum Refusal {
 
 ## G was pressed while flying but nothing is offered: `port` is the nearest one (or null) and `why` says why not.
 signal refused(port: Port, why: Refusal)
+## The way in to `port` stopped short: the pilot took the ship back (G or X), or it was `blocked` by a bump.
+signal stopped(port: Port, blocked: bool)
 
 @export var ship: Ship
-@export var transition: TransitionScreen
 @export var tuning: ArrivalTuning
 
 ## Every port in the solar system (SolarSystem.ports).
@@ -37,13 +39,14 @@ var ports: Array[Port] = []
 var stage: Stage = Stage.FLYING
 ## Where the ship is arriving, docked or leaving from.
 var port: Port = null
+## The way in, while approaching.
+var approach: Approach = null
 ## While flying: the nearest port within its hint range, or null; whether it is offered, and how far away it is
 ## (Port.distance).
 var nearest: Port = null
 var refusal: Refusal = Refusal.TOO_FAR
 var nearest_distance: float = INF
 
-var _timer: float = 0.0
 var _left: float = 0.0
 
 
@@ -63,21 +66,8 @@ func _physics_process(delta: float) -> void:
 				_begin(nearest)
 			elif asked:
 				refused.emit(nearest, refusal)
-		Stage.ARRIVING:
-			# The pilot has let go; the ship coasts on as flight assist holds it while the view fades.
-			ship.input.reset()
-			_timer += delta
-			_show(_timer / tuning.fade_out)
-			if _timer >= tuning.fade_out:
-				arrive(port)
-				stage = Stage.SETTLING
-				_timer = 0.0
-		Stage.SETTLING:
-			_timer += delta
-			_show(1.0 - (_timer - tuning.hold) / tuning.fade_in)
-			if _timer >= tuning.hold + tuning.fade_in:
-				stage = Stage.DOCKED
-				_show(0.0)
+		Stage.APPROACHING:
+			_fly_in(asked, delta)
 		Stage.DOCKED:
 			if asked:
 				depart()
@@ -87,13 +77,15 @@ func _physics_process(delta: float) -> void:
 
 ## The one arrival function: the ship docks or lands at `to`. It is placed at the berth and held still there (the
 ## cruise drive and any orbit stopped), and everyone listening hears of it (Events.arrived): the autosave writes the
-## game. Done in one tick, so whatever covers it (today the transition screen) decides how it looks.
+## game and the HUD says so. Done in one tick; coming in from the way in, the ship is already there, and touches
+## down with a soft bump (touch_speed).
 func arrive(to: Port) -> void:
+	var touch := tuning.touch_speed if stage == Stage.APPROACHING else 0.0
 	port = to
 	nearest = null
-	ship.hold_at(to)
-	if stage == Stage.FLYING or stage == Stage.LEAVING:
-		stage = Stage.DOCKED
+	approach = null
+	ship.hold_at(to, touch)
+	stage = Stage.DOCKED
 	Events.arrived.emit(to)
 
 
@@ -136,10 +128,32 @@ func _look_around() -> void:
 
 func _begin(to: Port) -> void:
 	port = to
-	stage = Stage.ARRIVING
-	_timer = 0.0
-	if transition != null:
-		transition.begin(to)
+	stage = Stage.APPROACHING
+	approach = Approach.new(to, tuning)
+	ship.approach(to)
+
+
+## One tick of the way in: G or X takes the ship back (X then stops it), a bump stops it, and otherwise the ship goes
+## as the way in says until it is at its berth.
+func _fly_in(asked: bool, delta: float) -> void:
+	var stop := ship.input.full_stop
+	var blocked := ship.jolt > tuning.bump_limit
+	if asked or stop or blocked:
+		var from := port
+		stage = Stage.FLYING
+		port = null
+		approach = null
+		ship.release(ship.linear_velocity)
+		# A bump leaves the ship to come to rest, as X does.
+		ship.input.full_stop = stop or blocked
+		stopped.emit(from, blocked)
+		return
+	approach.step(ship.global_position, ship.global_basis, ship.linear_velocity, ship.angular_velocity,
+			ship.tuning.max_rates(), ship.tuning.turn_accels(), delta)
+	if approach.done:
+		arrive(port)
+	else:
+		ship.guide(approach.velocity, approach.spin)
 
 
 ## Speeding up evenly from rest to the port's exit speed over its exit distance, then the pilot has the ship.
@@ -153,8 +167,3 @@ func _ease_out(delta: float) -> void:
 		port = null
 		return
 	ship.guide(port.exit_direction() * speed)
-
-
-func _show(cover: float) -> void:
-	if transition != null:
-		transition.cover = clampf(cover, 0.0, 1.0)

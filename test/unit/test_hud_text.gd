@@ -87,12 +87,16 @@ func test_the_prompts_say_what_to_do_next() -> void:
 			"Fly within 1.5 km of Halfway Station to dock (2.3 km)")
 	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.CRUISING, 900.0), "", "nothing while cruising")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.DOCKED, dock, Arrivals.Refusal.NONE, 0.0), "G   Undock")
-	assert_eq(ActionPrompts.port_text(Arrivals.Stage.ARRIVING, dock, Arrivals.Refusal.NONE, 0.0), "", "nothing in the fade")
+	assert_eq(ActionPrompts.port_text(Arrivals.Stage.APPROACHING, dock, Arrivals.Refusal.NONE, 0.0),
+			"Docking at Halfway Station   ·   G to cancel")
+	assert_eq(ActionPrompts.port_text(Arrivals.Stage.LEAVING, dock, Arrivals.Refusal.NONE, 0.0), "", "nothing leaving")
 	dock.kind = Port.Kind.PAD
 	dock.offer_range = 4000.0
 	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.TOO_FAR, 5240.0),
 			"Descend below 4.0 km to land at Halfway Station (5.2 km up)")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.DOCKED, dock, Arrivals.Refusal.NONE, 0.0), "G   Take off")
+	assert_eq(ActionPrompts.port_text(Arrivals.Stage.APPROACHING, dock, Arrivals.Refusal.NONE, 0.0),
+			"Landing at Halfway Station   ·   G to cancel")
 	assert_eq(ActionPrompts.port_text(flying, null, Arrivals.Refusal.TOO_FAR, INF), "", "no port, no words")
 	var calder := CelestialBody.new()
 	calder.display_name = "Calder"
@@ -106,9 +110,16 @@ func test_the_prompts_say_what_to_do_next() -> void:
 	assert_eq(ActionPrompts.orbit_text(off, null, Orbit.Refusal.FAR, 250.0), "")
 
 
-func test_the_transition_and_the_refusals_name_the_place() -> void:
-	assert_eq(TransitionScreen.going_text(Port.Kind.DOCK, "Halfway Station"), "Docking at Halfway Station")
-	assert_eq(TransitionScreen.arrived_text(Port.Kind.PAD, "Tollgate"), "Landed at Tollgate")
-	assert_eq(TransitionScreen.saved_text(true), "Game saved")
-	assert_string_contains(TransitionScreen.saved_text(false), "last save is safe")
+func test_arriving_and_the_refusals_name_the_place() -> void:
+	var pad := Port.new()
+	pad.kind = Port.Kind.PAD
+	var base := Landmark.new()
+	base.display_name = "Tollgate"
+	base.add_child(pad)
+	add_child_autofree(base)
+	assert_eq(FlightHud.arrival_message(pad, 1), "Landed at Tollgate  ·  Game saved")
+	assert_string_contains(FlightHud.arrival_message(pad, 0), "last save is safe")
+	assert_eq(FlightHud.arrival_message(pad, -1), "Landed at Tollgate")
+	assert_eq(FlightHud.dock_stopped_message(pad, false), "Landing cancelled")
+	assert_eq(FlightHud.dock_stopped_message(pad, true), "Bump! Landing stopped. G to try again")
 	assert_eq(FlightHud.dock_refused_message(null, Arrivals.Refusal.TOO_FAR), "Nothing to dock at or land on here")
