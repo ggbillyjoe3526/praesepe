@@ -8,7 +8,7 @@ docking computer flies you in while you watch. There are no loading screens and 
 ## Docking at Halfway Station
 
 1. Fly toward Halfway Station. From about 3.5 km the HUD tells you what to do next:
-   "Fly within 1.5 km of Halfway Station to dock", then "Slow below 100 m/s to dock at Halfway Station".
+   "Fly within 1.5 km of Halfway Station to dock (2.3 km)", then "Slow below 100 m/s to dock at Halfway Station".
 2. When it shows **G  Dock at Halfway Station**, press **G**.
 3. The ship flies round the station to the front of its docking bay (the opening with the green frame), lines up,
    and eases in nose first. Inside, it turns round and settles onto its berth, so you look out of the bay's mouth.
@@ -38,7 +38,8 @@ Landing from orbit takes about 30 to 45 seconds; from the far side of Calder abo
 
 ## Taking back the controls
 
-- **G** on the way in cancels and hands the ship straight back to you, moving as it was.
+- **G** on the way in cancels and hands the ship straight back to you, moving as it was. On the last stretch into the
+  bay or down to the pad, it brings the ship to rest instead of carrying on.
 - **X** cancels and brings the ship to a full stop.
 - A bump on the way stops it too ("Bump! Docking stopped. G to try again") and the ship comes to rest.
 

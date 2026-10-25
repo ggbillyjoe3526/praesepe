@@ -2,7 +2,7 @@
 
 ## Is there a download?
 
-Not yet. The game is in early development. The first download will be a Windows installer and zip on the
+Not yet. The game is in early development. The first download will be for Windows, on the
 [Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases), once the first playable is ready. The
 [Patch Notes](Patch-Notes) will say when.
 
@@ -13,7 +13,8 @@ Fly, cruise between five places, dock, land and park in orbit. There are no jobs
 
 ## Does the game save?
 
-Yes: it saves itself every time you dock or land ("Game saved" on screen). Loading that save isn't in the game yet, so
+Yes: it saves itself every time you dock or land ("Game saved" on screen), and every 3 minutes while you fly
+(paused time doesn't count), so quitting or a crash never loses more than that. Loading that save isn't in the game yet, so
 each launch still starts a fresh flight next to Halfway Station. Your settings are saved separately.
 
 ## Where are my saves and settings?
@@ -26,6 +27,13 @@ deletes it.
 
 A number that decides the parts of the world that vary from game to game, like where the rocks of The Shingle lie. The
 same seed always gives the same world. It is shown on the pause screen and in the F3 overlay.
+
+## I'm lost or stuck far from anywhere
+
+Pause (**Esc**) and press the tow button, which names where it goes ("Tow me to Tollgate · free"), then press it
+again to confirm. It isn't offered while you're docked or landed. Your ship is put straight back at the
+last station or base you docked or landed at (or the nearest one), and the game saves there. It's free for now; once
+there is money it will cost a small towing fee.
 
 ## Can I lose my ship or my progress?
 

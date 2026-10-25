@@ -48,7 +48,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write # pushing to the wiki of the same repository
-    # One publish at a time, in merge order.
+    # One publish at a time; a newer merge replaces one still waiting, which is fine as
+    # each publish carries every page.
     concurrency:
       group: wiki
       cancel-in-progress: false

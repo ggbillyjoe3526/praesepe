@@ -15,7 +15,8 @@ as you near something, and drops you out when you arrive. A trip across the whol
    target and how far it is.
 4. It drops out when you arrive, at 200 m/s, and flight assist holds that speed.
 
-Going to Tollgate, it flies past Calder without stopping and comes down at the base from above.
+Going to Tollgate, it flies past Calder without stopping. If it can see the base well above the horizon it flies
+straight at it; from low down or the far side of Calder it goes round the planet first and comes down at it from above.
 
 Move the mouse to take the steering back ("Lock released · steering yourself"). The drive then carries on wherever
 the nose points. Rolling with Q and E doesn't release the lock.

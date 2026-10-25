@@ -5,17 +5,14 @@ change. What you can already play is on the other pages; what changed recently i
 
 ## Being built now
 
-These are being worked on and should arrive soon:
+Work already under way, which should arrive soon:
 
 - **A start menu and choosing your ship:** Continue, New game, Settings and Quit. A new game starts with choosing a
   ship, then docked at Halfway Station. Continue puts you back exactly where you saved, even out in space.
-- **More saving, and a tow home:** the game also saves every few minutes while you fly, and the pause screen gets a
-  "Tow me to base" button if you are stranded.
 - **Cockpit conveniences:** time to arrival next to the distance while cruising to a place, hold the right mouse
   button to look round the cockpit without steering, a key to roll level near a planet, and F12 for screenshots.
 - **Docking and landing help:** guide lights at the station and the pad, a ship that settles onto the floor instead of
   hovering, and a warning when you come in too fast.
-- **Orbit changes:** orbit offered only up at orbit height, with a guide showing where that is, and a slower orbit.
 - **A nav computer:** Tab turns the cockpit's middle screen into a nav computer to pick a place and how to arrive
   (dock, land or orbit), queue up steps and start the trip with Enter.
 

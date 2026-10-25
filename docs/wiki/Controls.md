@@ -20,7 +20,7 @@ yet.
 | Key | What it does |
 | --- | --- |
 | F | Cruise drive: aim at a place and press F to fly there, or press it aimed at nothing to cruise where the nose points. F again drops out ([Cruise Drive](Cruise-Drive)) |
-| O | Enter orbit round the planet or moon you're near. O again, or any thrust key, leaves ([Orbit](Orbit)) |
+| O | Enter orbit once you're close to a planet's or moon's orbit line. O again, or any thrust key, leaves ([Orbit](Orbit)) |
 | G | Dock at the station or land at the base when the HUD offers it. G on the way takes the controls back; G again undocks or takes off ([Docking and Landing](Docking-and-Landing)) |
 
 ## Camera and game
@@ -28,7 +28,7 @@ yet.
 | Key | What it does |
 | --- | --- |
 | V | Cockpit or chase camera |
-| Esc | Pause; the pause screen has **Settings** ([Settings and Accessibility](Settings-and-Accessibility)) |
+| Esc | Pause. The pause screen has **Settings** ([Settings and Accessibility](Settings-and-Accessibility)) and the tow home ([FAQ](FAQ#im-lost-or-stuck-far-from-anywhere)) |
 | F11 or Alt+Enter | Fullscreen or a window |
 | Click | Capture the mouse again after it was let go |
 | F3 | Debug overlay: frame rate, world seed, speed and position |

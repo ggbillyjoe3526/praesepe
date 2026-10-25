@@ -452,7 +452,7 @@ written for players, not developers, and kept current as the game changes.
 `README.md` has the conventions) and a workflow publishes them to the wiki on every merge to `main`, so edits made on
 GitHub are overwritten. Every pull request a player would notice updates its page in the same pull request, alongside
 its changelog note. A check on every pull request fails on broken links or pictures, a page missing from the sidebar,
-or a place (any `display_name` in the game's scenes and resources) that no page mentions, and warns when a changelog
+or a place (any `display_name` in the game's scenes and resources) that no page describes (the Roadmap doesn't count), and warns when a changelog
 note arrives without a wiki change.
 
 **What it describes:** the newest development build, what is on `main` (the owner's call, 2026-10-25). Features still

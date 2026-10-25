@@ -26,8 +26,11 @@ ROOT = Path(__file__).resolve().parent.parent
 WIKI = ROOT / "docs" / "wiki"
 # Pages the build writes itself, so links to them are fine.
 GENERATED = {"Patch-Notes"}
-# Never published: the contributor notes for this folder.
-SKIP = {"README.md"}
+# Never published: the contributor notes for this folder (and Godot's import
+# files, should an editor ever make some here despite docs/.gdignore).
+SKIP = {"README.md", "*.import"}
+# Pages that don't count as describing a name: the plans and the menus.
+NOT_DESCRIBING = {"Roadmap", "_Sidebar", "_Footer"}
 
 # Where the player-facing names live. Every name these patterns find must
 # appear somewhere in the wiki. Places (planets, moons, stations, bases, the
@@ -48,7 +51,7 @@ def pages() -> dict:
     """Page name -> text, for every published page in docs/wiki/."""
     out = {}
     for f in sorted(WIKI.glob("*.md")):
-        if f.name not in SKIP:
+        if f.name != "README.md":
             out[f.stem] = f.read_text(encoding="utf-8")
     return out
 
@@ -123,20 +126,21 @@ def check(base: str = "") -> int:
             print(f"::error file=docs/wiki/_Sidebar.md::Page {name} isn't in the sidebar. Add a link to it in docs/wiki/_Sidebar.md.")
             bad = 1
 
-    corpus = norm("\n".join(all_pages.values()))
+    corpus = norm("\n".join(t for n, t in all_pages.items() if n not in NOT_DESCRIBING))
     for n, src in game_names():
         if not re.search(r"(?<!\w)" + re.escape(norm(n)) + r"(?!\w)", corpus):
-            print(f"::error file={src}::'{n}' is in the game but no wiki page mentions it. Describe it on the right page in docs/wiki/ (docs/wiki/README.md).")
+            print(f"::error file={src}::'{n}' is in the game but no wiki page describes it (the Roadmap doesn't count). Describe it on the right page in docs/wiki/ (docs/wiki/README.md).")
             bad = 1
 
     if base:
-        changed = subprocess.run(
-            ["git", "diff", "--name-only", "--diff-filter=AM", f"{base}...HEAD"],
-            cwd=ROOT, capture_output=True, text=True,
-        )
-        files = changed.stdout.split() if changed.returncode == 0 else []
-        notes = [f for f in files if f.startswith("changelog.d/") and not f.endswith("README.md")]
-        if notes and not any(f.startswith("docs/wiki/") for f in files):
+        def changed(kinds: str) -> list:
+            out = subprocess.run(
+                ["git", "diff", "--name-only", f"--diff-filter={kinds}", f"{base}...HEAD"],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+            return out.stdout.split() if out.returncode == 0 else []
+        notes = [f for f in changed("A") if f.startswith("changelog.d/") and not f.endswith("README.md")]
+        if notes and not any(f.startswith("docs/wiki/") for f in changed("ACMRD")):
             print(f"::warning::This change adds a changelog note ({', '.join(notes)}) but no wiki page. If players will notice it, update the page in docs/wiki/ that describes it.")
 
     if bad == 0:
@@ -182,6 +186,9 @@ def stamp() -> str:
 
 def build(out: Path) -> int:
     out = out.resolve()
+    if out == WIKI or WIKI in out.parents:
+        print(f"{out} is inside docs/wiki/; pick a folder outside it such as build/wiki", file=sys.stderr)
+        return 1
     if out.exists():
         # only ever replace an earlier build, never a folder that holds
         # anything else (a mistyped OUT like "." or "docs")

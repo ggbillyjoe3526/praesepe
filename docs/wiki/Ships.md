@@ -12,7 +12,7 @@ cockpit with a dashboard screen, two engines and short wings. It can't carry car
 | | Test ship |
 | --- | --- |
 | Top speed (normal flight) | 200 m/s |
-| Top speed backwards | 50 m/s |
+| Top speed backwards (flight assist on) | 50 m/s |
 | Main engine | 40 m/s², 0 to top speed in about 5 s |
 | Braking thrusters | 25 m/s² |
 | Side and up/down thrusters | 30 m/s² |

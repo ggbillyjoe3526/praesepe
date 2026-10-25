@@ -15,10 +15,11 @@ The game is in **early development** and there is **no download yet**. What you 
 - Cruise between places at up to 5 km/s, or aim at a place and let the ship fly you there ([Cruise Drive](Cruise-Drive)).
 - Dock at Halfway Station and land at Tollgate, with the ship flying itself in, no loading screens
   ([Docking and Landing](Docking-and-Landing)).
-- Park in orbit round the planet Calder or its moon Mote ([Orbit](Orbit)).
+- Climb to the orbit line round the planet Calder or its moon Mote and park there ([Orbit](Orbit)).
 - Visit five places: Calder, Tollgate, Mote, Halfway Station and the asteroid belt The Shingle ([Locations](Locations)).
 
-There are no jobs, money or upgrades yet. Those come next: see the [Roadmap](Roadmap).
+The game saves itself as you play, and a tow takes you home if you get lost. There are no jobs, money or upgrades
+yet. Those come next: see the [Roadmap](Roadmap).
 
 ## Start here
 

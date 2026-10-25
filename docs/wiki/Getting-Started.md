@@ -17,12 +17,13 @@ There is no download yet (see the [FAQ](FAQ#is-there-a-download)). Once there is
 5. **Cruise somewhere.** Put the nose on a place's marker (try Mote, the moon) until it is framed in corner brackets
    and the HUD says **F  Cruise to Mote**, then press **F**. After a two-second charge the cruise drive flies you there
    by itself and drops out when you arrive. See [Cruise Drive](Cruise-Drive).
-6. **Park in orbit.** Near Calder or Mote, press **O** when the HUD offers it to circle the planet and enjoy the view.
-   See [Orbit](Orbit).
+6. **Park in orbit.** Head for Calder and climb to its orbit line, 3 km up: once you're off the ground a ring on the
+   HUD shows where to join it. Close to the line, press **O** when the HUD offers it to circle the planet and enjoy
+   the view. See [Orbit](Orbit).
 7. **Land.** Close to Calder, the HUD offers **G  Land at Tollgate**: press **G** and the ship flies down onto the
    base's pad.
 
-The game saves itself every time you dock or land.
+The game saves itself every time you dock or land, and every 3 minutes while you fly.
 
 ## If you get lost
 
@@ -30,6 +31,8 @@ The game saves itself every time you dock or land.
   aiming at it.
 - **X** brings the ship to a full stop at any time.
 - **Esc** pauses the game. Switching to another window pauses it too.
+- Far from anywhere? Pause and press the tow button ("Tow me to Halfway Station · free") twice: your ship is put straight back at the last station or
+  base you docked or landed at.
 
 ## What comes next
 

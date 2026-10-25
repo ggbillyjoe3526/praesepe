@@ -20,8 +20,8 @@ The star. It is the light and the bright disc in the sky, not somewhere you can 
 
 ## Calder
 
-A blue planet with seas, green land, ice caps and a thin blue glow of air, 6 km in radius. You can park in orbit round
-it from 500 m to 4 km up ([Orbit](Orbit)), and land at its base, Tollgate, from anywhere within 4 km of its surface.
+A blue planet with seas, green land, ice caps and a thin blue glow of air, 6 km in radius. Its orbit line is 3 km up, where you
+can park and circle it ([Orbit](Orbit)), and land at its base, Tollgate, from anywhere within 4 km of its surface.
 
 ## Tollgate
 
@@ -42,15 +42,15 @@ Services: none yet.
 
 ## Mote
 
-Calder's small moon: grey and airless, 1.5 km in radius, sitting above the plane of the belt. You can park in orbit
-round it from 300 m to 2.5 km up. There is nowhere to land on it yet.
+Calder's small moon: grey and airless, 1.5 km in radius, sitting above the plane of the belt. Its orbit line is 1.2 km up,
+where you can park and circle it. There is nowhere to land on it yet.
 
 ![Mote, with The Shingle behind it](images/mote.jpg)
 
 ## The Shingle
 
-An asteroid belt circling Calder, 50 km out, 6 km wide and 800 m thick. It is made of thousands of rocks, from 15 m
-to 110 m across, scattered round the ring with ten dense clusters. Its marker points to the first cluster, on the
+An asteroid belt circling Calder, 50 km out, 6 km wide and 800 m thick. It is made of thousands of rocks, from 30 m
+to 220 m across, scattered round the ring with ten dense clusters. Its marker points to the first cluster, on the
 belt's inner edge.
 
 The rocks are different for every world seed and the same every time you play the same seed. You can bump into the

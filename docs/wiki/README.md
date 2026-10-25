@@ -23,7 +23,8 @@ on screen.
 
 - **Not built yet** goes on `Roadmap.md`, never on another page as if it were playable. When a pull request ships
   something from the Roadmap, it moves it from there to the page that describes it (or a new page). Its "Being built
-  now" list holds work in open pull requests; drop a line when it merges or is dropped.
+  now" list holds work already under way (open pull requests and work started on them); drop a line when it merges or
+  is dropped.
 - **A new kind of content** (contracts, upgrades, events) gets its own page when its first piece ships: Contracts and
   Jobs, Items and Upgrades, Events and Encounters (`DESIGN.md`, "Player wiki"). Then replace its "Coming later" line in
   `_Sidebar.md` with the new page.
@@ -43,7 +44,7 @@ on screen.
 
 - a link points to a page, heading or picture that doesn't exist,
 - a page is missing from the sidebar,
-- an in-game name isn't mentioned on any page. The names are every `display_name = "..."` in the game's scenes and
+- an in-game name isn't mentioned on any page (the Roadmap, sidebar and footer don't count: a page has to describe it). The names are every `display_name = "..."` in the game's scenes and
   resources (`NAME_SOURCES` in `tools/wiki.py`): today the places; ships, contracts and upgrades should use
   `display_name` too, so they are caught without changing the tool.
 

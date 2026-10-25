@@ -20,7 +20,7 @@ time. Each page has a button that puts its own settings back to their defaults. 
 
 | Setting | Choices | Starts at |
 | --- | --- | --- |
-| Interface size | 80%, 90%, 100%, 110%, 125% | 100% |
+| Interface size | 90%, 100%, 110%, 125% | 100% |
 | Place markers | Always, Near or looked at, Off | Always |
 | Place names | Always, Near or looked at, Off | Near or looked at |
 
