@@ -34,6 +34,9 @@ enum Kind { DOCK, PAD }
 ## For a bay the ship flies into nose first: how far (m) from the berth it stops and turns round to face out, before
 ## easing back the rest of the way. 0 for a pad: it comes down already facing the berth's way.
 @export var turn_round_at: float = 0.0
+## How far (m) from the final leg's line a ship may be and still take the final leg straight from there: inside the
+## bay's mouth, or over the pad clear of the buildings round it. Farther out, it goes to the gate first.
+@export var lane_radius: float = 10.0
 
 ## The station or base it belongs to (its nearest Landmark ancestor), and the planet or moon it stands on (its nearest
 ## CelestialBody ancestor), or null for a station in space.

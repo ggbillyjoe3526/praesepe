@@ -2,8 +2,8 @@ class_name ActionPrompts
 extends Control
 ## The HUD's prompts for docking, landing and orbit (design doc, "Docking and landing", "Orbit"), so the player always
 ## knows what they can do here and what to do first: "G  Dock at Halfway Station", "Slow below 100 m/s to land at
-## Tollgate", "O  Enter orbit round Calder", "Docking at Halfway Station  ·  G to cancel", "G  Undock". Up to two lines on a dark plate a little under the middle of
-## the view, hidden when there is nothing to say. Each line is rebuilt only when what it says changes (a distance, as
+## Tollgate", "O  Enter orbit round Calder", "Docking at Halfway Station  ·  G to cancel", "G  Undock". Up to two
+## lines on a dark plate a little under the middle of the view, hidden when there is nothing to say. Each line is rebuilt only when what it says changes (a distance, as
 ## shown, counts). Placeholder look until the art style is chosen.
 
 const FONT_SIZE := 26

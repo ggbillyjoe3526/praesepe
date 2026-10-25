@@ -7,6 +7,8 @@ extends GutTest
 const DT := 1.0 / 60.0
 ## Longest any approach here may take (s): the far side of the planet is the longest way in.
 const LIMIT := 120.0
+## How far (m) from its centre the ship reaches: half its length.
+const SHIP_REACH := 7.0
 
 var _tuning: ArrivalTuning
 var _rates: Vector3
@@ -49,6 +51,7 @@ class Flight:
 	var done: bool = false
 	var final_at: Array[Vector3] = []
 	var final_basis: Array[Basis] = []
+	var path: Array[Vector3] = []
 	var turn_rates: Vector3 = Vector3.ZERO
 
 
@@ -66,6 +69,7 @@ func _fly(port: Port, at: Vector3, moving: Vector3 = Vector3.ZERO, ship_basis: B
 			break
 		moving = a.velocity
 		spinning = a.spin
+		f.path.append(at)
 		f.top = maxf(f.top, moving.length())
 		var local := (ship_basis.inverse() * spinning).abs()
 		f.turn_rates = f.turn_rates.max(local)
@@ -92,6 +96,24 @@ func _corners(structure: Node3D) -> Array[Vector3]:
 		for i in 8:
 			out.append(structure.transform * shape.transform * box.get_endpoint(i))
 	return out
+
+
+## How deep (m) the worst point of `path` went into any solid part under `structure`, each part widened by the ship's
+## half-length; 0 when it never touched one.
+func _deepest_in(structure: Node3D, path: Array[Vector3]) -> float:
+	var worst := 0.0
+	for child in structure.get_children():
+		var shape := child as CollisionShape3D
+		if shape == null:
+			continue
+		var box := shape.shape.get_debug_mesh().get_aabb().grow(SHIP_REACH)
+		var to_local := shape.global_transform.affine_inverse()
+		for point in path:
+			var local := to_local * point
+			if box.has_point(local):
+				var inside := (local - box.position).min(box.end - local)
+				worst = maxf(worst, minf(inside.x, minf(inside.y, inside.z)))
+	return worst
 
 
 func test_speed_eases_down_to_a_soft_touch() -> void:
@@ -158,6 +180,38 @@ func test_docks_from_behind_going_round_the_station() -> void:
 	gut.p("docked from behind in %.1f s, nearest %.0f m to the station's centre" % [f.time, f.nearest])
 	assert_gt(f.nearest, dock.gate().distance_to(dock.centre()) - 2.0, "never cuts through the station")
 	_check_final(dock, f)
+
+
+func test_docks_from_awkward_places_close_to_the_bay_without_touching_the_station() -> void:
+	var dock := _station()
+	var structure := dock.get_parent().get_node(^"Structure") as Node3D
+	var station := dock.get_parent() as Node3D
+	# Over the bay's roof, beside its side wall, under its floor by the spine, and just off its mouth to one side.
+	var starts: Array[Vector3] = [Vector3(10, 230, 0), Vector3(0, 155, 60), Vector3(30, 115, 20), Vector3(55, 155, 40)]
+	for start in starts:
+		var f := _fly(dock, station.global_position + start)
+		assert_true(f.done, "arrives from %s" % start)
+		var into := _deepest_in(structure, f.path)
+		assert_eq(into, 0.0, "never touches the station from %s (%.1f m into it)" % [start, into])
+		_check_final(dock, f)
+
+
+func test_brakes_before_cutting_in_when_pressed_fast_and_close() -> void:
+	var dock := _station()
+	var structure := dock.get_parent().get_node(^"Structure") as Node3D
+	var station := dock.get_parent() as Node3D
+	# 350 m below the station's middle, heading straight up at it at 99 m/s.
+	var f := _fly(dock, station.global_position + Vector3(0, -350, 60), Vector3(0, 99, 0))
+	assert_true(f.done, "arrives")
+	var into := _deepest_in(structure, f.path)
+	assert_eq(into, 0.0, "never touches the station (%.1f m into it)" % into)
+
+
+func test_rises_onto_the_pad_from_just_under_its_marker() -> void:
+	var pad := _planet_pad()
+	var f := _fly(pad, pad.global_position - pad.exit_direction() * 3.0, Vector3.ZERO, pad.global_basis)
+	assert_true(f.done, "arrives")
+	assert_lt(f.time, 5.0, "straight onto it, not round by the gate (%.1f s)" % f.time)
 
 
 func test_lands_from_the_far_side_of_the_planet_going_round_it() -> void:

@@ -6,16 +6,18 @@ extends RefCounted
 ##
 ## The way in has two legs. First the ship flies to the port's gate (Port.gate): out in front of the bay's mouth, or
 ## high above the pad. On the way it goes round the station or planet (Port.centre) rather than through it, never
-## nearer than the gate is, so it misses the station's ring and panels and the base's tower. Near the gate it cuts the
-## corner onto the final leg: straight in along the port's way out, slowing all the way to a soft touch. It faces where
+## nearer than the gate is, so it misses the station's ring and panels and the base's tower; starting nearer than
+## that, it climbs out first, and coming in fast, it brakes before it gets that near. Near the gate it cuts the
+## corner onto the final leg: straight in along the port's way out, slowing all the way to a soft touch. Only a ship
+## already in the port's lane (Port.lane_radius round the final leg's line) takes the final leg from where it is. It faces where
 ## it is going until it is close, then turns to face along the final leg, and it holds short until it has lined up.
 ## Into a bay it goes nose first, so the pilot sees the bay coming, stops short of the berth to turn round (yawing, in
 ## two quarter turns, so it never flips over) and eases back onto it, looking out of the mouth; onto a pad it settles
 ## straight down, already facing the berth's way.
 ##
 ## Its speed follows how far it still has to go: a firm push (travel_accel, the main engine's) everywhere but the
-## corner and the final leg, where it eases down gently (final_accel). The whole thing is worked out afresh from where the ship is
-## each tick, so the floating origin, a slow turn or a nudge never throws it off.
+## corner and the final leg, where it eases down gently (final_accel). The whole thing is worked out afresh from where
+## the ship is each tick, so the floating origin, a slow turn or a nudge never throws it off.
 
 var port: Port
 var tuning: ArrivalTuning
@@ -51,25 +53,30 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 	var out := port.exit_direction()
 	var along := (at - berth).dot(out)
 	var side := (at - berth) - out * along
-	# Inside the gate and near the leg's line, it is on the final leg.
-	if not final and along > 0.0 and along <= port.approach_distance and side.length() <= tuning.corner:
+	# It is on the final leg round the gate (within a corner's length of it along the leg and off to the side), or
+	# anywhere along the leg in the port's lane. Just past the berth counts too (a ship sitting on the pad), and it
+	# rises the last bit.
+	var by_gate := absf(along - port.approach_distance) <= tuning.corner and side.length() <= tuning.corner
+	var in_lane := along > -tuning.below_berth and along <= port.approach_distance \
+			and side.length() <= port.lane_radius
+	if not final and (by_gate or in_lane):
 		final = true
 	var target: Vector3
 	var heading: Vector3
 	var gate := port.gate()
 	var to_gate := at.distance_to(gate)
-	# By the gate, it chases a point on the final leg instead, a corner's length further in: that cuts the corner
-	# onto the leg.
 	var near := to_gate <= tuning.corner
 	if final:
 		left = maxf(along, 0.0)
 		heading = -out
-	elif near:
-		left = to_gate + port.approach_distance
-		heading = (gate - out * tuning.corner - at).normalized()
 	else:
 		left = Approach.round_length(at - port.centre(), gate - port.centre()) + port.approach_distance
 		heading = Approach.round_heading(at - port.centre(), gate - port.centre(), tuning.climb)
+		if (at - port.centre()).length() < (gate - port.centre()).length():
+			# Climbing out from close in: away from the bay or pad as well as from the centre, so it never climbs
+			# into what the port is built into (a bay's floor from underneath).
+			var lane_point := berth + out * clampf(along, 0.0, port.approach_distance)
+			heading = (heading + (at - lane_point).normalized()).normalized()
 	lining_up = final or left - port.approach_distance < tuning.line_up_lead
 	var facing := _leg_facing(along, ship_basis.orthonormalized()) if lining_up else Approach.facing_along(heading,
 			at - port.centre(), port.global_basis.orthonormalized())
@@ -84,14 +91,20 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 		# Where it must stop next: short of the berth until lined up, at the turning point until turned round, then
 		# the berth. It never goes past that this tick.
 		var stop := 0.0
-		if not lined_up and not turning_round:
+		if side.length() > port.lane_radius:
+			# Not in the lane yet: no farther in than a corner's length inside the gate, clear of everything.
+			stop = port.approach_distance - tuning.corner
+		elif not lined_up and not turning_round:
 			stop = tuning.hold_short
 		if port.turn_round_at > 0.0 and not turned_round:
 			stop = maxf(stop, port.turn_round_at)
 		var to_go := maxf(along - stop, 0.0)
 		var speed := minf(Approach.speed_for(to_go, port.approach_distance, tuning), to_go / delta)
+		if along < 0.0:
+			# Past the berth: back up onto it.
+			speed = -minf(Approach.speed_for(-along, port.approach_distance, tuning), -along / delta)
 		target = -out * speed - (side / tuning.side_time).limit_length(tuning.cornering_speed())
-		done = along <= tuning.arrive_distance and side.length() <= tuning.on_line \
+		done = absf(along) <= tuning.arrive_distance and lined_up \
 				and (port.turn_round_at <= 0.0 or turned_round)
 	else:
 		# Slowing as gently for the corner onto the final leg, and the stretch before it, as for the final leg itself.
@@ -107,6 +120,12 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 		if round > 0.1:
 			speed = minf(speed, sqrt(tuning.curve_share * tuning.travel_accel * (at - port.centre()).length()) / round)
 		target = heading * speed
+		# Heading in faster than it could stop before the gate's distance from the centre: brake that first.
+		var clear := (at - port.centre()).length() - (gate - port.centre()).length()
+		var inward := -moving.dot(up)
+		var allowed := sqrt(2.0 * tuning.travel_accel * maxf(clear, 0.0))
+		if inward > allowed:
+			target = moving + up * (inward - allowed)
 	velocity = moving.move_toward(target, tuning.travel_accel * delta)
 	spin = Approach.turn(ship_basis.orthonormalized(), facing, spinning, rates, accels, tuning.turn_time, delta)
 

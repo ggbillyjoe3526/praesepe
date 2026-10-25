@@ -257,7 +257,7 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
 - Only the rocks within 2.5 km of the ship are solid (a pool of 48 spheres, picked again every 10 ticks; a sphere stays on its rock while that rock stays near); all are drawn, in 64 pieces round the ring, as lumpy rocks within 9 km and simple shapes out to 70 km, with a faint haze along the band beyond that.
 - Calder and Mote are drawn as fine spheres close up and coarse ones from far away (past 40 km and 15 km). The station and base lose their detail at 12 km and 20 km. Everything is visible to 150 km.
 
-**Landing:** seamless, with no transition or loading screen (the owner's call, 2026-10-25): approach the planet, see a prompt to land, press it, and the ship flies itself down onto the base's pad while the player watches. Docking works the same way.
+**Landing:** seamless, with no transition or loading screen (the owner's call, 2026-10-25). Until the owner says otherwise: approach the planet, see a prompt to land, press it, and the ship flies itself down onto the base's pad while the player watches. Docking works the same way.
 
 **How docking and landing work (first values, to be tuned with the owner)**
 
@@ -271,8 +271,11 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
   camera never cuts. The pilot watches from the cockpit or the chase camera (V still switches). The dashboard shows
   "DOCKING · G to cancel" (or "LANDING"), and the HUD "Docking at Halfway Station · G to cancel".
 - The way in has two legs. First the ship flies to the port's gate: 180 m out in front of the bay's mouth, or 250 m
-  above the pad. It goes round the station or the planet rather than through them, never nearer their centre than
-  the gate is, so it clears the station's ring and panels and Tollgate's tower, and climbs first if it starts low.
+  above the pad. It goes round the station or the planet rather than through them, keeping at least as far from
+  their centre as the gate is, so it clears the station's ring and panels and Tollgate's tower. Starting nearer than
+  that (low by the base, or tucked in by the station), it first climbs out, away from the bay or pad as well; coming
+  in fast, it brakes before it gets that near. Only a ship already in line with the bay's mouth or over the pad
+  (within 8 m and 40 m of the line in) goes straight in from where it is.
   It faces where it is going, then, from 600 m before the gate, turns to face along the final leg. At the gate it
   eases round the corner onto the final leg: into the bay nose first, so the pilot watches the bay come up round
   them, or straight down onto the pad already facing the hangar, slowing all the way. If it isn't lined up yet, it
@@ -285,7 +288,8 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
   about 30 to 40 s (the turn round in the bay is about 8 s of that); landing from orbit about 30 to 45 s; from the
   far side of Calder about 80 s. Flying closer by hand before pressing G makes it shorter.
 - G (cancelled) or X (cancelled, then a full stop) hands the ship straight back, as it is moving; so does a bump on
-  the way ("Bump! Docking stopped. G to try again"), and the ship then comes to rest.
+  the way ("Bump! Docking stopped. G to try again"), and the ship then comes to rest. Cancelled on the final leg, it
+  comes to rest too, rather than carrying on into the bay or down onto the pad.
 - Once there, the ship is held still in the bay, looking out of its mouth (or on the pad, facing the hangar), and the
   HUD says "Docked at Halfway Station · Game saved". The dashboard shows "DOCKED · G to undock" or "LANDED · G to
   take off".
@@ -310,6 +314,7 @@ the station's and base's scenes (`game/system/greybox_station.tscn`, `game/syste
 | Corner onto the final leg | Starts 80 m from the gate, at 40 m/s | Comes onto the line well before the berth |
 | Final leg | Slows at 6 m/s² to touch at 1.5 m/s; waits 60 m short until within 1.5° and 1 m of the line | Never goes in crooked; the touch is a soft bump |
 | Turning to face along the final leg | From 600 m before the gate, closing the angle over 0.8 s within the ship's turn rates | Lined up before the final leg |
+| Lane | 8 m round the line into the bay's mouth; 40 m over the pad | A ship within it goes straight in; elsewhere it goes to the gate first |
 | Turning round in the bay | 15 m short of the berth, two quarter turns (the second from within 10° of the first) | Faces out of the mouth, never flips over |
 | Pushes | 40 m/s² (the main engine's) | The head sway and engine rumble feel like flight |
 | Bump limit | 3 m/s | A harder knock stops the way in |
@@ -400,7 +405,6 @@ Newest first. Each line: date, the decision, who made it.
 
 - 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, nose first into the bay and turning round inside it (so the pilot sees where they are going and the docked view still looks out of its mouth), or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).
 - 2026-10-25: Seamless docking and landing join the first playable, moved up from the future roadmap: after playing PR #5 William said "I want to remove the transitions. The player should be able to enter/land at any station/planet seamlessly. No loading screens." The transition screen is gone (owner).
-
 - 2026-10-24: Docking, landing and orbit until the owner tunes them: values as in "How docking and landing work" and "How orbit works"; G docks, lands, undocks and takes off, O enters and leaves orbit; landing at a planet's base is offered anywhere close to the planet; the docked ship sits in an open bay on the station (the station's dock is no longer a solid block); the autosave writes the game on every docking and landing (seed, clock, random streams and where the ship is), and loading it comes with save and load (build step 7), so a new launch still starts in flight; the event bus is an autoload, `Events` (default, Claude).
 - 2026-10-24: Orbit joins the first playable: William asked for ships to "sit in orbit of objects", not a simulation like Kerbal Space Program, "just a simple 'Enter Orbit' button prompt. The player can enter orbit and stay there" (owner).
 - 2026-10-24: The tiny solar system and cruise drive until the owner tunes them: sizes, places and values as in "The tiny solar system" and "How the cruise drive works"; F is the cruise key; the bodies hold still (orbits later); the belt is a ring round the planet beyond the moon, so trips between the other places never cross it; the sun is a light and a sky disc, not a body; the cameras see 150 km; Jolt's speed limit is raised from 500 m/s to 8 km/s for the cruise drive; the names are placeholders the owner can change (default, Claude).

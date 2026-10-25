@@ -141,11 +141,13 @@ func _fly_in(asked: bool, delta: float) -> void:
 	if asked or stop or blocked:
 		var from := port
 		stage = Stage.FLYING
+		var close := approach.final
 		port = null
 		approach = null
 		ship.release(ship.linear_velocity)
-		# A bump leaves the ship to come to rest, as X does.
-		ship.input.full_stop = stop or blocked
+		# A bump leaves the ship to come to rest, as X does; so does G on the final leg, rather than carrying on into
+		# the bay or down onto the pad.
+		ship.input.full_stop = stop or blocked or close
 		stopped.emit(from, blocked)
 		return
 	approach.step(ship.global_position, ship.global_basis, ship.linear_velocity, ship.angular_velocity,

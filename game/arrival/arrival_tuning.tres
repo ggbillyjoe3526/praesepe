@@ -19,4 +19,5 @@ on_line = 1.0
 hold_short = 60.0
 quarter_tolerance = 10.0
 arrive_distance = 0.05
+below_berth = 10.0
 bump_limit = 3.0

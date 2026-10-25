@@ -35,6 +35,8 @@ extends Resource
 @export var quarter_tolerance: float = 10.0
 ## At the berth: within this (m) of it.
 @export var arrive_distance: float = 0.05
+## A ship up to this far (m) past its berth (sitting on the pad under the berth's marker) still takes the final leg.
+@export var below_berth: float = 10.0
 ## A knock harder than this (m/s) on the way stops the approach and hands the ship back.
 @export var bump_limit: float = 3.0
 

@@ -27,7 +27,7 @@ yet.
 | X | Full stop (turns flight assist on); in cruise, drops out and stops |
 | F | Cruise drive: charges for 2 s, then flies fast wherever the nose points and drops out by itself on arriving somewhere. F again drops out |
 | O | Enter orbit round the planet or moon you're near, and stay there; O again or any thrust key levels the nose out and leaves; X or Z leave at once |
-| G | Dock at the station or land at the base when the HUD offers it; G again undocks or takes off |
+| G | Dock at the station or land at the base when the HUD offers it: the ship flies itself in, and G (or X) on the way takes the controls back; G again undocks or takes off |
 | V | Cockpit or chase camera |
 | Esc | Pause; the game also pauses when the window loses focus or lets go of the mouse. The pause screen holds the comfort settings: field of view, camera shake, head bob, reduce motion |
 | Click | Capture the mouse again |
