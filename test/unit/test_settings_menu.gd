@@ -113,7 +113,6 @@ func test_interface_size() -> void:
 	assert_eq(page.size_choice.get_item_text(page.size_choice.selected), "125%")
 
 
-
 func test_place_markers_and_names() -> void:
 	var page := _page(_menu(), InterfacePage) as InterfacePage
 	assert_eq(page.marker_icons_choice.get_item_text(page.marker_icons_choice.selected), "Always")

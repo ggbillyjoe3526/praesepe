@@ -1,9 +1,8 @@
 extends Node
 ## The Settings autoload: the player's own choices, kept apart from any saved game, changed in the settings menu
-## (game/ui/settings/): the display (window mode, monitor, V-Sync, frame-rate limit), the interface size, comfort (project instructions,
-## "Comfort": field of view, camera shake, head bob and reduce motion), the mouse (sensitivity, invert) and when the
-## places' HUD markers show (LandmarkMarkers). Audio
-## volumes and key rebinding come here later. The shape (to_dict and from_dict with a version and one-step migrations,
+## (game/ui/settings/): the display (window mode, monitor, V-Sync, frame-rate limit), the interface size, comfort
+## (project instructions, "Comfort": field of view, camera shake, head bob and reduce motion), the mouse (sensitivity,
+## invert) and when the places' HUD markers show (LandmarkMarkers). Audio volumes and key rebinding come here later. The shape (to_dict and from_dict with a version and one-step migrations,
 ## damaged values ignored) follows the owner's katanashotgun project (scripts/settings.gd); the file is written by
 ## SaveFile, crash-safe with one backup.
 ##

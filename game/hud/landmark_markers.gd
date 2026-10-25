@@ -79,9 +79,15 @@ func _exit_tree() -> void:
 		Settings.changed.disconnect(_apply_settings)
 
 
+## Takes the player's settings, shown at once with no fade: they change in the settings menu, while the game behind
+## it is paused and nothing would fade.
 func _apply_settings() -> void:
 	icons = Settings.marker_icons as Show
 	names = Settings.marker_names as Show
+	for i in _places.size():
+		_icon_alpha[i] = 1.0 if LandmarkMarkers.shows(icons, _noticed[i] != 0) else 0.0
+		_name_alpha[i] = 1.0 if LandmarkMarkers.shows(names, _noticed[i] != 0) else 0.0
+	queue_redraw()
 
 
 ## Shows a marker for each of `places` that wants one (SolarSystem.landmarks).
@@ -97,7 +103,7 @@ func show_places(places: Array[Landmark]) -> void:
 	_plates.resize(_places.size())
 	_noticed.resize(_places.size())
 	_noticed.fill(0)
-	# Starting already faded in where it shows, so nothing fades in at the first frame.
+	# Places set to Always start faded in; places shown when noticed fade in once the first frame finds them noticed.
 	_icon_alpha.resize(_places.size())
 	_icon_alpha.fill(1.0 if icons == Show.ALWAYS else 0.0)
 	_name_alpha.resize(_places.size())
@@ -192,7 +198,9 @@ func _draw() -> void:
 	var aimed := ship.cruise.aimed
 	var locked := FlightHud.target_of(ship)
 	for i in _places.size():
-		if _places[i] == here or _places[i] == under or (_icon_alpha[i] <= 0.0 and _name_alpha[i] <= 0.0):
+		var framed := _places[i] == locked or _places[i] == aimed
+		var hidden := _icon_alpha[i] <= 0.0 and _name_alpha[i] <= 0.0 and not framed
+		if _places[i] == here or _places[i] == under or hidden:
 			continue
 		var at := ScreenMarker.project(view, camera.fov, screen, _places[i].marker_position() - view.origin)
 		var point := Vector2(at.x, at.y)
@@ -202,11 +210,12 @@ func _draw() -> void:
 			point = centre + (off.normalized() if off.length_squared() > 1.0 else Vector2.DOWN) * screen.length()
 		var clamped := ScreenMarker.clamp_to_screen(point, screen, EDGE)
 		var colour := FlightHud.CRUISE_COLOUR if _places[i] == locked else COLOUR
-		_draw_marker(clamped, clamped == point, i, screen, colour, _places[i] == locked or _places[i] == aimed)
+		_draw_marker(clamped, clamped == point, i, screen, colour, framed)
 
 
-## The marker for place `i` at `p`: its diamond (filled when `ahead` on the screen, hollow at the edge), framed when
-## aimed at or locked onto, and its name below, each as far faded in as it is.
+## The marker for place `i` at `p`: its diamond (filled when `ahead` on the screen, hollow at the edge) and its name
+## below, each as far faded in as it is. Framed when aimed at or locked onto, even with the diamonds turned off: the
+## brackets say what F locks onto, and the cruise colour what the drive is locked onto.
 func _draw_marker(p: Vector2, ahead: bool, i: int, screen: Vector2, colour: Color, framed: bool) -> void:
 	var d := DIAMOND
 	if _icon_alpha[i] > 0.0:
@@ -222,8 +231,8 @@ func _draw_marker(p: Vector2, ahead: bool, i: int, screen: Vector2, colour: Colo
 				_outline[k] = _diamond[k]
 			_outline[4] = _diamond[0]
 			draw_polyline(_outline, icon_colour, LINE_WIDTH, true)
-		if framed:
-			_draw_brackets(p, icon_colour)
+	if framed:
+		_draw_brackets(p, colour)
 	if _name_alpha[i] <= 0.0:
 		return
 	var label_size := _label_sizes[i]
