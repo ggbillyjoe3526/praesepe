@@ -10,8 +10,8 @@ extends Node
 ##
 ## arrive() is the one arrival function (project instructions, "One arrival function for every landing and docking"):
 ## every docking and every landing goes through it, and it is all the rest of the game sees (Events.arrived), so how
-## the ship gets there can change without touching contracts, bases or saves. Loading a game docked and the tow back
-## to a base will use it too.
+## the ship gets there can change without touching contracts, bases or saves. The tow home (tow()) goes through it
+## too, and so will loading a game docked.
 
 enum Stage {
 	FLYING, ## Free flight: ports may be offered.
@@ -55,6 +55,8 @@ var nearest_distance: float = INF
 var warning: bool = false
 var warning_place: Landmark = null
 var warning_time: float = INF
+## The last port the ship arrived at, where the tow takes it (and saved with the game), or null if it never has.
+var home: Port = null
 
 ## Leaving: how far (m) it has lifted off a bay's floor, and then how far it has eased out.
 var _lifted: float = 0.0
@@ -101,11 +103,48 @@ func _physics_process(delta: float) -> void:
 func arrive(to: Port) -> void:
 	var touch := maxf(tuning.touch_speed, ship.linear_velocity.length()) if stage == Stage.APPROACHING else 0.0
 	port = to
+	home = to
 	nearest = null
 	approach = null
 	ship.hold_at(to, touch)
 	stage = Stage.DOCKED
 	Events.arrived.emit(to)
+
+
+## Where the tow would take the ship: home, or the nearest port if it has never arrived anywhere. Null when there are no
+## ports.
+func tow_to() -> Port:
+	if home != null:
+		return home
+	var best: Port = null
+	var best_distance := INF
+	for p: Port in ports:
+		var d := p.distance(ship.global_position)
+		if d < best_distance:
+			best = p
+			best_distance = d
+	return best
+
+
+## Whether the tow is offered: not while docked or landed (the ship is at a base already), and only with somewhere to go.
+func can_tow() -> bool:
+	return stage != Stage.DOCKED and tow_to() != null
+
+
+## Tows the ship home ("Tow me to base" on the pause screen): wherever it is and whatever it is doing (flying, cruising,
+## in orbit, on its way in to a berth or out of one), it is put straight at home's berth through arrive(), like any
+## arrival, so the game saves there. Then everyone hears it was towed (Events.towed): the floating origin re-centres on
+## it and, once money exists, the fee is charged. Returns where it went, or null when the tow isn't offered.
+func tow() -> Port:
+	if not can_tow():
+		return null
+	var to := tow_to()
+	# Whatever trip was under way is dropped; the ship arrives at rest, with no bump.
+	stage = Stage.FLYING
+	approach = null
+	arrive(to)
+	Events.towed.emit(to)
+	return to
 
 
 ## Leaves the berth: the ship is eased out along the port's way out, then handed back to the pilot.

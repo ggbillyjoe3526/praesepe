@@ -277,6 +277,13 @@ func test_resetting_some_keys_leaves_the_rest() -> void:
 	assert_eq(Settings.fov, 80.0, "a setting on another page is kept")
 
 
+func test_a_file_without_the_last_fullscreen_kind_goes_back_to_its_own() -> void:
+	Settings.from_dict({"window_mode": DisplayApply.WindowMode.EXCLUSIVE})
+	Settings.toggle_fullscreen()
+	Settings.toggle_fullscreen()
+	assert_eq(Settings.window_mode, DisplayApply.WindowMode.EXCLUSIVE)
+
+
 func test_marker_settings_keep_to_their_choices_and_survive_a_save() -> void:
 	Settings.set_marker_icons(LandmarkMarkers.Show.OFF)
 	Settings.set_marker_names(7)
