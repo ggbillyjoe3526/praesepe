@@ -186,3 +186,90 @@ func test_saving_after_a_damaged_load_sets_the_damaged_copy_aside() -> void:
 	Settings.reset()
 	assert_true(Settings.load_saved())
 	assert_eq(Settings.fov, 70.0)
+
+
+func test_the_game_starts_fullscreen_on_the_main_display() -> void:
+	assert_eq(Settings.window_mode, DisplayApply.WindowMode.FULLSCREEN)
+	assert_eq(Settings.monitor, DisplayApply.MONITOR_MAIN)
+	assert_true(Settings.vsync)
+	assert_eq(Settings.frame_limit, DisplayApply.UNLIMITED)
+	assert_eq(Settings.ui_scale, 1.0)
+	assert_eq(int(ProjectSettings.get_setting("display/window/size/mode")), DisplayServer.WINDOW_MODE_FULLSCREEN,
+			"the window opens fullscreen, so there is no flash of a window first")
+
+
+func test_the_display_and_mouse_settings_save_and_load() -> void:
+	Settings.set_window_mode(DisplayApply.WindowMode.WINDOWED)
+	Settings.set_monitor(1)
+	Settings.set_vsync(false)
+	Settings.set_frame_limit(144)
+	Settings.set_sensitivity(1.5)
+	Settings.set_invert_mouse(true)
+	Settings.set_ui_scale(1.25)
+	assert_true(Settings.commit())
+	Settings.reset()
+	assert_true(Settings.load_saved())
+	assert_eq(Settings.window_mode, DisplayApply.WindowMode.WINDOWED)
+	assert_eq(Settings.monitor, 1)
+	assert_false(Settings.vsync)
+	assert_eq(Settings.frame_limit, 144)
+	assert_almost_eq(Settings.sensitivity, 1.5, 0.0001)
+	assert_true(Settings.invert_mouse)
+	assert_almost_eq(Settings.ui_scale, 1.25, 0.0001)
+
+
+func test_a_file_from_before_the_settings_menu_starts_fullscreen() -> void:
+	var f := FileAccess.open(Settings.path, FileAccess.WRITE)
+	f.store_string(SaveFile.encode(Settings.KIND, 2, {"v": 2, "fov": 70.0, "shake": 0.5, "head_bob": true,
+			"reduce_motion": false}))
+	f.close()
+	assert_true(Settings.load_saved())
+	assert_eq(Settings.fov, 70.0)
+	assert_eq(Settings.window_mode, DisplayApply.WindowMode.FULLSCREEN)
+	assert_almost_eq(Settings.sensitivity, 1.0, 0.0001)
+
+
+func test_new_values_keep_to_what_is_offered() -> void:
+	Settings.set_frame_limit(100)
+	assert_eq(Settings.frame_limit, 120, "the nearest limit offered")
+	Settings.set_frame_limit(-5)
+	assert_eq(Settings.frame_limit, DisplayApply.UNLIMITED)
+	Settings.set_sensitivity(10.0)
+	assert_eq(Settings.sensitivity, Settings.SENSITIVITY_MAX)
+	Settings.set_sensitivity(1.234)
+	assert_almost_eq(Settings.sensitivity, 1.25, 0.0001, "in steps")
+	Settings.set_ui_scale(1.3)
+	assert_almost_eq(Settings.ui_scale, 1.25, 0.0001)
+	Settings.set_monitor(500)
+	assert_eq(Settings.monitor, DisplayApply.MONITOR_MOST)
+
+
+func test_damaged_display_values_are_ignored() -> void:
+	Settings.from_dict({"window_mode": 7, "last_fullscreen": 2.5, "monitor": "two", "vsync": 0, "frame_limit": "fast",
+			"sensitivity": [], "invert_mouse": 1, "ui_scale": null})
+	assert_eq(Settings.window_mode, DisplayApply.WindowMode.FULLSCREEN)
+	assert_eq(Settings.last_fullscreen, DisplayApply.WindowMode.FULLSCREEN)
+	assert_eq(Settings.monitor, DisplayApply.MONITOR_MAIN)
+	assert_true(Settings.vsync)
+	assert_eq(Settings.frame_limit, DisplayApply.UNLIMITED)
+	assert_almost_eq(Settings.sensitivity, 1.0, 0.0001)
+	assert_false(Settings.invert_mouse)
+	assert_almost_eq(Settings.ui_scale, 1.0, 0.0001)
+
+
+func test_f11_goes_back_to_the_fullscreen_kind_last_used() -> void:
+	Settings.set_window_mode(DisplayApply.WindowMode.EXCLUSIVE)
+	Settings.toggle_fullscreen()
+	assert_eq(Settings.window_mode, DisplayApply.WindowMode.WINDOWED)
+	Settings.toggle_fullscreen()
+	assert_eq(Settings.window_mode, DisplayApply.WindowMode.EXCLUSIVE)
+
+
+func test_resetting_some_keys_leaves_the_rest() -> void:
+	Settings.set_fov(80.0)
+	Settings.set_window_mode(DisplayApply.WindowMode.WINDOWED)
+	Settings.set_vsync(false)
+	Settings.reset(PackedStringArray(["window_mode", "vsync"]))
+	assert_eq(Settings.window_mode, DisplayApply.WindowMode.FULLSCREEN)
+	assert_true(Settings.vsync)
+	assert_eq(Settings.fov, 80.0, "a setting on another page is kept")

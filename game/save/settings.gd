@@ -1,12 +1,15 @@
 extends Node
-## The Settings autoload: the player's own choices, kept apart from any saved game. For now the view and comfort
-## settings (project instructions, "Comfort"): field of view, camera shake, head bob and reduce motion, changed on the
-## pause screen. The settings menu adds audio, video and keys here later. The shape (to_dict and from_dict with a
-## version and one-step migrations, damaged values ignored) follows the owner's katanashotgun project
-## (scripts/settings.gd); the file is written by SaveFile, crash-safe with one backup.
+## The Settings autoload: the player's own choices, kept apart from any saved game, changed in the settings menu
+## (game/ui/settings/): the display (window mode, monitor, V-Sync, frame-rate limit), the interface size, comfort (project instructions,
+## "Comfort": field of view, camera shake, head bob and reduce motion) and the mouse (sensitivity, invert). Audio
+## volumes and key rebinding come here later. The shape (to_dict and from_dict with a version and one-step migrations,
+## damaged values ignored) follows the owner's katanashotgun project (scripts/settings.gd); the file is written by
+## SaveFile, crash-safe with one backup.
 ##
-## A change takes effect at once (`changed`), and is written when the pause screen closes or the game quits, so
-## dragging a slider writes once. The smoke test never reads or writes the file: it flies on the defaults.
+## A change takes effect at once (`changed`; the display ones through DisplayApply), and is written when the settings
+## menu or the pause screen closes or the game quits, so dragging a slider writes once. F11 and Alt+Enter switch
+## between fullscreen and a window (WindowWatch, a child of this node) and write at once. The smoke test never reads or
+## writes the file: it flies on the defaults.
 
 signal changed
 
@@ -21,6 +24,10 @@ const DEFAULT_FOV := 60.0
 const OLD_DEFAULT_FOV := 75.0
 ## Camera shake is set in steps of this (of full shake).
 const SHAKE_STEP := 0.1
+## Mouse sensitivity: a multiple of the flight tuning's mouse_gain (FlightControls), in steps of SENSITIVITY_STEP.
+const SENSITIVITY_MIN := 0.25
+const SENSITIVITY_MAX := 3.0
+const SENSITIVITY_STEP := 0.05
 
 ## Where the settings are saved. Tests point it somewhere else.
 var path: String = "user://settings.json"
@@ -31,13 +38,31 @@ var shake: float = 1.0
 var head_bob: bool = true
 ## Calmer cameras: no shake, no head bob, and a chase camera that swings less.
 var reduce_motion: bool = false
+## Fullscreen on the player's display from the first start (William, 2026-10-25).
+var window_mode: DisplayApply.WindowMode = DisplayApply.WindowMode.FULLSCREEN
+## The fullscreen kind F11 goes back to from a window.
+var last_fullscreen: DisplayApply.WindowMode = DisplayApply.WindowMode.FULLSCREEN
+## The display the game opens on (an index), or DisplayApply.MONITOR_MAIN.
+var monitor: int = DisplayApply.MONITOR_MAIN
+var vsync: bool = true
+## Frames a second at most, or DisplayApply.UNLIMITED.
+var frame_limit: int = DisplayApply.UNLIMITED
+## How far the mouse steers, times the flight tuning's.
+var sensitivity: float = 1.0
+## Mouse up points the nose down instead of up.
+var invert_mouse: bool = false
+## The size of the HUD, its text and the menus, times the size made for the screen (one of DisplayApply.UI_SCALES).
+var ui_scale: float = 1.0
 
 var _dirty: bool = false
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(WindowWatch.new())
 	if not Game.launch_args.smoke:
 		load_saved()
+	apply_display(true)
 
 
 func _notification(what: int) -> void:
@@ -72,11 +97,72 @@ func set_reduce_motion(on: bool) -> void:
 	_change(&"reduce_motion", on)
 
 
-## Back to the defaults (the file is written on the next commit()).
-func reset() -> void:
-	from_dict(_defaults())
+## Fullscreen, exclusive fullscreen or a window; a fullscreen kind is remembered as the one F11 goes back to.
+func set_window_mode(mode: DisplayApply.WindowMode) -> void:
+	if mode != DisplayApply.WindowMode.WINDOWED:
+		last_fullscreen = mode
+	_change(&"window_mode", mode)
+	DisplayApply.apply_window(window_mode)
+
+
+## F11 or Alt+Enter: a window from fullscreen, or the last fullscreen kind from a window.
+func toggle_fullscreen() -> void:
+	if window_mode == DisplayApply.WindowMode.WINDOWED:
+		set_window_mode(last_fullscreen)
+	else:
+		set_window_mode(DisplayApply.WindowMode.WINDOWED)
+
+
+## The window moves to display `screen` (or the main one, DisplayApply.MONITOR_MAIN) and opens there from now on.
+func set_monitor(screen: int) -> void:
+	_change(&"monitor", clampi(screen, DisplayApply.MONITOR_MAIN, DisplayApply.MONITOR_MOST))
+	apply_display(true)
+
+
+func set_vsync(on: bool) -> void:
+	_change(&"vsync", on)
+	apply_display()
+
+
+func set_frame_limit(fps: int) -> void:
+	_change(&"frame_limit", DisplayApply.nearest_limit(fps))
+	DisplayApply.apply_frame_rate(frame_limit)
+
+
+func set_ui_scale(value: float) -> void:
+	_change(&"ui_scale", DisplayApply.nearest_ui_scale(value))
+	DisplayApply.apply_ui_scale(ui_scale)
+
+
+func set_sensitivity(value: float) -> void:
+	_change(&"sensitivity", clampf(snappedf(value, SENSITIVITY_STEP), SENSITIVITY_MIN, SENSITIVITY_MAX))
+
+
+func set_invert_mouse(on: bool) -> void:
+	_change(&"invert_mouse", on)
+
+
+## The display settings into the window (with `place`, onto the chosen display first), and the interface size.
+func apply_display(place: bool = false) -> void:
+	DisplayApply.apply(window_mode, monitor, vsync, frame_limit, place)
+	DisplayApply.apply_ui_scale(ui_scale)
+
+
+## Back to the defaults (the file is written on the next commit()). With `keys`, only those settings (a page of the
+## settings menu); the window follows at once.
+func reset(keys: PackedStringArray = PackedStringArray()) -> void:
+	var d := _defaults()
+	if not keys.is_empty():
+		var only := {}
+		for k in keys:
+			only[k] = d[k]
+		d = only
+	from_dict(d)
+	if d.has("window_mode") and window_mode != DisplayApply.WindowMode.WINDOWED:
+		last_fullscreen = window_mode
 	_dirty = true
 	changed.emit()
+	apply_display(d.has("monitor"))
 
 
 func _change(key: StringName, value: Variant) -> void:
@@ -114,7 +200,11 @@ func load_saved() -> bool:
 
 
 func to_dict() -> Dictionary:
-	return {"v": VERSION, "fov": fov, "shake": shake, "head_bob": head_bob, "reduce_motion": reduce_motion}
+	return {
+		"v": VERSION, "fov": fov, "shake": shake, "head_bob": head_bob, "reduce_motion": reduce_motion,
+		"window_mode": int(window_mode), "last_fullscreen": int(last_fullscreen), "monitor": monitor, "vsync": vsync,
+		"frame_limit": frame_limit, "sensitivity": sensitivity, "invert_mouse": invert_mouse, "ui_scale": ui_scale,
+	}
 
 
 ## Reads `d` over the current values. Anything missing, of the wrong type or out of range keeps its current value, so
@@ -131,6 +221,23 @@ func from_dict(d: Dictionary) -> void:
 		head_bob = d.head_bob
 	if d.get("reduce_motion") is bool:
 		reduce_motion = d.reduce_motion
+	if _is_whole(d.get("window_mode"), 0, DisplayApply.WindowMode.size() - 1):
+		window_mode = int(d.window_mode) as DisplayApply.WindowMode
+	if _is_whole(d.get("last_fullscreen"), 0, DisplayApply.WindowMode.size() - 1) \
+			and int(d.last_fullscreen) != DisplayApply.WindowMode.WINDOWED:
+		last_fullscreen = int(d.last_fullscreen) as DisplayApply.WindowMode
+	if _is_whole(d.get("monitor"), DisplayApply.MONITOR_MAIN, DisplayApply.MONITOR_MOST):
+		monitor = int(d.monitor)
+	if d.get("vsync") is bool:
+		vsync = d.vsync
+	if _is_num(d.get("frame_limit")) and float(d.frame_limit) >= 0.0:
+		frame_limit = DisplayApply.nearest_limit(roundi(float(d.frame_limit)))
+	if _is_num(d.get("sensitivity")):
+		sensitivity = clampf(snappedf(float(d.sensitivity), SENSITIVITY_STEP), SENSITIVITY_MIN, SENSITIVITY_MAX)
+	if d.get("invert_mouse") is bool:
+		invert_mouse = d.invert_mouse
+	if _is_num(d.get("ui_scale")):
+		ui_scale = DisplayApply.nearest_ui_scale(float(d.ui_scale))
 
 
 ## Version 1 saved the field of view whenever any setting changed, so the old default (75°) almost always means the
@@ -145,8 +252,18 @@ static func _migrate_v1(d: Dictionary) -> Dictionary:
 
 
 func _defaults() -> Dictionary:
-	return {"fov": DEFAULT_FOV, "shake": 1.0, "head_bob": true, "reduce_motion": false}
+	return {
+		"fov": DEFAULT_FOV, "shake": 1.0, "head_bob": true, "reduce_motion": false,
+		"window_mode": DisplayApply.WindowMode.FULLSCREEN, "last_fullscreen": DisplayApply.WindowMode.FULLSCREEN,
+		"monitor": DisplayApply.MONITOR_MAIN, "vsync": true, "frame_limit": DisplayApply.UNLIMITED, "sensitivity": 1.0, "invert_mouse": false,
+		"ui_scale": 1.0,
+	}
 
 
 static func _is_num(v: Variant) -> bool:
 	return v is float or v is int
+
+
+## A whole number from `low` to `high` (JSON gives it back as a float).
+static func _is_whole(v: Variant, low: int, high: int) -> bool:
+	return _is_num(v) and is_equal_approx(float(v), roundf(float(v))) and float(v) >= low and float(v) <= high
