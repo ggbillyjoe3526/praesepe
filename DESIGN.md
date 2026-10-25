@@ -454,20 +454,34 @@ A few early decisions avoid costly rework later.
 
 ## Player wiki
 
-A GitHub wiki will document the full game for players. It is written for players, not developers, and kept current as the game changes.
+The GitHub wiki (<https://github.com/ggbillyjoe3526/project-praesepe/wiki>) documents the full game for players. It is
+written for players, not developers, and kept current as the game changes.
 
-- **Release notes:** what changed in each version, newest first, drawn from the changelog.
-- **Getting started:** controls, the first hour, choosing a starter ship, paying off the loan.
+- **Home:** what the game is and what the current build lets you do.
+- **Patch notes:** what changed in each version, newest first, generated from the changelog (with the notes waiting
+  for the next release at the top).
+- **Getting started:** the first flight; later the first hour, choosing a starter ship and paying off the loan.
+- **Controls:** every key.
+- **Flying, Cruise drive, Docking and landing, Orbit:** how each works, in the words the game uses.
 - **Ships:** every ship with its role, stats, upgrades and how to get it.
-- **Contracts and jobs:** each job type, how it works, rewards and reputation.
+- **Contracts and jobs:** each job type, how it works, rewards and reputation (a page once the first job ships).
 - **Locations:** planets, moons, stations and bases, with their environments, services and points of interest.
-- **Items and upgrades:** what each upgrade does and where to buy it.
-- **Events and encounters:** random events, distress calls, derelicts.
+- **Items and upgrades:** what each upgrade does and where to buy it (a page once the shop ships).
+- **Events and encounters:** random events, distress calls, derelicts (a page once events ship).
 - **Settings and accessibility:** options, comfort settings, key rebinding.
-- **Roadmap:** what is planned next, with no promised dates.
+- **Roadmap:** what is being built and planned next, with no promised dates.
 - **FAQ and troubleshooting:** common questions, saves, known issues.
 
-The wiki is updated when a player-facing change ships, alongside the changelog. It only describes what is in a released build, never planned features as if they exist (those go on the Roadmap page).
+**How it stays current:** the pages live in the repository under `docs/wiki/` (one Markdown file per page; its
+`README.md` has the conventions) and a workflow publishes them to the wiki on every merge to `main`, so edits made on
+GitHub are overwritten. Every pull request a player would notice updates its page in the same pull request, alongside
+its changelog note. A check on every pull request fails on broken links or pictures, a page missing from the sidebar,
+or a place (any `display_name` in the game's scenes and resources) that no page describes (the Roadmap doesn't count), and warns when a changelog
+note arrives without a wiki change.
+
+**What it describes:** the newest development build, what is on `main` (the owner's call, 2026-10-25). Features still
+being built or planned go on the Roadmap page, never on other pages as if they were playable. Patch notes keep
+released versions apart from what is waiting for the next download.
 
 ## Future roadmap
 
@@ -491,6 +505,7 @@ Newest first. Each line: date, the decision, who made it.
   either side, 70° up and 45° down, and in the chase view swings the camera round the ship; screenshots go to
   `screenshots` in the user folder named `praesepe_<date>_<time>.png`; values as in "How it flies" and "How the
   cruise drive works" (default, Claude).
+- 2026-10-25: The player wiki describes the newest development build (what is merged to `main`), not only released builds, and is updated in the same pull request as each player-facing change: William asked for a wiki "kept up to date as the game is developed. For example, when a new feature/content or any important is changed it will update the wiki." Pages live in `docs/wiki/` and are published to the GitHub wiki on every merge, as in katanashotgun; work still being built or planned stays on the Roadmap page (owner asked; the publishing setup default, Claude).
 - 2026-10-25: Version names and tags: players see "0.1 Dev 1", "0.1 Beta 2", then "0.1", tagged `v0.1-dev.1`, `v0.1-beta.2` and `v0.1`, like the owner's katanashotgun; Dev and Beta are GitHub pre-releases. William chose this on 2026-10-25 (owner). A tag on main (or the Release workflow's button) publishes a Windows installer and a portable zip; steps in `RELEASING.md` (default, Claude).
 - 2026-10-25: Autosave every few minutes in flight as well as on docking and landing, and a "Tow me to base" button on the pause screen, free until money exists and then the towing fee (owner approved both, 2026-10-25). Until the owner tunes them: every 3 minutes of in-game time; the tow goes to the last port the ship arrived at, or the nearest if none, asks for a second press, and is not offered while docked; the save file goes to version 2 (old saves are brought up to date when read) (default, Claude).
 - 2026-10-25: Orbit is up in space and slow: William asked that the orbit prompt "only appear while in space near the orbital trajectory", that orbit be "as realistic as possible while keeping the game simple and easy to control", maybe with "a visual indicator ... that shows the player an orbital insertion route or point", and said orbiting "feels way too fast ... orbiting should feel like the ship is slowly moving around the planet" (owner). Until the owner tunes it: each body has one orbit line (Calder 3 km up at 45 m/s, Mote 1.2 km at 20 m/s), entering is offered only within 600 m (Mote 300 m) of it, a faint lane and an insertion ring show the way there from a quarter of the line's height up, and the ship settles onto the line; the cause of "too fast" was the low height and speed, not the animation, so the planets keep their size (values and reasons in "How orbit works") (default, Claude).

@@ -70,8 +70,9 @@ Given after `--`, for example `godot --path . -- --seed 1234`.
 | `tools/unit_tests.sh` | The Gut unit tests in `test/unit/`. |
 | `gdlint game test tools` | Code style ([gdtoolkit](https://github.com/Scony/godot-gdscript-toolkit) 4.5.0). |
 | `tools/changelog.sh check` | The changelog notes in `changelog.d/`. |
+| `python3 tools/wiki.py check` | The player wiki in `docs/wiki/`: links, pictures, the sidebar, and every place in the game mentioned on a page. `python3 tools/wiki.py build build/wiki` previews the published pages. |
 
-CI runs all four on every pull request. Set `GODOT=/path/to/godot` if `godot` isn't on your PATH.
+CI runs all five on every pull request (the wiki check in the Wiki workflow, which also publishes the wiki on every merge to `main`). Set `GODOT=/path/to/godot` if `godot` isn't on your PATH.
 
 ## Layout
 | Path | What lives there |
@@ -89,8 +90,9 @@ CI runs all four on every pull request. Set `GODOT=/path/to/godot` if `godot` is
 | `game/main/` | The first scene. |
 | `game/debug/` | The smoke test autopilot and the F3 overlay. |
 | `test/unit/` | Unit tests. |
-| `tools/` | Test and changelog scripts. |
+| `tools/` | Test, changelog and wiki scripts. |
 | `addons/gut/` | The Gut test framework (tests only, never shipped). |
+| `docs/wiki/` | The player wiki, one page per file, published to the [GitHub wiki](https://github.com/ggbillyjoe3526/project-praesepe/wiki) on every merge to `main`. Its `README.md` has the conventions. |
 | `changelog.d/` | One changelog note per pull request, gathered into `CHANGELOG.md` at release. |
 
 Saves (`savegame.json`, written on every docking and landing), settings (`settings.json`) and screenshots (`screenshots/`) go to the user folder `ProjectPraesepe` (on Windows, `%APPDATA%\ProjectPraesepe`).
