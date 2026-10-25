@@ -4,20 +4,22 @@ extends MeshInstance3D
 ## in the plane the ship would go round in (Orbit.guide_axis), so the pilot can see where the orbit is and fly up (or
 ## down) onto it. Seen from below it arches overhead and runs off over the horizon; its edges are brighter than its
 ## middle. It fades out close to the camera, so it never cuts across the cockpit, and the planet hides its far side.
-## Hidden in orbit, while cruising, docked or landed (whenever Orbit offers nothing). One mesh, a ring of unit radius
+## Shown while Orbit is guiding: hidden in orbit, while cruising, docked or landed, and low over the surface. One mesh, a ring of unit radius
 ## and height, built once; each frame only the transform changes, so nothing is allocated. Outside the floating
 ## origin's world: it is placed from the body's position every frame. Placeholder look until the art style is chosen.
 
 ## Pieces round the ring: at Calder's orbit each is about 220 m long and bows out under a metre.
 const SEGMENTS := 256
-## The lane's width, as a share of its radius (about 50 m round Calder, 16 m round Mote).
-const WIDTH_SHARE := 0.006
+## The lane's width, as a share of its radius (about 25 m round Calder, 8 m round Mote).
+const WIDTH_SHARE := 0.003
 ## The lane's opacity at its edges and down its middle.
-const EDGE_ALPHA := 0.55
-const MIDDLE_ALPHA := 0.08
-## It fades in between these distances (m) from the camera.
-const FADE_NEAR := 150.0
-const FADE_FAR := 600.0
+const EDGE_ALPHA := 0.4
+const MIDDLE_ALPHA := 0.05
+## It fades in between these distances (m) from the camera: the ship's own orbit lies in a plane through the camera,
+## so the stretch nearest overhead (or underneath) would otherwise stand as a bar across the middle of the view; it
+## is faint there and clearest where it curves away round the planet.
+const FADE_NEAR := 300.0
+const FADE_FAR := 3000.0
 
 @export var ship: Ship
 
@@ -31,14 +33,14 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	var b := ship.orbit.offered if ship != null else null
+	var b := ship.orbit.offered if ship != null and ship.orbit.guiding else null
 	visible = b != null
 	if b == null:
 		return
 	var o := ship.orbit
 	var r := b.orbit_radius()
 	var across := o.insertion.normalized()
-	global_transform = Transform3D(Basis(across * r, o.guide_axis * r * WIDTH_SHARE, o.guide_axis.cross(across) * r),
+	global_transform = Transform3D(Basis(across * r, o.guide_axis * r * WIDTH_SHARE, across.cross(o.guide_axis) * r),
 			b.global_position)
 
 
@@ -84,4 +86,6 @@ static func build_material() -> StandardMaterial3D:
 	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
 	m.distance_fade_min_distance = FADE_NEAR
 	m.distance_fade_max_distance = FADE_FAR
+	# It shares the planet's centre with the atmosphere's glow, and is always outside it: drawn after it.
+	m.render_priority = 1
 	return m

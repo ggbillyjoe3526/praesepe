@@ -80,11 +80,12 @@ func test_the_insertion_marker_says_how_far_to_the_orbit_line() -> void:
 	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_LOW, 1240.0), "Orbit  ·  climb 1.2 km")
 	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_HIGH, -2510.0), "Orbit  ·  descend 2.5 km")
 	assert_eq(OrbitMarker.label_text(Orbit.Refusal.NONE, 30.0), "Orbit", "close enough: the prompt says O")
-	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_FAST, 30.0), "Orbit")
+	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_FAST, 30.0), "Orbit  ·  slow down")
+	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_STEEP, 30.0), "Orbit  ·  level out")
 	# The key changes exactly when the words do.
 	var cases := [[Orbit.Refusal.TOO_LOW, 1240.0], [Orbit.Refusal.TOO_LOW, 1210.0], [Orbit.Refusal.TOO_LOW, 1260.0],
 			[Orbit.Refusal.TOO_HIGH, -1240.0], [Orbit.Refusal.TOO_HIGH, -800.0], [Orbit.Refusal.NONE, 30.0],
-			[Orbit.Refusal.NONE, 500.0]]
+			[Orbit.Refusal.NONE, 500.0], [Orbit.Refusal.TOO_FAST, 30.0], [Orbit.Refusal.TOO_STEEP, 30.0]]
 	var words := {}
 	var keys := {}
 	for c: Array in cases:

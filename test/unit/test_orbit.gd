@@ -95,6 +95,10 @@ func test_near_the_surface_it_shows_the_way_up_but_wont_enter() -> void:
 	assert_eq(_orbit.offered, _planet, "the planet's orbit line shows")
 	assert_eq(_orbit.refusal, Orbit.Refusal.TOO_LOW)
 	assert_almost_eq(_orbit.to_climb, 1300.0, 0.01, "1.3 km below the line")
+	assert_false(_orbit.guiding, "no guide this close to the ground")
+	_at = Vector3(0, 0, 6000.0 + 400.0)
+	_tick()
+	assert_true(_orbit.guiding, "a little higher it shows the way")
 	assert_false(_orbit.active(), "O doesn't enter it from down here")
 	assert_eq(_events, [Orbit.Event.REFUSED] as Array[Orbit.Event])
 
@@ -118,6 +122,29 @@ func test_the_insertion_point_is_on_the_line_ahead_a_gentle_climb_away() -> void
 	at = _at
 	_tick()
 	assert_almost_eq(_orbit.insertion.angle_to(at) * line, _tuning.insertion_lead, 1.0, "on the line: just ahead")
+
+
+func test_small_turns_leave_the_orbit_line_still_and_real_ones_swing_it_smoothly() -> void:
+	_velocity = Vector3(80, 0, 0)
+	_tick()
+	assert_almost_eq(_orbit.guide_axis, Vector3(0, 1, 0), Vector3.ONE * 0.001)
+	# A 2 degree wobble for a tenth of a second hardly moves it.
+	_velocity = Vector3(80, 0, 0).rotated(_at.normalized(), deg_to_rad(2.0))
+	for i in 6:
+		_tick()
+	assert_lt(rad_to_deg(_orbit.guide_axis.angle_to(Vector3(0, 1, 0))), 2.0)
+	# A 90 degree turn swings it round at guide_swing, all the way in the end.
+	_at = Vector3(0, 0, 6000.0 + 1500.0)
+	_velocity = Vector3(0, 80, 0)
+	var last := _orbit.guide_axis
+	for i in roundi(8.0 / DT):
+		_orbit.step(_at, _velocity, Vector3.FORWARD, false, false, false, 0.0, true, DT)
+		assert_lt(rad_to_deg(last.angle_to(_orbit.guide_axis)), _tuning.guide_swing * DT + 0.001, "tick %d" % i)
+		last = _orbit.guide_axis
+	assert_almost_eq(_orbit.guide_axis, Vector3(-1, 0, 0), Vector3.ONE * 0.001, "round the new heading")
+	# O enters the orbit shown.
+	_tick(true)
+	assert_almost_eq(_orbit.axis, _orbit.guide_axis, Vector3.ONE * 0.001)
 
 
 func test_climbing_straight_up_the_orbit_goes_the_way_the_nose_points() -> void:
@@ -367,3 +394,14 @@ func test_the_pilots_stick_takes_the_view_back() -> void:
 	assert_eq(_orbit.turn_for(Basis.IDENTITY, _at, mine, Vector3.ONE), mine, "a push hands it back")
 	assert_false(_orbit.turning)
 	assert_eq(_orbit.turn_for(Basis.IDENTITY, _at, Vector3.ZERO, Vector3.ONE), Vector3.ZERO, "and it stays the pilot's")
+
+
+func test_small_turns_are_steered_all_the_way() -> void:
+	# Under about half a degree Quaternion.get_axis() stops normalising; rotation_of() stays exact.
+	for degrees: float in [0.05, 0.2, 0.45, 10.0, 170.0]:
+		var turn := Orbit.rotation_of(Quaternion(Vector3(1, 2, 3).normalized(), deg_to_rad(degrees)))
+		assert_almost_eq(rad_to_deg(turn.length()), degrees, degrees * 0.001 + 0.0001, "%.2f degrees" % degrees)
+		assert_almost_eq(turn.normalized(), Vector3(1, 2, 3).normalized(), Vector3.ONE * 0.001)
+	var rates := Vector3.ONE
+	var steer := Orbit.steer(Basis.IDENTITY, Basis(Vector3.RIGHT, deg_to_rad(0.2)), rates, 1.0)
+	assert_almost_eq(steer.x, deg_to_rad(0.2), 0.00001, "a 0.2 degree pitch asks for its whole rate")

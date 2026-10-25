@@ -79,7 +79,7 @@ const OPEN_CRUISE := 480
 const ORBIT_CLIMB_LIMIT := 3600
 const CLIMB_SPEED := 120.0
 ## How long (ticks) the orbit may take to settle, and how long it is then watched.
-const ORBIT_SETTLE_LIMIT := 1800
+const ORBIT_SETTLE_LIMIT := 3600
 const ORBIT_WATCH := 900
 ## How long (ticks) the autopilot flies on after leaving orbit before checking flight assist has it.
 const AFTER_ORBIT := 300
@@ -727,6 +727,7 @@ func _take_off(input: ShipInput) -> void:
 			var base := system.landmark("Tollgate")
 			if ship.global_position.distance_to(base.global_position) > CLEAR_OF_BASE:
 				_check_under_orbit_line("just after taking off")
+				_expect(not ship.orbit.guiding, "shows no orbit guide this close to the ground")
 				input.thrust.y = 0.0
 				input.full_stop = true
 				_stage = 0

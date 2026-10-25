@@ -2,9 +2,10 @@ class_name OrbitMarker
 extends Control
 ## The orbit's insertion point on the HUD (design doc, "Orbit"): where the ship would join its orbit line (OrbitLine)
 ## ahead, as a small ring in the orbit's colour with ticks pointing in, labelled with how far to climb or descend to
-## the line ("Orbit  ·  climb 1.2 km"), or just "Orbit" once close enough to enter (the prompt then says O). Flying at it is a gentle climb (or
+## the line ("Orbit  ·  climb 1.2 km"), what to do first when on it ("Orbit  ·  slow down", "Orbit  ·  level out"),
+## or just "Orbit" once O enters it (the prompt then says O). Flying at it is a gentle climb (or
 ## descent) into orbit. Off the screen or behind the camera it sits at the screen's edge on the side to turn to,
-## without its ticks. Shown whenever Orbit offers an orbit; drawn through whichever camera is active (ShipCameras).
+## without its ticks. Shown whenever Orbit is guiding; drawn through whichever camera is active (ShipCameras).
 ## The label is rebuilt only when what it says changes. Placeholder look until the art style is chosen.
 
 ## Sizes in px at 1080p: the ring, its ticks, and how close to the screen's edge it comes.
@@ -22,6 +23,8 @@ var _label: String = ""
 var _label_size: Vector2 = Vector2.ZERO
 var _shown: int = -1
 var _font: Font
+## Whether the marker was drawn last frame, so it is cleared once when it goes.
+var _drawn: bool = false
 
 
 func _ready() -> void:
@@ -37,6 +40,10 @@ static func label_text(why: Orbit.Refusal, to_climb: float) -> String:
 			return "Orbit  ·  climb %s" % LandmarkMarkers.distance_text(to_climb)
 		Orbit.Refusal.TOO_HIGH:
 			return "Orbit  ·  descend %s" % LandmarkMarkers.distance_text(-to_climb)
+		Orbit.Refusal.TOO_FAST:
+			return "Orbit  ·  slow down"
+		Orbit.Refusal.TOO_STEEP:
+			return "Orbit  ·  level out"
 	return "Orbit"
 
 
@@ -50,17 +57,20 @@ func _process(_delta: float) -> void:
 	if ship == null or cameras == null:
 		return
 	var o := ship.orbit
-	if o.offered != null:
+	var showing := o.offered != null and o.guiding
+	if showing:
 		var key := OrbitMarker.label_key(o.refusal, o.to_climb)
 		if key != _shown:
 			_shown = key
 			_label = OrbitMarker.label_text(o.refusal, o.to_climb)
 			_label_size = _font.get_string_size(_label, HORIZONTAL_ALIGNMENT_LEFT, -1, LandmarkMarkers.FONT_SIZE)
-	queue_redraw()
+	if showing or _drawn:
+		queue_redraw()
+	_drawn = showing
 
 
 func _draw() -> void:
-	if ship == null or cameras == null or ship.orbit.offered == null:
+	if ship == null or cameras == null or ship.orbit.offered == null or not ship.orbit.guiding:
 		return
 	var camera := cameras.current()
 	var view := camera.global_transform

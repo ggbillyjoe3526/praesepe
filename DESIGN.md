@@ -158,16 +158,18 @@ a simulation: the game has no gravity, so nothing ever falls out of orbit. It ke
 player can feel, simply: the orbit is up in space, well clear of the air; you get there by climbing to it and turning
 along it, like a launch; and going round is slow and calm, the ground drifting past below.
 
-- Each planet and moon has one orbit line, a circle at its orbit height (Calder 3 km up, Mote 1.2 km). Within twice
-  that height of the surface the orbit shows the way there: the line itself, a faint lane round the planet in the
-  orbit's colour, brighter at its edges, in the plane the ship would go round in (the way it is heading); and on the
-  HUD a small ring with ticks where the ship would join it ahead, labelled "Orbit  ·  climb 1.2 km" (or "descend").
+- Each planet and moon has one orbit line, a circle at its orbit height (Calder 3 km up, Mote 1.2 km). From a
+  quarter of that height above the surface (so not on take-off or while landing) up to twice it, the orbit shows the
+  way there: the line itself, a faint lane round the planet in the orbit's colour, brighter at its edges, in the plane
+  the ship would go round in (the way it is heading; it swings round no faster than 15° a second, so small turns and
+  wobbles leave it still and a real turn swings it smoothly); and on the HUD a small ring with ticks where the ship would join it ahead, labelled "Orbit  ·  climb 1.2 km" (or "descend"; on the line, "slow down" or "level out" until O
+  would work, then just "Orbit").
   The ring is as far ahead as a 30° climb would take to reach the line (at least 400 m ahead), so flying at it is a
   gentle climb into orbit. Off the screen it waits at the edge on the side to turn to. The lane fades out near the
   camera, so it never cuts across the cockpit, and the planet hides its far side.
 - "O  Enter orbit round Calder" shows only close to the line: within 600 m above or below it round Calder, 300 m
   round Mote, so never near the surface or just after taking off. O anywhere else says how far to climb or descend.
-  O swings the ship onto the line, the way it was heading, and it settles onto the line's height (climbing or sinking
+  O swings the ship onto the line shown, the way it was heading, and it settles onto the line's height (climbing or sinking
   at most 30 m/s). The swing is no harder than the side thrusters (25 m/s²), so it feels like a firm push, never a
   snap.
 - Entering, the ship turns to face along the orbit with the planet below and the horizon a little above the middle of
@@ -203,7 +205,8 @@ system scene (`game/system/solar_system.tscn`).
 | --- | --- | --- |
 | Calder's orbit | 3 km up, offered 2.4 to 3.6 km up, 45 m/s | About 21 minutes round; the ground below sweeps about 0.9° a second |
 | Mote's orbit | 1.2 km up, offered 0.9 to 1.5 km up, 20 m/s | About 14 minutes round; about 1° a second |
-| Guide reach | 2 times the orbit's height | Where the orbit line and its ring show (Calder 6 km up, Mote 2.4 km) |
+| Guide reach | A quarter to 2 times the orbit's height | Where the orbit line and its ring show (Calder 750 m to 6 km up, Mote 300 m to 2.4 km) |
+| Guide swing | 15° a second | How fast the line's plane follows the ship's heading |
 | Insertion point | A 30° climb ahead, at least 400 m | Where the ring sits on the line |
 | Top entry speed | 250 m/s | Anything but cruising |
 | Swing onto the orbit | 25 m/s² | No harder than the side thrusters |
@@ -433,7 +436,7 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
-- 2026-10-25: Orbit is up in space and slow: William asked that the orbit prompt "only appear while in space near the orbital trajectory", that orbit be "as realistic as possible while keeping the game simple and easy to control", maybe with "a visual indicator ... that shows the player an orbital insertion route or point", and said orbiting "feels way too fast ... orbiting should feel like the ship is slowly moving around the planet" (owner). Until the owner tunes it: each body has one orbit line (Calder 3 km up at 45 m/s, Mote 1.2 km at 20 m/s), entering is offered only within 600 m (Mote 300 m) of it, a faint lane and an insertion ring show the way there, and the ship settles onto the line; the cause of "too fast" was the low height and speed, not the animation, so the planets keep their size (values and reasons in "How orbit works") (default, Claude).
+- 2026-10-25: Orbit is up in space and slow: William asked that the orbit prompt "only appear while in space near the orbital trajectory", that orbit be "as realistic as possible while keeping the game simple and easy to control", maybe with "a visual indicator ... that shows the player an orbital insertion route or point", and said orbiting "feels way too fast ... orbiting should feel like the ship is slowly moving around the planet" (owner). Until the owner tunes it: each body has one orbit line (Calder 3 km up at 45 m/s, Mote 1.2 km at 20 m/s), entering is offered only within 600 m (Mote 300 m) of it, a faint lane and an insertion ring show the way there from a quarter of the line's height up, and the ship settles onto the line; the cause of "too fast" was the low height and speed, not the animation, so the planets keep their size (values and reasons in "How orbit works") (default, Claude).
 - 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, nose first into the bay and turning round inside it (so the pilot sees where they are going and the docked view still looks out of its mouth), or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).
 - 2026-10-25: Seamless docking and landing join the first playable, moved up from the future roadmap: after playing PR #5 William said "I want to remove the transitions. The player should be able to enter/land at any station/planet seamlessly. No loading screens." The transition screen is gone (owner).
 - 2026-10-25: No lens effect over the picture: William chose the narrower 60° view only. Planets may stretch a little near the screen's edges, in exchange for a sharp picture, straight cockpit lines and no frame-rate cost (owner).

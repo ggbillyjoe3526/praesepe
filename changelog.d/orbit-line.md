@@ -1,6 +1,6 @@
 ### Orbit up in space, and slower
-- Each planet and moon now has an orbit line up in space: Calder's is 3 km up, Mote's 1.2 km. Near a planet you see
-  it as a faint lane round the planet, with a small ring on the HUD marking where to join it and how far to climb
+- Each planet and moon now has an orbit line up in space: Calder's is 3 km up, Mote's 1.2 km. Once you're up off the
+  ground you see it as a faint lane round the planet, with a small ring on the HUD marking where to join it and how far to climb
   ("Orbit  ·  climb 1.2 km").
 - "O  Enter orbit" only appears once you're close to that line, never just after taking off or skimming the surface.
   Fly at the ring for a gentle climb into orbit, like a launch.

@@ -6,10 +6,11 @@ extends RefCounted
 ## speed plus a gentle climb or sink to the orbit's height. The ship's attitude turns with the orbit (`spin`), so a
 ## view of the planet below stays put while the ground slides past; the mouse still turns the ship within that.
 ##
-## Each planet and moon has one orbit line, up in space at its orbit height (CelestialBody.orbit_altitude). Within
-## OrbitTuning.guide_reach of it the orbit shows the way there: the line round the body in the plane the ship would go
-## round in (`guide_axis`, the way the ship is heading), and an insertion point on it ahead (`insertion`), as far along
-## as a gentle climb or descent would take to reach it. Entering is offered only close to the line (within
+## Each planet and moon has one orbit line, up in space at its orbit height (CelestialBody.orbit_altitude). Between
+## OrbitTuning.guide_floor and guide_reach of that height the orbit shows the way there (`guiding`): the line round
+## the body in the plane the ship would go round in (`guide_axis`, the way the ship is heading, swinging no faster than
+## OrbitTuning.guide_swing so small turns leave it still), and an insertion point on it ahead (`insertion`), as far
+## along as a gentle climb or descent would take to reach it. O enters that orbit, the one shown. Entering is offered only close to the line (within
 ## CelestialBody.orbit_window above or below), never near the surface; the orbit then runs the way the ship was
 ## heading, and the ship settles onto the line.
 ## Entering, the ship's velocity swings onto the circle no faster than OrbitTuning.entry_accel, and the ship turns to
@@ -79,6 +80,11 @@ var refusal: Refusal = Refusal.FAR
 var guide_axis: Vector3 = Vector3.UP
 var insertion: Vector3 = Vector3.ZERO
 var to_climb: float = 0.0
+## Whether the orbit line and its insertion point are shown: high enough above the surface (OrbitTuning.guide_floor),
+## so they never clutter a take-off or a landing.
+var guiding: bool = false
+## The body the guide was last worked out for, so a new one starts from the ship's heading.
+var _guide_body: CelestialBody = null
 ## Leaving: the attitude the ship levels out to, how long (s) it had been at it when this tick began, and how long it
 ## takes (OrbitTuning.level_time, or longer for a turn too big to make that fast within the ship's turn rates).
 var _level_to: Basis = Basis.IDENTITY
@@ -109,7 +115,7 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, leav
 		can_enter: bool, delta: float) -> void:
 	event = Event.NONE
 	if phase == Phase.OFF:
-		_offer(at, ship_velocity, nose, can_enter)
+		_offer(at, ship_velocity, nose, can_enter, delta)
 		if toggle:
 			if refusal == Refusal.NONE:
 				_enter(at, ship_velocity, nose, delta)
@@ -140,6 +146,8 @@ func stop() -> void:
 	spin = Vector3.ZERO
 	offered = null
 	refusal = Refusal.FAR
+	guiding = false
+	_guide_body = null
 
 
 ## The velocity the orbit wants for a ship at `at`: along the circle at the body's orbit speed, climbing or sinking
@@ -253,10 +261,12 @@ static func lined_up(a: Basis, b: Basis, tolerance: float) -> bool:
 	return a.z.angle_to(b.z) < tolerance and a.y.angle_to(b.y) < tolerance
 
 
-func _offer(at: Vector3, ship_velocity: Vector3, nose: Vector3, can_enter: bool) -> void:
+func _offer(at: Vector3, ship_velocity: Vector3, nose: Vector3, can_enter: bool, delta: float) -> void:
 	offered = null
 	refusal = Refusal.FAR
+	guiding = false
 	if not can_enter:
+		_guide_body = null
 		return
 	var nearest := INF
 	for b: CelestialBody in bodies:
@@ -265,15 +275,31 @@ func _offer(at: Vector3, ship_velocity: Vector3, nose: Vector3, can_enter: bool)
 			nearest = h
 			offered = b
 	if offered == null:
+		_guide_body = null
 		return
 	var out := (at - offered.global_position).normalized()
 	var line := offered.orbit_radius()
 	to_climb = offered.orbit_altitude - nearest
-	guide_axis = Orbit.plane_axis(out, ship_velocity, nose)
-	# Ahead along the orbit, as far as a climb (or descent) at insertion_climb would take to reach the line.
+	guiding = nearest >= offered.orbit_altitude * tuning.guide_floor
+	var heading := Orbit.plane_axis(out, ship_velocity, nose)
+	if offered != _guide_body:
+		guide_axis = heading
+	else:
+		var swing := guide_axis.angle_to(heading)
+		if swing > 1.0e-6:
+			var axis_of_swing := guide_axis.cross(heading)
+			if axis_of_swing.length() < 1.0e-6:
+				guide_axis = heading
+			else:
+				guide_axis = guide_axis.rotated(axis_of_swing.normalized(),
+						minf(swing, deg_to_rad(tuning.guide_swing) * delta))
+	_guide_body = offered
+	# Ahead along the orbit from the point of the line over the ship, as far as a climb (or descent) at
+	# insertion_climb would take to reach the line.
+	var over := Orbit._level(out, guide_axis).normalized()
 	var lead := maxf(absf(to_climb) / tan(deg_to_rad(tuning.insertion_climb)), tuning.insertion_lead)
 	var ahead := minf(lead / line, PI * 0.5)
-	insertion = (out * cos(ahead) + guide_axis.cross(out) * sin(ahead)) * line
+	insertion = (over * cos(ahead) + guide_axis.cross(over) * sin(ahead)) * line
 	if to_climb > offered.orbit_window:
 		refusal = Refusal.TOO_LOW
 		return
@@ -293,7 +319,11 @@ func _offer(at: Vector3, ship_velocity: Vector3, nose: Vector3, can_enter: bool)
 
 func _enter(at: Vector3, ship_velocity: Vector3, nose: Vector3, delta: float) -> void:
 	body = offered
-	axis = Orbit.plane_axis((at - body.global_position).normalized(), ship_velocity, nose)
+	# The orbit shown, turned the least to take in the ship's position.
+	var out := (at - body.global_position).normalized()
+	axis = Orbit._level(guide_axis, out).normalized()
+	if axis.length() < NEARLY_STRAIGHT:
+		axis = Orbit.plane_axis(out, ship_velocity, nose)
 	radius = body.orbit_radius()
 	phase = Phase.ENTERING
 	turning = true

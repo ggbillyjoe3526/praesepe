@@ -11,8 +11,13 @@ extends Resource
 @export var entry_accel: float = 25.0
 
 @export_group("Guide")
-## The orbit line and its insertion point show within this many times the orbit's height above the surface.
+## The orbit line and its insertion point show from this share of the orbit's height above the surface (so not on
+## take-off or landing) up to this many times it.
+@export var guide_floor: float = 0.25
 @export var guide_reach: float = 2.0
+## The line's plane follows the ship's heading, swinging no faster than this (degrees a second), so small turns and
+## wobbles leave it still and a real turn swings it smoothly round.
+@export var guide_swing: float = 15.0
 ## The insertion point sits as far ahead along the orbit as a climb (or descent) this steep (degrees) would take to
 ## reach the line, so flying at it is a gentle climb into orbit, like a launch.
 @export var insertion_climb: float = 30.0
