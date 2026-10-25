@@ -5,20 +5,22 @@ simple loan, then earn money flying jobs around one hand-built solar system: hau
 passengers and more. No survival meters, no crafting, nothing that wipes your progress. Just you, your ship and the
 next job.
 
-![The view from the cockpit at the start: Halfway Station on the left, the planet Calder ahead](images/start-cockpit.jpg)
+![The view from the cockpit just outside Halfway Station: the station on the left, the planet Calder ahead](images/start-cockpit.jpg)
 
 ## Where the game is now
 
 The game is in **early development** and there is **no download yet**. What you can do in the current build:
 
-- Fly a test ship with weighty, Newtonian flight and flight assist ([Flying](Flying)).
+- Start a new game by choosing your ship (the Hauler, for now) and fly it with weighty, Newtonian flight and flight
+  assist ([Getting Started](Getting-Started), [Flying](Flying)).
 - Cruise between places at up to 5 km/s, or aim at a place and let the ship fly you there ([Cruise Drive](Cruise-Drive)).
 - Dock at Halfway Station and land at Tollgate, with the ship flying itself in, no loading screens
   ([Docking and Landing](Docking-and-Landing)).
 - Climb to the orbit line round the planet Calder or its moon Mote and park there ([Orbit](Orbit)).
 - Visit five places: Calder, Tollgate, Mote, Halfway Station and the asteroid belt The Shingle ([Locations](Locations)).
 
-The game saves itself as you play, and a tow takes you home if you get lost. There are no jobs, money or upgrades
+The game saves itself as you play, **Continue** puts you back exactly where you saved, and a tow takes you home if you
+get lost. There are no jobs, money or upgrades
 yet. Those come next: see the [Roadmap](Roadmap).
 
 ## Start here

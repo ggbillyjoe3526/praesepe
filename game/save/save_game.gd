@@ -5,7 +5,8 @@ class_name SaveGame
 ## flies), the last port it arrived at ("home", where the tow takes it) and the ship itself ("ship": which ship, where
 ## it is in the solar system's own coordinates, which way it faces, how it moves, flight assist, and the planet or moon
 ## it is in orbit round). Money, cargo, contracts and the loan join it as they are built. The game is written on every
-## docking and landing and every few minutes in flight (Autosave).
+## docking and landing and every few minutes in flight (Autosave); Continue on the title screen reads it
+## (TitleScreen) and GameStart puts the game back as it was.
 ##
 ## Older versions are brought up to date one step at a time when read (migrate()), so every old save still loads.
 ## Version 1 (2026-10-24) held the world and the berth only.
