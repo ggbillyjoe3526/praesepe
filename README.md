@@ -59,7 +59,7 @@ Given after `--`, for example `godot --path . -- --seed 1234`.
 | Flag | What it does |
 | --- | --- |
 | `--seed <n>` (or `--seed=<n>`) | Starts the world on seed `n` (0 to 4294967295). The same seed gives the same world. Without it, each launch picks a fresh seed, shown on screen. |
-| `--smoke` | Runs the headless smoke test: an autopilot flies the ship (speeds up, turns, drifts with assist off, stops, pauses and opens each page of the settings menu), checking it and both cameras at every step (the chase camera's lag and lean, and that it never goes through a wall), then cruises to the belt, the station, the moon and the base locked onto each (checking the HUD offers it, the nose follows the course and the dashboard names the place; on the way to the station it moves the stick to release the lock), checking the drive drops out on arriving at each, then climbs from under the planet's orbit line to it (checking O is refused and no orbit prompt shows until it is close) and parks in orbit (checking it holds the line's height, speed and view and goes round slowly), leaves it (checking it levels out and doesn't sink), re-enters it, lands at the base from orbit, takes off, cruises to the station, docks and undocks, checking the ship flies itself in without a bump, then the berth and the autosave each time; then stops, saves in flight (checking it reads back with the ship where it was) and is towed home from the pause screen, checking it is docked at the station and saved there; prints `SMOKE: ok` with the belt's fingerprint and when each arrival came, then quits. It never reads or writes your settings or your saved game (its autosaves go to `smoke_savegame.json`). Use with `--fixed-fps 60` before `--`. |
+| `--smoke` | Runs the headless smoke test: an autopilot flies the ship (speeds up, turns, drifts with assist off, stops, pauses and opens each page of the settings menu), checking it and both cameras at every step (the chase camera's lag and lean, and that it never goes through a wall), then cruises to the belt, the station, the moon and the base locked onto each (checking the HUD offers it, the nose follows the course and the dashboard names the place; on the way to the station it moves the stick to release the lock), checking the drive drops out on arriving at each, then climbs from under the planet's orbit line to it (checking O is refused and no orbit prompt shows until it is close) and parks in orbit (checking it holds the line's height, speed and view and goes round slowly), leaves it (checking it levels out and doesn't sink), re-enters it and leaves again with X, cruises to the base and lands there, takes off, cruises to the station, docks (settling onto the bay's floor) and undocks, checking the ship flies itself in without a bump, then the berth and the autosave each time; then stops, saves in flight (checking it reads back with the ship where it was) and is towed home from the pause screen, checking it is docked at the station and saved there; prints `SMOKE: ok` with the belt's fingerprint and when each arrival came, then quits. It never reads or writes your settings or your saved game (its autosaves go to `smoke_savegame.json`). Use with `--fixed-fps 60` before `--`. |
 | `--nav` | With `--smoke`: the nav computer flies instead (`game/debug/nav_smoke_run.gd`). It checks the screen opens on the dashboard and as the chase view's card, then gives it orders the way a player would: dock at the station, then, while the ship is being taken in, land at the base instead (it docks, undocks, cruises and lands) (moving the stick on the way, checking that pauses the plan, then carrying on), take off and orbit the moon, and a queued plan; prints `SMOKE NAV: ok` with when each plan finished, then quits. |
 | `--perf` | Logs draw calls and node counts every 2 s and a summary at exit (the F3 overlay's numbers). |
 
@@ -70,8 +70,9 @@ Given after `--`, for example `godot --path . -- --seed 1234`.
 | `tools/unit_tests.sh` | The Gut unit tests in `test/unit/`. |
 | `gdlint game test tools` | Code style ([gdtoolkit](https://github.com/Scony/godot-gdscript-toolkit) 4.5.0). |
 | `tools/changelog.sh check` | The changelog notes in `changelog.d/`. |
+| `python3 tools/wiki.py check` | The player wiki in `docs/wiki/`: links, pictures, the sidebar, and every place in the game mentioned on a page. `python3 tools/wiki.py build build/wiki` previews the published pages. |
 
-CI runs all four on every pull request. Set `GODOT=/path/to/godot` if `godot` isn't on your PATH.
+CI runs all five on every pull request (the wiki check in the Wiki workflow, which also publishes the wiki on every merge to `main`). Set `GODOT=/path/to/godot` if `godot` isn't on your PATH.
 
 ## Layout
 | Path | What lives there |
@@ -89,8 +90,9 @@ CI runs all four on every pull request. Set `GODOT=/path/to/godot` if `godot` is
 | `game/main/` | The first scene. |
 | `game/debug/` | The smoke test autopilot and the F3 overlay. |
 | `test/unit/` | Unit tests. |
-| `tools/` | Test and changelog scripts. |
+| `tools/` | Test, changelog and wiki scripts. |
 | `addons/gut/` | The Gut test framework (tests only, never shipped). |
+| `docs/wiki/` | The player wiki, one page per file, published to the [GitHub wiki](https://github.com/ggbillyjoe3526/project-praesepe/wiki) on every merge to `main`. Its `README.md` has the conventions. |
 | `changelog.d/` | One changelog note per pull request, gathered into `CHANGELOG.md` at release. |
 
 Saves (`savegame.json`, written on every docking and landing) and settings (`settings.json`) go to the user folder `ProjectPraesepe` (on Windows, `%APPDATA%\Godot\app_userdata\ProjectPraesepe`).
