@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=31 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_ship.tscn" id="2_ship"]
@@ -19,7 +19,6 @@
 [ext_resource type="Script" path="res://game/hud/landmark_markers.gd" id="17_markers"]
 [ext_resource type="Script" path="res://game/arrival/arrivals.gd" id="18_arrivals"]
 [ext_resource type="Resource" path="res://game/arrival/arrival_tuning.tres" id="19_arrival_tuning"]
-[ext_resource type="Script" path="res://game/ui/transition_screen.gd" id="20_transition"]
 [ext_resource type="Script" path="res://game/hud/action_prompts.gd" id="21_prompts"]
 [ext_resource type="Script" path="res://game/save/autosave.gd" id="22_autosave"]
 
@@ -125,10 +124,9 @@ script = ExtResource("8_pilot")
 ship = NodePath("../World/Ship")
 controls = ExtResource("9_controls")
 
-[node name="Arrivals" type="Node" parent="." node_paths=PackedStringArray("ship", "transition")]
+[node name="Arrivals" type="Node" parent="." node_paths=PackedStringArray("ship")]
 script = ExtResource("18_arrivals")
 ship = NodePath("../World/Ship")
-transition = NodePath("../TransitionScreen")
 tuning = ExtResource("19_arrival_tuning")
 
 [node name="Autosave" type="Node" parent="."]
@@ -257,9 +255,6 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
-
-[node name="TransitionScreen" type="CanvasLayer" parent="."]
-script = ExtResource("20_transition")
 
 [node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls")]
 script = ExtResource("11_pause")

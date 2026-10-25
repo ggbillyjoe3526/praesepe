@@ -2,10 +2,11 @@ class_name ActionPrompts
 extends Control
 ## The HUD's prompts for docking, landing and orbit (design doc, "Docking and landing", "Orbit"), so the player always
 ## knows what they can do here and what to do first: "G  Dock at Halfway Station", "Slow below 100 m/s to land at
-## Tollgate", "O  Enter orbit round Calder", "G  Undock", and "F  Cruise to Mote" while the nose is aimed at a place
-## the cruise drive would lock onto (not while docking or landing is offered). Up to three lines on a dark plate a little under the middle of the view, hidden
-## when there is nothing to say. Each line is rebuilt only when what it says changes (a distance, as
-## shown, counts). Placeholder look until the art style is chosen.
+## Tollgate", "O  Enter orbit round Calder", "Docking at Halfway Station  ·  G to cancel", "G  Undock", and "F  Cruise
+## to Mote" while the nose is aimed at a place the cruise drive would lock onto (not while docking or landing is
+## offered). Up to three lines on a dark plate a little under the middle of the view, hidden when there is nothing to
+## say. Each line is rebuilt only when what it says changes (a distance, as shown, counts). Placeholder look until the
+## art style is chosen.
 
 const FONT_SIZE := 26
 const GAP := 6
@@ -75,6 +76,8 @@ static func port_text(stage: Arrivals.Stage, p: Port, why: Arrivals.Refusal, dis
 		return ""
 	var dock := p.kind == Port.Kind.DOCK
 	match stage:
+		Arrivals.Stage.APPROACHING:
+			return ("Docking at %s   ·   G to cancel" if dock else "Landing at %s   ·   G to cancel") % p.place_name()
 		Arrivals.Stage.DOCKED:
 			return "G   Undock" if dock else "G   Take off"
 		Arrivals.Stage.FLYING:

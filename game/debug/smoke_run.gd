@@ -23,11 +23,12 @@ extends Node
 ##
 ## Then it parks in orbit, lands, takes off, docks and undocks: it cruises to Calder, presses O and checks the ship
 ## settles into orbit at the orbit's speed and holds its height and its view of the planet; O leaves orbit and flight
-## assist carries on; O again re-enters it, and G lands at Tollgate from orbit, through the transition screen, the
-## ship held still on the pad and the game autosaved (to the smoke test's own file, read back to check). G takes off,
-## the ship climbs clear of the base and cruises to Halfway Station, slows down, docks (saved again) and undocks out
-## of the bay. The result line names the belt's fingerprint and when each arrival, the orbit, the landing and the
-## docking came, so a second run on the same seed must match it exactly.
+## assist carries on; O again re-enters it, and G lands at Tollgate from orbit: the ship flies itself round the planet
+## and down onto the pad with no fade and no bump, is held still there, the HUD says so and the game is autosaved (to
+## the smoke test's own file, read back to check). G takes off, the ship climbs clear of the base and cruises to
+## Halfway Station, slows down, docks the same way, flying itself into the bay (saved again), and undocks out of it.
+## The result line names the belt's fingerprint and when each arrival, the orbit, the landing and the docking came
+## (and how long flying in took), so a second run on the same seed must match it exactly.
 ##
 ## Ticks are physics ticks at 60 Hz. tools/smoke_test.sh runs with `--fixed-fps 60`, so a run is the same every time
 ## and finishes as fast as the machine allows.
@@ -79,7 +80,8 @@ const ORBIT_WATCH := 900
 const AFTER_ORBIT := 300
 ## How long (ticks) levelling out to leave orbit may take.
 const LEVEL_LIMIT := 300
-## How long (ticks) docking or landing may take, from G to the view being back, and leaving.
+## How long (ticks) the ship may take to fly itself in, from G to its berth, and to leave.
+const APPROACH_LIMIT_IN := 7200
 const ARRIVAL_LIMIT := 600
 ## How long (ticks) the ship is watched sitting at its berth.
 const BERTH_WATCH := 60
@@ -96,7 +98,7 @@ var cameras: ShipCameras
 var system: SolarSystem
 var arrivals: Arrivals
 var autosave: Autosave
-var transition: TransitionScreen
+var hud: FlightHud
 
 var _frames: int = 0
 var _phase: int = 0
@@ -565,8 +567,8 @@ func _view_angle(body: CelestialBody) -> float:
 	return rad_to_deg(_forward().angle_to(body.global_position - ship.global_position))
 
 
-## O again, then G once landing at Tollgate is offered: the transition screen runs and the ship ends up held still on
-## the pad, the game saved there.
+## O again, then G once landing at Tollgate is offered: the ship flies itself down and ends up held still on the pad,
+## the game saved there.
 func _land_from_orbit(input: ShipInput) -> void:
 	var tollgate := system.port(&"tollgate")
 	match _stage:
@@ -586,24 +588,27 @@ func _land_from_orbit(input: ShipInput) -> void:
 				_stage = 2
 				_phase_ticks = 0
 		2:
-			if _await_berth(tollgate, "Landed at Tollgate", FlightHud.Mode.LANDED, "G   Take off"):
+			if _await_berth(tollgate, FlightHud.arrival_message(tollgate, 1), FlightHud.Mode.LANDED, "G   Take off"):
 				_stage = 0
 				_next()
 
 
-## Waits for the ship to arrive at `port` and the view to come back, then checks it is held still there, the screen
-## said `words`, the dashboard shows `mode`, the prompt offers `leave_prompt`, and the game was saved there. True when
-## done (or given up on).
+## Waits for the ship to fly itself in to `port`, then checks it is held still there, the HUD says `words`, the
+## dashboard shows `mode`, the prompt offers `leave_prompt`, and the game was saved there. True when done (or given up
+## on).
 func _await_berth(port: Port, words: String, mode: FlightHud.Mode, leave_prompt: String) -> bool:
 	if _at_berth:
-		return _berth_watch(port)
+		return _berth_watch(port, words)
 	if _phase_ticks == 1:
-		_expect(arrivals.stage == Arrivals.Stage.ARRIVING, "starts the transition to %s (stage %d)" % [port.place_name(),
-				arrivals.stage])
-	if arrivals.stage == Arrivals.Stage.SETTLING and _phase_ticks < ARRIVAL_LIMIT:
-		_expect(transition.cover > 0.99 or _arrived_at == port, "is covered by the transition screen")
+		_expect(arrivals.stage == Arrivals.Stage.APPROACHING and ship.bound_for == port,
+				"starts flying itself in to %s (stage %d)" % [port.place_name(), arrivals.stage])
+	if arrivals.stage == Arrivals.Stage.APPROACHING:
+		_expect(ship.jolt < 0.5, "flies in to %s without a bump (%.2f m/s)" % [port.place_name(), ship.jolt])
 	if arrivals.stage != Arrivals.Stage.DOCKED:
-		if _phase_ticks >= ARRIVAL_LIMIT:
+		if arrivals.stage == Arrivals.Stage.FLYING:
+			_expect(false, "keeps flying in to %s (stopped after %d ticks)" % [port.place_name(), _phase_ticks])
+			return true
+		if _phase_ticks >= APPROACH_LIMIT_IN:
 			_expect(false, "arrives at %s in time (stage %d)" % [port.place_name(), arrivals.stage])
 			return true
 		return false
@@ -612,24 +617,25 @@ func _await_berth(port: Port, words: String, mode: FlightHud.Mode, leave_prompt:
 	var turned := rad_to_deg(ship.global_basis.z.angle_to(port.global_basis.z))
 	_expect(off < 0.01 and turned < 0.1, "is placed at the berth (%.3f m, %.2f degrees off)" % [off, turned])
 	_expect(not ship.orbit.active() and not ship.cruise.active(), "stops the orbit and the cruise drive")
-	_expect(transition.shown()[0] == words and transition.shown()[1] == TransitionScreen.saved_text(true),
-			"says where it arrived and that the game saved (%s / %s)" % [transition.shown()[0], transition.shown()[1]])
-	_expect(not transition.visible, "brings the view back")
 	var shown := (ship.get_node(^"Cockpit") as CockpitDisplay).shown()
 	_expect(shown[1] == FlightHud.mode_text(mode, 0), "shows it on the dashboard (%s)" % shown[1])
 	_expect(ActionPrompts.port_text(arrivals.stage, arrivals.port, arrivals.refusal, 0.0) == leave_prompt,
 			"offers to leave (%s)" % leave_prompt)
 	_check_save(port)
-	_arrivals.append("%s:%s@%d" % ["dock" if port.kind == Port.Kind.DOCK else "land", String(port.id), _frames])
+	# Where, when, and how many ticks it took to fly in.
+	_arrivals.append("%s:%s@%d/%d" % ["dock" if port.kind == Port.Kind.DOCK else "land", String(port.id), _frames,
+			_phase_ticks])
 	_at_berth = true
 	_phase_ticks = 0
 	return false
 
 
-## Watches the ship sit still at its berth for a moment. True when done.
-func _berth_watch(port: Port) -> bool:
+## Watches the ship sit still at its berth for a moment; once the HUD has caught up, it says `words`. True when done.
+func _berth_watch(port: Port, words: String) -> bool:
 	_expect(ship.speed() == 0.0 and ship.global_position.distance_to(port.global_position) < 0.01,
 			"sits still at %s" % port.place_name())
+	if _phase_ticks == 2:
+		_expect(hud.toast_text() == words, "says where it arrived and that the game saved (%s)" % hud.toast_text())
 	if _phase_ticks < BERTH_WATCH:
 		return false
 	_at_berth = false
@@ -702,7 +708,7 @@ func _dock_at_station(input: ShipInput) -> void:
 				_stage = 0
 				_next()
 		1:
-			if _await_berth(dock, "Docked at Halfway Station", FlightHud.Mode.DOCKED, "G   Undock"):
+			if _await_berth(dock, FlightHud.arrival_message(dock, 1), FlightHud.Mode.DOCKED, "G   Undock"):
 				_stage = 0
 				_next()
 

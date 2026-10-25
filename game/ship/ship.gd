@@ -10,8 +10,9 @@ extends RigidBody3D
 ## nose to follow its course, until the pilot moves the mouse. In orbit (Orbit) the orbit sets its velocity the same
 ## way and the ship's attitude turns with the orbit; O or a thrust key leaves orbit once the nose has come up level, X
 ## or Z at once, and then they work as usual.
-## Docked or landed (Arrivals) it is held still at its berth and ignores its input; leaving, Arrivals guides it out at a
-## set velocity before handing it back to the pilot.
+## Docking or landing (Arrivals), it flies itself in: Arrivals guides it at a set velocity and spin each tick while it
+## ignores its input. Docked or landed it is held still at its berth; leaving, Arrivals guides it out again before
+## handing it back to the pilot.
 
 signal assist_changed(on: bool)
 ## The cruise drive charged, engaged, refused or dropped out (CruiseDrive.Event), at `place` where there is one.
@@ -36,10 +37,15 @@ var orbit: Orbit
 var jolt: float = 0.0
 ## Where the ship is docked or landed, or is leaving from, or null while it flies.
 var berth: Port = null
-## True while Arrivals guides the ship out of its berth at `guided_velocity`.
+## Where Arrivals is flying the ship in to, or null.
+var bound_for: Port = null
+## True while Arrivals guides the ship (in to its berth or out of it) at `guided_velocity` and `guided_spin`.
 var guided: bool = false
 var guided_velocity: Vector3 = Vector3.ZERO
+var guided_spin: Vector3 = Vector3.ZERO
 var _expected_velocity: Vector3 = Vector3.ZERO
+## The speed (m/s) it touched its berth at, felt as a bump on the next tick.
+var _touch: float = 0.0
 
 
 func _ready() -> void:
@@ -57,7 +63,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if berth != null or guided:
-		_held()
+		_held(delta)
 		return
 	# Nothing but a collision changes the velocity between the last tick's thrust and now.
 	jolt = linear_velocity.distance_to(_expected_velocity)
@@ -126,28 +132,34 @@ func _step_orbit(delta: float) -> void:
 		input.turn = orbit.turn_for(global_basis, global_position, input.turn, tuning.max_rates())
 
 
-## Docked, landed or being guided out: no flight, no bumps, nothing from the input. The one-shots are dropped so a key
-## pressed while docked does nothing once the ship flies again.
-func _held() -> void:
-	jolt = 0.0
+## Docked, landed or being guided in or out: no flight and nothing from the input. The one-shots are dropped so a key
+## pressed meanwhile does nothing once the ship flies again. While guided, a bump still shows (as `jolt`), and the
+## guiding's push counts as the thrusters', so the pilot's head sways and the engines rumble as in flight.
+func _held(delta: float) -> void:
+	jolt = linear_velocity.distance_to(_expected_velocity) if guided else _touch
+	_touch = 0.0
 	input.toggle_assist = false
 	input.toggle_cruise = false
 	input.toggle_orbit = false
 	input.full_stop = false
-	model.linear_accel = Vector3.ZERO
-	model.angular_accel = Vector3.ZERO
+	var before := _expected_velocity
 	linear_velocity = guided_velocity if guided else Vector3.ZERO
-	angular_velocity = Vector3.ZERO
+	angular_velocity = guided_spin if guided else Vector3.ZERO
+	var push := global_basis.transposed() * (linear_velocity - before) / delta
+	model.linear_accel = Vector3(push.x, push.y, -push.z)
+	model.angular_accel = Vector3.ZERO
 	_expected_velocity = linear_velocity
 
 
 ## Holds the ship still at `port`, as Arrivals.arrive() does on docking or landing: placed at its berth, the cruise
-## drive and any orbit stopped, flight assist on and holding zero.
-func hold_at(port: Port) -> void:
+## drive and any orbit stopped, flight assist on and holding zero. It touched down at `touch` m/s, felt as a soft bump.
+func hold_at(port: Port, touch: float = 0.0) -> void:
 	cruise.stop()
 	orbit.stop()
 	berth = port
+	bound_for = null
 	guided = false
+	_touch = touch
 	global_transform = port.global_transform
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
@@ -158,17 +170,30 @@ func hold_at(port: Port) -> void:
 	reset_physics_interpolation()
 
 
-## Moves the ship at `velocity` (world space) with no turning while it is guided out of its berth.
-func guide(velocity: Vector3) -> void:
+## Starts flying the ship in to `port` (Arrivals): the cruise drive and any orbit stop, and from now on it goes as it
+## is guided, carrying on as it was until then.
+func approach(port: Port) -> void:
+	cruise.stop()
+	orbit.stop()
+	bound_for = port
+	_expected_velocity = linear_velocity
+	guide(linear_velocity, angular_velocity)
+
+
+## Moves the ship at `velocity` (world space), spinning at `spin`, while it is guided in to its berth or out of it.
+func guide(velocity: Vector3, spin: Vector3 = Vector3.ZERO) -> void:
 	guided = true
 	guided_velocity = velocity
+	guided_spin = spin
 
 
-## Hands the ship back to the pilot after guiding it out, moving at `velocity` (world space): flight assist on,
-## holding its forward speed.
+## Hands the ship back to the pilot after guiding it out (or when the way in is cancelled), moving at `velocity`
+## (world space) and still turning as it was: flight assist on, holding its forward speed.
 func release(velocity: Vector3) -> void:
 	berth = null
+	bound_for = null
 	guided = false
+	guided_spin = Vector3.ZERO
 	linear_velocity = velocity
 	_expected_velocity = velocity
 	model.set_assist(true, 0.0)

@@ -449,3 +449,7 @@ hint_range = 3500.0
 max_speed = 100.0
 exit_distance = 60.0
 exit_speed = 25.0
+approach_distance = 220.0
+turn_round_at = 15.0
+lane = Vector2(25, 17)
+lane_behind = 25.0
