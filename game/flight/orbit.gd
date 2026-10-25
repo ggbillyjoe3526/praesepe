@@ -6,8 +6,13 @@ extends RefCounted
 ## speed plus a gentle climb or sink to the orbit's height. The ship's attitude turns with the orbit (`spin`), so a
 ## view of the planet below stays put while the ground slides past; the mouse still turns the ship within that.
 ##
-## The orbit runs the way the ship was heading, at the height where it levels out (kept within the body's orbit
-## heights).
+## Each planet and moon has one orbit line, up in space at its orbit height (CelestialBody.orbit_altitude). Between
+## OrbitTuning.guide_floor and guide_reach of that height the orbit shows the way there (`guiding`): the line round
+## the body in the plane the ship would go round in (`guide_axis`, the way the ship is heading, swinging no faster than
+## OrbitTuning.guide_swing so small turns leave it still), and an insertion point on it ahead (`insertion`), as far
+## along as a gentle climb or descent would take to reach it. O enters that orbit, the one shown. Entering is offered only close to the line (within
+## CelestialBody.orbit_window above or below), never near the surface; the orbit then runs the way the ship was
+## heading, and the ship settles onto the line.
 ## Entering, the ship's velocity swings onto the circle no faster than OrbitTuning.entry_accel, and the ship turns to
 ## face along it with the planet below, unless the pilot moves the mouse. O again or a thrust key leaves orbit gently:
 ## the ship carries straight on at the velocity it had while its nose comes up level along it
@@ -31,8 +36,10 @@ enum Event {
 enum Refusal {
 	NONE,
 	TOO_FAST, ## Faster than OrbitTuning.max_entry_speed.
-	TOO_STEEP, ## Heading down too fast to level out above the surface.
+	TOO_STEEP, ## Climbing or diving too fast to level out before leaving the orbit's window.
 	FAR, ## No planet or moon near enough.
+	TOO_LOW, ## Below the orbit line's window: climb `to_climb` metres to the line.
+	TOO_HIGH, ## Above it: descend.
 }
 
 ## A stick pushed further than this (of a full push) while the ship turns to face along the orbit hands the view
@@ -42,6 +49,9 @@ const STICK_TAKES_OVER := 0.15
 const BARELY_MOVING := 1.0
 ## A direction with less than this (of its length) left after levelling was straight up or down.
 const NEARLY_STRAIGHT := 0.01
+## Heading this close to straight up or down (share of its length left after levelling, about 6 degrees), the orbit
+## goes round the way the nose points instead, so a ship climbing straight up still has a steady orbit to aim for.
+const NEARLY_UPRIGHT := 0.1
 
 var tuning: OrbitTuning
 ## Every planet and moon in the solar system (SolarSystem.bodies).
@@ -60,9 +70,21 @@ var spin: Vector3 = Vector3.ZERO
 ## Still turning the ship to face along the orbit.
 var turning: bool = false
 var event: Event = Event.NONE
-## Out of orbit: the nearest planet or moon close enough to orbit, or null, and whether it can be entered now.
+## Out of orbit: the nearest planet or moon close enough to show its orbit line, or null, and whether its orbit can
+## be entered now.
 var offered: CelestialBody = null
 var refusal: Refusal = Refusal.FAR
+## With an orbit offered: the axis (unit) the ship would go round, the insertion point on the orbit line (m from the
+## body's centre, so a floating origin shift never leaves it behind), and how far (m) the line is above the ship
+## (below it when negative).
+var guide_axis: Vector3 = Vector3.UP
+var insertion: Vector3 = Vector3.ZERO
+var to_climb: float = 0.0
+## Whether the orbit line and its insertion point are shown: high enough above the surface (OrbitTuning.guide_floor),
+## so they never clutter a take-off or a landing.
+var guiding: bool = false
+## The body the guide was last worked out for, so a new one starts from the ship's heading.
+var _guide_body: CelestialBody = null
 ## Leaving: the attitude the ship levels out to, how long (s) it had been at it when this tick began, and how long it
 ## takes (OrbitTuning.level_time, or longer for a turn too big to make that fast within the ship's turn rates).
 var _level_to: Basis = Basis.IDENTITY
@@ -93,7 +115,7 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, leav
 		can_enter: bool, delta: float) -> void:
 	event = Event.NONE
 	if phase == Phase.OFF:
-		_offer(at, ship_velocity, can_enter)
+		_offer(at, ship_velocity, nose, can_enter, delta)
 		if toggle:
 			if refusal == Refusal.NONE:
 				_enter(at, ship_velocity, nose, delta)
@@ -124,10 +146,12 @@ func stop() -> void:
 	spin = Vector3.ZERO
 	offered = null
 	refusal = Refusal.FAR
+	guiding = false
+	_guide_body = null
 
 
 ## The velocity the orbit wants for a ship at `at`: along the circle at the body's orbit speed, climbing or sinking
-## toward the orbit's height and back into its plane.
+## toward the orbit line and back into its plane.
 func orbit_velocity(at: Vector3) -> Vector3:
 	var r := at - body.global_position
 	var d := r.length()
@@ -154,7 +178,8 @@ func facing(at: Vector3) -> Basis:
 
 ## The turn (pilot frame, each axis -1 to 1) for a ship whose attitude is `ship_basis`, with full-stick turn rates
 ## `rates` (rad/s), given the pilot's own `pilot_turn`. While the orbit is still turning the ship to face along it and
-## the pilot leaves the stick alone, it steers; once lined up, or once the pilot pushes the stick, the pilot's turn is
+## the pilot leaves the stick alone, it steers, all the way while the ship climbs or sinks onto the line (the
+## horizon's dip changes with height); once lined up in orbit, or once the pilot pushes the stick, the pilot's turn is
 ## used as it is.
 func turn_for(ship_basis: Basis, at: Vector3, pilot_turn: Vector3, rates: Vector3) -> Vector3:
 	if phase == Phase.LEAVING and pilot_turn.length() > STICK_TAKES_OVER:
@@ -165,7 +190,7 @@ func turn_for(ship_basis: Basis, at: Vector3, pilot_turn: Vector3, rates: Vector
 		turning = false
 		return pilot_turn
 	var target := facing(at)
-	if Orbit.lined_up(ship_basis, target, deg_to_rad(tuning.turn_tolerance)):
+	if phase != Phase.ENTERING and Orbit.lined_up(ship_basis, target, deg_to_rad(tuning.turn_tolerance)):
 		turning = false
 		return pilot_turn
 	return Orbit.steer(ship_basis, target, rates, tuning.turn_time)
@@ -177,10 +202,8 @@ func turn_for(ship_basis: Basis, at: Vector3, pilot_turn: Vector3, rates: Vector
 func level_spin(ship_basis: Basis, rates: Vector3, delta: float) -> Vector3:
 	if phase != Phase.LEAVING:
 		return Vector3.ZERO
-	var q := Quaternion(_level_to * ship_basis.orthonormalized().inverse()).normalized()
-	if q.w < 0.0:
-		q = -q
-	var angle := q.get_angle()
+	var turn := Orbit.rotation_of(Quaternion(_level_to * ship_basis.orthonormalized().inverse()))
+	var angle := turn.length()
 	if not _level_sized:
 		_level_sized = true
 		# Easing in and out, the turn is fastest halfway, at 1.5 times its average rate.
@@ -191,22 +214,46 @@ func level_spin(ship_basis: Basis, rates: Vector3, delta: float) -> Vector3:
 	var after := smoothstep(0.0, 1.0, (_levelled_for + delta) / _level_time)
 	# The share of the turn still to go that this tick covers.
 	var share := 1.0 if before >= 1.0 else (after - before) / (1.0 - before)
-	return q.get_axis() * angle * share / delta
+	return turn * share / delta
 
 
 ## The turn that brings `from` round to `to`: a rate on each axis that would close its angle in `time` seconds, as a
 ## share of the full-stick `rates`. Worked out from the one rotation between them, so a big turn (nose down at the
 ## planet, wings level with the old heading) goes the short way round without the axes fighting each other.
 static func steer(from: Basis, to: Basis, rates: Vector3, time: float) -> Vector3:
-	var q := Quaternion(from.transposed() * to).normalized()
-	if q.w < 0.0:
-		q = -q
-	var angle := q.get_angle()
-	var turn := q.get_axis() * angle if angle > 1.0e-6 else Vector3.ZERO
+	var turn := Orbit.rotation_of(Quaternion(from.transposed() * to))
 	# In the ship's own axes: pitch up is about +x, yaw right about -y, roll right about -z.
 	var want := Vector3(turn.x, -turn.y, -turn.z) / time
 	return Vector3(clampf(want.x / rates.x, -1.0, 1.0), clampf(want.y / rates.y, -1.0, 1.0),
 			clampf(want.z / rates.z, -1.0, 1.0))
+
+
+## The axis (unit) an orbit round a body would go round, for a ship `out` (unit) from its centre, moving at
+## `ship_velocity` with its nose pointing `nose` (unit): the way it is moving, or the way its nose points when it is
+## barely moving or heading nearly straight up or down; a ship pointing straight at the body too goes round its
+## equator.
+static func plane_axis(out: Vector3, ship_velocity: Vector3, nose: Vector3) -> Vector3:
+	var along := Vector3.ZERO
+	if ship_velocity.length() > BARELY_MOVING:
+		along = Orbit._level(ship_velocity.normalized(), out)
+	if along.length() < NEARLY_UPRIGHT:
+		along = Orbit._level(nose, out)
+	if along.length() < NEARLY_STRAIGHT:
+		along = Orbit._level(Vector3.FORWARD if absf(out.y) > 0.9 else Vector3.UP.cross(out), out)
+	return out.cross(along.normalized()).normalized()
+
+
+## The rotation `q` as its axis times its angle (rad), the short way round. Exact for small turns too, where
+## Quaternion.get_axis() stops normalising (under about half a degree) and would all but stop a steer short.
+static func rotation_of(q: Quaternion) -> Vector3:
+	q = q.normalized()
+	if q.w < 0.0:
+		q = -q
+	var v := Vector3(q.x, q.y, q.z)
+	var s := v.length()
+	if s < 1.0e-9:
+		return Vector3.ZERO
+	return v / s * 2.0 * atan2(s, q.w)
 
 
 ## Whether `a` and `b` face the same way, tops and noses within `tolerance` radians.
@@ -214,42 +261,70 @@ static func lined_up(a: Basis, b: Basis, tolerance: float) -> bool:
 	return a.z.angle_to(b.z) < tolerance and a.y.angle_to(b.y) < tolerance
 
 
-func _offer(at: Vector3, ship_velocity: Vector3, can_enter: bool) -> void:
+func _offer(at: Vector3, ship_velocity: Vector3, nose: Vector3, can_enter: bool, delta: float) -> void:
 	offered = null
 	refusal = Refusal.FAR
+	guiding = false
 	if not can_enter:
+		_guide_body = null
 		return
 	var nearest := INF
 	for b: CelestialBody in bodies:
 		var h := b.surface_distance(at)
-		if h <= b.orbit_max_altitude and h < nearest:
+		if h <= b.orbit_altitude * tuning.guide_reach and h < nearest:
 			nearest = h
 			offered = b
 	if offered == null:
+		_guide_body = null
+		return
+	var out := (at - offered.global_position).normalized()
+	var line := offered.orbit_radius()
+	to_climb = offered.orbit_altitude - nearest
+	guiding = nearest >= offered.orbit_altitude * tuning.guide_floor
+	var heading := Orbit.plane_axis(out, ship_velocity, nose)
+	if offered != _guide_body:
+		guide_axis = heading
+	else:
+		var swing := guide_axis.angle_to(heading)
+		if swing > 1.0e-6:
+			var axis_of_swing := guide_axis.cross(heading)
+			if axis_of_swing.length() < 1.0e-6:
+				guide_axis = heading
+			else:
+				guide_axis = guide_axis.rotated(axis_of_swing.normalized(),
+						minf(swing, deg_to_rad(tuning.guide_swing) * delta))
+	_guide_body = offered
+	# Ahead along the orbit from the point of the line over the ship, as far as a climb (or descent) at
+	# insertion_climb would take to reach the line.
+	var over := Orbit._level(out, guide_axis).normalized()
+	var lead := maxf(absf(to_climb) / tan(deg_to_rad(tuning.insertion_climb)), tuning.insertion_lead)
+	var ahead := minf(lead / line, PI * 0.5)
+	insertion = (over * cos(ahead) + guide_axis.cross(over) * sin(ahead)) * line
+	if to_climb > offered.orbit_window:
+		refusal = Refusal.TOO_LOW
+		return
+	if to_climb < -offered.orbit_window:
+		refusal = Refusal.TOO_HIGH
 		return
 	refusal = Refusal.NONE
 	if ship_velocity.length() > tuning.max_entry_speed:
 		refusal = Refusal.TOO_FAST
 		return
-	# Heading down: the swing onto the orbit must stop the fall before the surface.
-	var sinking := -ship_velocity.dot((at - offered.global_position).normalized())
-	if sinking > 0.0 and nearest - sinking * sinking / (2.0 * tuning.entry_accel) < tuning.entry_clearance:
+	# The swing onto the orbit must stop a climb or a dive before it carries the ship out of the window.
+	var rising := ship_velocity.dot(out)
+	var overshoot := rising * absf(rising) / (2.0 * tuning.entry_accel)
+	if absf(overshoot - to_climb) > offered.orbit_window:
 		refusal = Refusal.TOO_STEEP
 
 
 func _enter(at: Vector3, ship_velocity: Vector3, nose: Vector3, delta: float) -> void:
 	body = offered
-	var r := at - body.global_position
-	var out := r.normalized()
-	# Round the way the ship is heading: its motion, or its nose when it is barely moving or heading straight up or
-	# down; a ship pointing straight at the body too goes round its equator.
-	var along := Orbit._level(ship_velocity if ship_velocity.length() > BARELY_MOVING else nose, out)
-	if along.length() < NEARLY_STRAIGHT:
-		along = Orbit._level(nose, out)
-	if along.length() < NEARLY_STRAIGHT:
-		along = Orbit._level(Vector3.FORWARD if absf(out.y) > 0.9 else Vector3.UP.cross(out), out)
-	axis = out.cross(along.normalized()).normalized()
-	radius = clampf(r.length(), body.radius + body.orbit_min_altitude, body.radius + body.orbit_max_altitude)
+	# The orbit shown, turned the least to take in the ship's position.
+	var out := (at - body.global_position).normalized()
+	axis = Orbit._level(guide_axis, out).normalized()
+	if axis.length() < NEARLY_STRAIGHT:
+		axis = Orbit.plane_axis(out, ship_velocity, nose)
+	radius = body.orbit_radius()
 	phase = Phase.ENTERING
 	turning = true
 	event = Event.ENTERING
@@ -260,10 +335,6 @@ func _enter(at: Vector3, ship_velocity: Vector3, nose: Vector3, delta: float) ->
 func _hold(at: Vector3, ship_velocity: Vector3, delta: float) -> void:
 	var r := at - body.global_position
 	var d := r.length()
-	if phase == Phase.ENTERING:
-		# Until the swing is over, the orbit's height is wherever the ship has levelled out (within the body's orbit
-		# heights), so a ship coming in steeply settles a little lower rather than diving and climbing back.
-		radius = clampf(d, body.radius + body.orbit_min_altitude, body.radius + body.orbit_max_altitude)
 	var target := orbit_velocity(at)
 	if phase == Phase.ENTERING:
 		velocity = ship_velocity.move_toward(target, tuning.entry_accel * delta)

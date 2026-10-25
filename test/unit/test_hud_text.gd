@@ -70,6 +70,28 @@ func test_every_orbit_event_has_words() -> void:
 			assert_ne(words, "", Orbit.Event.keys()[event])
 	assert_string_contains(FlightHud.orbit_message(Orbit.Event.REFUSED, "Calder", Orbit.Refusal.TOO_FAST), "Too fast")
 	assert_string_contains(FlightHud.orbit_message(Orbit.Event.REFUSED, "", Orbit.Refusal.FAR), "Nothing to orbit")
+	assert_eq(FlightHud.orbit_message(Orbit.Event.REFUSED, "Calder", Orbit.Refusal.TOO_LOW, 1240.0),
+			"Climb 1.2 km to Calder's orbit line first")
+	assert_eq(FlightHud.orbit_message(Orbit.Event.REFUSED, "Mote", Orbit.Refusal.TOO_HIGH, -800.0),
+			"Descend 800 m to Mote's orbit line first")
+
+
+func test_the_insertion_marker_says_how_far_to_the_orbit_line() -> void:
+	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_LOW, 1240.0), "Orbit  ·  climb 1.2 km")
+	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_HIGH, -2510.0), "Orbit  ·  descend 2.5 km")
+	assert_eq(OrbitMarker.label_text(Orbit.Refusal.NONE, 30.0), "Orbit", "close enough: the prompt says O")
+	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_FAST, 30.0), "Orbit  ·  slow down")
+	assert_eq(OrbitMarker.label_text(Orbit.Refusal.TOO_STEEP, 30.0), "Orbit  ·  level out")
+	# The key changes exactly when the words do.
+	var cases := [[Orbit.Refusal.TOO_LOW, 1240.0], [Orbit.Refusal.TOO_LOW, 1210.0], [Orbit.Refusal.TOO_LOW, 1260.0],
+			[Orbit.Refusal.TOO_HIGH, -1240.0], [Orbit.Refusal.TOO_HIGH, -800.0], [Orbit.Refusal.NONE, 30.0],
+			[Orbit.Refusal.NONE, 500.0], [Orbit.Refusal.TOO_FAST, 30.0], [Orbit.Refusal.TOO_STEEP, 30.0]]
+	var words := {}
+	var keys := {}
+	for c: Array in cases:
+		words[OrbitMarker.label_text(c[0], c[1])] = true
+		keys[OrbitMarker.label_key(c[0], c[1])] = true
+	assert_eq(keys.size(), words.size(), "%d labels" % words.size())
 
 
 func test_the_prompts_say_what_to_do_next() -> void:
@@ -108,6 +130,8 @@ func test_the_prompts_say_what_to_do_next() -> void:
 	assert_eq(ActionPrompts.orbit_text(Orbit.Phase.ORBITING, calder, Orbit.Refusal.NONE, 250.0),
 			"O   Leave orbit round Calder")
 	assert_eq(ActionPrompts.orbit_text(off, null, Orbit.Refusal.FAR, 250.0), "")
+	assert_eq(ActionPrompts.orbit_text(off, calder, Orbit.Refusal.TOO_LOW, 250.0), "", "no O prompt below the line")
+	assert_eq(ActionPrompts.orbit_text(off, calder, Orbit.Refusal.TOO_HIGH, 250.0), "", "nor above it")
 
 
 func test_arriving_and_the_refusals_name_the_place() -> void:

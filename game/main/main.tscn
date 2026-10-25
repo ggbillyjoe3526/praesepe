@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_ship.tscn" id="2_ship"]
@@ -21,6 +21,8 @@
 [ext_resource type="Resource" path="res://game/arrival/arrival_tuning.tres" id="19_arrival_tuning"]
 [ext_resource type="Script" path="res://game/hud/action_prompts.gd" id="21_prompts"]
 [ext_resource type="Script" path="res://game/save/autosave.gd" id="22_autosave"]
+[ext_resource type="Script" path="res://game/world/orbit_line.gd" id="23_orbit_line"]
+[ext_resource type="Script" path="res://game/hud/orbit_marker.gd" id="24_orbit_marker"]
 
 [sub_resource type="ShaderMaterial" id="Mat_sky"]
 shader = ExtResource("3_sky")
@@ -90,6 +92,10 @@ streak_time = 0.02
 streak_max = 60.0
 for_cruise = true
 
+[node name="OrbitLine" type="MeshInstance3D" parent="." node_paths=PackedStringArray("ship")]
+script = ExtResource("23_orbit_line")
+ship = NodePath("../World/Ship")
+
 [node name="ShipCameras" type="Node" parent="." node_paths=PackedStringArray("ship")]
 script = ExtResource("13_cameras")
 ship = NodePath("../World/Ship")
@@ -135,6 +141,18 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("17_markers")
+ship = NodePath("../../World/Ship")
+cameras = NodePath("../../ShipCameras")
+
+[node name="OrbitMarker" type="Control" parent="Hud" node_paths=PackedStringArray("ship", "cameras")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("24_orbit_marker")
 ship = NodePath("../../World/Ship")
 cameras = NodePath("../../ShipCameras")
 
