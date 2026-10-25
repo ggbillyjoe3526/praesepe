@@ -5,8 +5,8 @@ extends Node
 ## them on its screen. It checks the screen opens in the cockpit and as a card in the chase view; heads to dock at
 ## Halfway Station from the start and, once the docking computer is taking the ship in, is told to land at Tollgate
 ## instead, so it finishes docking, undocks, cruises to Tollgate and lands there, carrying on after the pilot takes the
-## stick for a moment on the way (which pauses it) and P; takes off and settles into orbit round Mote; and queues a longer
-## plan, which puts the undocking between a docking and the cruise after it. Prints "SMOKE NAV: ok ..." and quits
+## stick for a moment on the way (which pauses it) and P; takes off and settles into orbit round Mote; and queues a
+## longer plan, which puts the undocking between a docking and the cruise after it. Prints "SMOKE NAV: ok ..." and quits
 ## with 0, or pushes an error per failed check and quits with 1.
 
 const PASS_LINE := "SMOKE NAV: ok"

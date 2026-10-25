@@ -1,19 +1,19 @@
 class_name LandmarkMarkers
 extends Control
-## The HUD markers for the places in the solar system (Landmark.marker), so the player always knows where everything
-## is: a diamond on each place with its name and distance on a dark plate, drawn through whichever camera is active
+## The HUD markers for the places in the solar system (Landmark.marker), so the player always knows where everything is:
+## a diamond on each place with its name and distance on a dark plate, drawn through whichever camera is active
 ## (ShipCameras). A place off the screen or behind the camera sits at the screen's edge on the side to turn to, as a
-## hollow diamond. Labels that would cover each other stack instead. The place the ship is docked or landed at (and
-## the planet under it) has no marker until it leaves. The place the nose is aimed at, which F would lock the cruise
-## drive onto (CruiseDrive.aimed), is framed in corner brackets; the place the drive is locked onto is framed and drawn
-## in the cruise colour. While the nav computer's dashboard screen (NavScreen) is lit, markers that fall on it are left
-## off so they don't cover it. A label is rebuilt only when its distance, as shown, changes. A placeholder look until the
-## art style is chosen.
+## hollow diamond. Labels that would cover each other stack instead. The place the ship is docked or landed at (and the
+## planet under it) has no marker until it leaves. The place the nose is aimed at, which F would lock the cruise drive
+## onto (CruiseDrive.aimed), is framed in corner brackets; the place the drive is locked onto is framed and drawn in the
+## cruise colour. While the nav computer's dashboard screen (NavScreen) is lit, markers that fall on it are left off so
+## they don't cover it. A label is rebuilt only when its distance, as shown, changes. A placeholder look until the art
+## style is chosen.
 ##
-## The diamonds and the names each show always, only for places the player has noticed, or never (the player's
-## settings, Settings.marker_icons and marker_names; names default to noticed, so the screen stays clear). A place is
-## noticed when it is within NEAR of the ship, near the middle of the view (LOOK_CONE), aimed at for a lock, or what
-## the cruise drive is locked onto. Diamonds and names fade in and out over FADE_TIME rather than popping.
+## The diamonds and the names each show always, only for places the player has noticed, or never (the player's settings,
+## Settings.marker_icons and marker_names; names default to noticed, so the screen stays clear). A place is noticed when
+## it is within NEAR of the ship, near the middle of the view (LOOK_CONE), aimed at for a lock, or what the cruise drive
+## is locked onto. Diamonds and names fade in and out over FADE_TIME rather than popping.
 
 ## When a marker's diamond or name shows (Settings.marker_icons and marker_names).
 enum Show { ALWAYS, NEARBY, OFF }

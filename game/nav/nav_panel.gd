@@ -1,12 +1,13 @@
 class_name NavPanel
 extends PanelContainer
 ## The nav computer's screen (design doc, "Nav computer"): where to go, how to arrive there, and the plan with what the
-## computer is doing now. The same panel shows on the cockpit's dashboard (NavScreen: wide, the places and the plan
-## side by side) and as a card in the chase view (compact: one above the other), so both read the same. Everything on
-## it works with the mouse and with keys, and each button says its key. Text is rebuilt only when the nav computer
-## says something changed while the panel shows (or once it shows again), the ways to arrive only when they or the
-## pick change, and the distances four times a second while it shows; the button looks are made once. Buttons never
-## take keyboard focus, so Space and the arrows keep flying the ship and working the list. Placeholder look until the art style is chosen.
+## computer is doing now. The same panel shows on the cockpit's dashboard (NavScreen: wide, the places and the plan side
+## by side) and as a card in the chase view (compact: one above the other), so both read the same. Everything on it
+## works with the mouse and with keys, and each button says its key. Text is rebuilt only when the nav computer says
+## something changed while the panel shows (or once it shows again), the ways to arrive only when they or the pick
+## change, and the distances four times a second while it shows; the button looks are made once. Buttons never take
+## keyboard focus, so Space and the arrows keep flying the ship and working the list. Placeholder look until the art
+## style is chosen.
 
 const PLATE_COLOUR := Color(0.012, 0.02, 0.047, 0.94)
 const EDGE_COLOUR := Color(0.165, 0.227, 0.345)

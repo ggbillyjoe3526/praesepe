@@ -2,18 +2,19 @@ class_name NavComputer
 extends Node
 ## The ship's nav computer (design doc, "Nav computer"; William chose concept A, 2026-10-25). Tab opens it: on the
 ## cockpit's dashboard (NavScreen) or as a card in the chase view (NavPanel), the same in both. The pilot picks a place
-## and how to arrive there, and "Go now" replaces the plan with the steps that takes, or "Add to plan" queues them
-## after it (NavPlan). The computer then flies the plan one step at a time.
+## and how to arrive there, and "Go now" replaces the plan with the steps that takes, or "Add to plan" queues them after
+## it (NavPlan). The computer then flies the plan one step at a time.
 ##
 ## It flies like a pilot would, through the ship's one input (ShipInput) and the same systems: it climbs clear of a
 ## station or base, lines the nose up with the cruise drive's course and presses F (locking the drive onto the place,
 ## CruiseDrive.wanted), flies to the orbit line's insertion point and presses O, closes in on a dock or pad slowly
-## enough and presses G, or presses G to undock or take off. So docking still goes through Arrivals.arrive() and saves as ever.
+## enough and presses G, or presses G to undock or take off. So docking still goes through Arrivals.arrive() and saves
+## as ever.
 ##
-## The pilot is always in charge: touching the controls (thrust, the mouse stick, F, O, G, X or Z) while it flies
-## pauses the plan and leaves the ship to them, as does anything that stops a step (a bump, the drive refusing). P
-## resumes or pauses it, and the screen says why it paused. Closing the screen doesn't stop the plan; a strip on the
-## HUD (NavStrip) says what it is doing.
+## The pilot is always in charge: touching the controls (thrust, the mouse stick, F, O, G, X or Z) while it flies pauses
+## the plan and leaves the ship to them, as does anything that stops a step (a bump, the drive refusing). P resumes or
+## pauses it, and the screen says why it paused. Closing the screen doesn't stop the plan; a strip on the HUD (NavStrip)
+## says what it is doing.
 
 ## The plan, the selection, the menu or what the computer is doing changed: the screens redraw.
 signal changed
