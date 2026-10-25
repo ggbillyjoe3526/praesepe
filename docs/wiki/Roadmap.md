@@ -9,8 +9,6 @@ Work already under way, which should arrive soon:
 
 - **A start menu and choosing your ship:** Continue, New game, Settings and Quit. A new game starts with choosing a
   ship, then docked at Halfway Station. Continue puts you back exactly where you saved, even out in space.
-- **Cockpit conveniences:** time to arrival next to the distance while cruising to a place, hold the right mouse
-  button to look round the cockpit without steering, a key to roll level near a planet, and F12 for screenshots.
 - **A nav computer:** Tab turns the cockpit's middle screen into a nav computer to pick a place and how to arrive
   (dock, land or orbit), queue up steps and start the trip with Enter.
 

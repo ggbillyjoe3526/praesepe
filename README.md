@@ -24,15 +24,18 @@ yet.
 | Space / Ctrl (or C) | Slide up / down |
 | Mouse | Steer (pitch and yaw); the stick eases back to the centre |
 | Q / E | Roll left / right |
+| R | Roll upright: rolls round the nose until the nearest planet or moon is below and its horizon level; Q or E stops it |
+| Hold right mouse | Look round the cockpit (or swing the chase camera round the ship) without steering; let go to look ahead again |
 | Z | Flight assist on or off |
 | X | Full stop (turns flight assist on); in cruise, drops out and stops |
-| F | Cruise drive: charges for 2 s, then flies fast and drops out by itself on arriving somewhere. Aimed at a place (its marker is framed and the HUD says "F  Cruise to ..."), it locks onto it and flies there by itself, round any planet in the way; moving the mouse takes the steering back. With nothing aimed at, it goes wherever the nose points. F again drops out |
+| F | Cruise drive: charges for 2 s, then flies fast and drops out by itself on arriving somewhere. Aimed at a place (its marker is framed and the HUD says "F  Cruise"), it locks onto it and flies there by itself, round any planet in the way, and the dashboard shows the distance and the time to get there; moving the mouse takes the steering back. With nothing aimed at, it goes wherever the nose points. F again drops out |
 | O | Enter orbit round the planet or moon you're near, once you're close to its orbit line (fly at the orbit ring on the HUD to get there), and stay there; O again or any thrust key levels the nose out and leaves; X or Z leave at once |
 | G | Dock at the station or land at the base when the HUD offers it: the ship flies itself in, and G (or X) on the way takes the controls back; G again undocks or takes off |
 | V | Cockpit or chase camera |
 | Esc | Pause; the game also pauses when the window loses focus or lets go of the mouse. The pause screen's **Settings** opens the settings menu (Esc goes back); **Tow me to base** (press it twice) puts the ship straight back where it last docked or landed |
 | F11 or Alt+Enter | Fullscreen or a window |
 | Click | Capture the mouse again |
+| F12 | Screenshot: saved as a PNG in the `screenshots` folder in the user folder (see below); a note says where |
 | F3 | Debug overlay: frame rate, draw calls, nodes, seed, speed and true position |
 
 How flying, the cruise drive, orbit and the cameras work, and their tuning values, are in [DESIGN.md](DESIGN.md)
@@ -57,7 +60,7 @@ Given after `--`, for example `godot --path . -- --seed 1234`.
 | Flag | What it does |
 | --- | --- |
 | `--seed <n>` (or `--seed=<n>`) | Starts the world on seed `n` (0 to 4294967295). The same seed gives the same world. Without it, each launch picks a fresh seed, shown on screen. |
-| `--smoke` | Runs the headless smoke test: an autopilot flies the ship (speeds up, turns, drifts with assist off, stops, pauses and opens each page of the settings menu), checking it and both cameras at every step (the chase camera's lag and lean, and that it never goes through a wall), then cruises to the belt, the station, the moon and the base locked onto each (checking the HUD offers it, the nose follows the course and the dashboard names the place; on the way to the station it moves the stick to release the lock), checking the drive drops out on arriving at each, then climbs from under the planet's orbit line to it (checking O is refused and no orbit prompt shows until it is close) and parks in orbit (checking it holds the line's height, speed and view and goes round slowly), leaves it (checking it levels out and doesn't sink), re-enters it and leaves again with X, cruises to the base and lands there, takes off, cruises to the station, docks (settling onto the bay's floor) and undocks, checking the ship flies itself in without a bump, then the berth and the autosave each time; then stops, saves in flight (checking it reads back with the ship where it was) and is towed home from the pause screen, checking it is docked at the station and saved there; prints `SMOKE: ok` with the belt's fingerprint and when each arrival came, then quits. It never reads or writes your settings or your saved game (its autosaves go to `smoke_savegame.json`). Use with `--fixed-fps 60` before `--`. |
+| `--smoke` | Runs the headless smoke test: an autopilot flies the ship (speeds up, turns, drifts with assist off, stops, pauses and opens each page of the settings menu), checking it and both cameras at every step (the chase camera's lag and lean, and that it never goes through a wall), then cruises to the belt, the station, the moon and the base locked onto each (checking the HUD offers it, the nose follows the course and the dashboard names the place; on the way to the station it moves the stick to release the lock), checking the drive drops out on arriving at each, then climbs from under the planet's orbit line to it (checking O is refused and no orbit prompt shows until it is close) and parks in orbit (checking it holds the line's height, speed and view and goes round slowly), leaves it (checking it levels out and doesn't sink), re-enters it and leaves again with X, cruises to the base and lands there, takes off, cruises to the station, docks (settling onto the bay's floor) and undocks, checking the ship flies itself in without a bump, then the berth and the autosave each time; then stops, saves in flight (checking it reads back with the ship where it was) and is towed home from the pause screen, checking it is docked at the station and saved there; on each locked trip it checks the dashboard's time to arrival came true, and after undocking it looks round (both cameras) and rolls over and back upright with R; prints `SMOKE: ok` with the belt's fingerprint and when each arrival came, then quits. It never reads or writes your settings or your saved game (its autosaves go to `smoke_savegame.json`). Use with `--fixed-fps 60` before `--`. |
 | `--perf` | Logs draw calls and node counts every 2 s and a summary at exit (the F3 overlay's numbers). |
 
 ## Tests
@@ -82,7 +85,7 @@ CI runs all five on every pull request (the wiki check in the Wiki workflow, whi
 | `game/system/` | The solar system scene: the planet, its base and landing pad, the moon, the station and its docking bay, the seeded asteroid belt and their tuning. |
 | `game/world/` | The floating origin, space dust, the starfield sky, buoys and the orbit line round a planet. |
 | `game/hud/` | The flight HUD, velocity marker, the markers on each place (with the settings for when their names and diamonds show), the orbit insertion marker, the docking, landing and orbit prompts and the cockpit's dashboard screen. |
-| `game/ui/` | The pause screen and its tow home, the fullscreen keys and focus (`WindowWatch`) and, in `settings/`, the settings menu and its pages. |
+| `game/ui/` | The pause screen and its tow home, the fullscreen keys and focus (`WindowWatch`), the screenshot key (`Screenshots`) and, in `settings/`, the settings menu and its pages. |
 | `game/save/` | Crash-safe save files, the saved game and its autosave, the player's settings (the `Settings` autoload) and how the display settings reach the window (`DisplayApply`). |
 | `game/main/` | The first scene. |
 | `game/debug/` | The smoke test autopilot and the F3 overlay. |
@@ -92,4 +95,4 @@ CI runs all five on every pull request (the wiki check in the Wiki workflow, whi
 | `docs/wiki/` | The player wiki, one page per file, published to the [GitHub wiki](https://github.com/ggbillyjoe3526/project-praesepe/wiki) on every merge to `main`. Its `README.md` has the conventions. |
 | `changelog.d/` | One changelog note per pull request, gathered into `CHANGELOG.md` at release. |
 
-Saves (`savegame.json`, written on every docking and landing) and settings (`settings.json`) go to the user folder `ProjectPraesepe` (on Windows, `%APPDATA%\Godot\app_userdata\ProjectPraesepe`).
+Saves (`savegame.json`, written on every docking and landing), settings (`settings.json`) and screenshots (`screenshots/`) go to the user folder `ProjectPraesepe` (on Windows, `%APPDATA%\ProjectPraesepe`).

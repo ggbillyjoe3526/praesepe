@@ -18,3 +18,7 @@ yaw_accel = 90.0
 roll_accel = 250.0
 assist_response = 0.35
 assist_turn_response = 0.12
+upright_time = 0.4
+upright_tolerance = 0.5
+upright_settled_spin = 1.0
+upright_still_spin = 0.02

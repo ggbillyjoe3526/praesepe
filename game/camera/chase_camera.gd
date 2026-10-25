@@ -5,7 +5,8 @@ extends Camera3D
 ## swinging ahead of the camera. With flight assist off it leans toward where the ship is really moving, so a drift
 ## stays readable; the lean eases in and out when assist changes, and fades away as the ship moves backwards, so a spin
 ## never flips it from side to side. Something between the camera and the ship (a buoy, a station wall) pulls the
-## camera in at once, never through it; it eases back out once the way is clear. ShipCameras sets it up and calls
+## camera in at once, never through it; it eases back out once the way is clear. While the pilot looks round
+## (`look`), it swings round the ship by the same angles, still looking at it. ShipCameras sets it up and calls
 ## place() every frame while it is the view.
 
 var ship: Ship
@@ -15,6 +16,8 @@ var shake: CameraShake
 var lean: float = 0.0
 ## How much of the way out to the anchor the camera sits, 0 to 1 (less while something is in the way).
 var reach: float = 1.0
+## Where the pilot is looking (ShipCameras.look).
+var look: Vector2 = Vector2.ZERO
 
 ## The camera's lagging orientation, following the ship's.
 var _heading: Quaternion = Quaternion.IDENTITY
@@ -57,7 +60,7 @@ func snap() -> void:
 ## A frame's query is safe because physics runs on the main thread (physics/3d/run_on_separate_thread is off).
 func clearance(from: Vector3) -> float:
 	_cast.global_transform = Transform3D(Basis.IDENTITY, from)
-	_cast.target_position = Basis(_heading) * ship.chase_anchor.position
+	_cast.target_position = _facing() * ship.chase_anchor.position
 	_cast.force_shapecast_update()
 	return _cast.get_closest_collision_safe_fraction() if _cast.is_colliding() else 1.0
 
@@ -75,10 +78,17 @@ func place(delta: float) -> void:
 	# Pulled in at once when something is in the way, eased back out when it is gone.
 	var clear := clearance(drawn.origin)
 	reach = clear if clear < reach else lerpf(reach, clear, Smoothing.factor(delta, tuning.clip_ease_out))
-	var facing := Basis(_heading)
-	var look := facing * Basis(Vector3.RIGHT, -deg_to_rad(tuning.chase_look_down))
+	var facing := _facing()
+	var aim := facing * Basis(Vector3.RIGHT, -deg_to_rad(tuning.chase_look_down))
 	var turn := Basis.from_euler(shake.angles(tuning, Settings.shake_amount()))
-	global_transform = Transform3D(look * turn, drawn.origin + facing * ship.chase_anchor.position * reach)
+	global_transform = Transform3D(aim * turn, drawn.origin + facing * ship.chase_anchor.position * reach)
+
+
+## Which way the camera faces, before it looks down at the ship: its lagging heading, swung round by where the pilot
+## is looking.
+func _facing() -> Basis:
+	var facing := Basis(_heading)
+	return facing * ShipCameras.head_turn(look) if look != Vector2.ZERO else facing
 
 
 ## The direction the camera is heading (its lagging forward, before it looks down at the ship).
