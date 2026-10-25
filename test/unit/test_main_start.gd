@@ -33,14 +33,16 @@ func test_continuing_in_space_puts_the_ship_back_in_the_real_system() -> void:
 	GameStart.continue_game({"v": 2, "world": {"world_seed": 4321, "clock": 600.0, "streams": {}}, "berth": "",
 			"ship": {"model": "hauler", "at": [at.x, at.y, at.z], "turn": [turn.x, turn.y, turn.z, turn.w],
 			"velocity": [velocity.x, velocity.y, velocity.z], "spin": [0, 0, 0], "assist": true, "held": 30.0,
-			"orbit": ""}})
+			"orbit": {}}})
 	var main := await _open_main()
 	var ship: Ship = main.get_node("World/Ship")
 	var origin: FloatingOrigin = main.get_node("FloatingOrigin")
 	assert_eq(Game.world_seed, 4321)
 	var t := origin.true_position(ship.global_position)
-	assert_almost_eq(Vector3(t[0], t[1], t[2]), at + velocity * 2.0 / 60.0, Vector3.ONE * 0.1,
-			"where it was saved, two ticks on")
+	# A few ticks on from where it was saved, along its saved velocity (how many depends on the frames the test took).
+	var moved := Vector3(t[0], t[1], t[2]) - at
+	assert_lt(moved.length(), velocity.length() * 10.0 / 60.0, "where it was saved")
+	assert_almost_eq(moved, velocity.normalized() * moved.length(), Vector3.ONE * 0.05, "moving as it was")
 	assert_almost_eq(ship.linear_velocity, velocity, Vector3.ONE * 0.05)
 	assert_null(ship.berth)
 	var hud: FlightHud = main.get_node("Hud/FlightHud")

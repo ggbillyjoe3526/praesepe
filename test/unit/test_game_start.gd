@@ -82,7 +82,7 @@ func _true_position() -> Vector3:
 
 ## A saved game out in space: `at` (true position), facing `turn`, moving and spinning, flight assist as given.
 func _space_save(at: Vector3, turn: Quaternion, velocity: Vector3, spin: Vector3, assist: bool, held: float,
-		orbit: String = "") -> Dictionary:
+		orbit: Dictionary = {}) -> Dictionary:
 	return {
 		"v": 2,
 		"world": {"world_seed": 777, "clock": 1234.5, "streams": {}},
@@ -173,7 +173,7 @@ func test_flight_assist_carries_on_holding_its_saved_speed() -> void:
 
 func test_saved_in_orbit_presses_o_to_go_back_into_orbit() -> void:
 	GameStart.continue_game(_space_save(Vector3(0, 7500, 40000), Quaternion.IDENTITY, Vector3(0, 0, -50), Vector3.ZERO,
-			true, 50.0, "Test Planet"))
+			true, 50.0, {"body": "test_planet", "radius": 7500.0, "axis": [1, 0, 0]}))
 	GameStart.begin(_ship, _origin, _arrivals)
 	assert_true(_ship.input.toggle_orbit, "O is pressed for the pilot, so the orbit is entered the usual way")
 	GameStart.continue_game(_space_save(Vector3(0, 7500, 40000), Quaternion.IDENTITY, Vector3.ZERO, Vector3.ZERO, true,

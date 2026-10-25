@@ -105,8 +105,9 @@ static func _place_in_space(block: Dictionary, ship: Ship, origin: FloatingOrigi
 			GameStart.vector(block.get("spin")), assist if assist is bool else true,
 			float(held) if held is float or held is int else 0.0)
 	origin.shift(local)
-	var orbit: Variant = block.get("orbit", "")
-	if orbit is String and not orbit.is_empty():
+	# In orbit when saved: {"body": ..., "radius": ..., "axis": [...]}, {} when not.
+	var orbit: Variant = block.get("orbit", {})
+	if orbit is Dictionary and not orbit.is_empty():
 		ship.input.toggle_orbit = true
 	return true
 
