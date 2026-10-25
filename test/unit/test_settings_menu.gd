@@ -137,8 +137,23 @@ func test_the_controls_page_lists_the_keys() -> void:
 	assert_eq(shown["Dock, land, undock or take off"], "G")
 	assert_eq(shown["Pause, settings and controls"], "Esc")
 	assert_eq(shown["Steer (pitch and yaw)"], "Mouse")
+	assert_eq(shown["Nav computer: open or close"], "Tab")
+	assert_eq(shown["Nav computer: add to the plan"], "Shift+Enter or Shift+Keypad Enter")
 	for words: String in shown:
 		assert_ne(shown[words], KeyNames.NO_KEY, "%s has a key" % words)
+
+
+func test_keys_are_named_with_the_modifiers_they_need() -> void:
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_ENTER
+	assert_eq(KeyNames.name_of(key), "Enter")
+	key.shift_pressed = true
+	key.ctrl_pressed = true
+	key.alt_pressed = true
+	assert_eq(KeyNames.name_of(key), "Ctrl+Alt+Shift+Enter", "in the order they are usually written")
+	var pad := InputEventKey.new()
+	pad.physical_keycode = KEY_KP_ENTER
+	assert_eq(KeyNames.name_of(pad), "Keypad Enter")
 
 
 func test_every_key_the_game_uses_is_listed() -> void:

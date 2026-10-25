@@ -2,8 +2,9 @@ class_name PauseScreen
 extends CanvasLayer
 ## Pausing (project instructions, "Pause on Esc, focus loss and mouse-capture loss"): Esc, the window losing focus or
 ## the game losing hold of the mouse stops the game (the tree is paused, so the ship, the clock and every timer stand
-## still) and shows this screen with the mouse free. Esc or Resume carries on; the mouse is captured again. The pause
-## mechanic follows the owner's Airsoft-Next project (game/ui/pause_menu.gd); its look is a placeholder.
+## still) and shows this screen with the mouse free. Esc or Resume carries on; the mouse is captured again. Quit to
+## title goes back to the start menu, Quit to desktop closes the game; both save first. The pause mechanic follows the owner's
+## Airsoft-Next project (game/ui/pause_menu.gd); its look is a placeholder.
 ## Settings opens the settings menu (SettingsMenu) over it; Esc or Back comes back here. Any change is saved when the
 ## menu closes, on resume and on quit (Settings.commit()).
 ## "Tow me to base" puts the ship straight back at the last base it docked or landed at (Arrivals.tow), for a player
@@ -28,6 +29,8 @@ const BUTTON_TEXT_SIZE := 28
 @export var controls: PilotControls
 ## What tows the ship home; without it there is no tow button.
 @export var arrivals: Arrivals
+## What saves the game before quitting; without it quitting doesn't save.
+@export var autosave: Autosave
 
 ## The settings menu (public for the tests and the smoke test).
 var settings_menu: SettingsMenu
@@ -96,7 +99,8 @@ func _process(_delta: float) -> void:
 	if controls == null or visible:
 		return
 	var captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-	if _was_captured and not captured:
+	# Letting the mouse go on purpose (the nav computer's screen) isn't losing it.
+	if _was_captured and not captured and not controls.mouse_free:
 		open()
 		return
 	_was_captured = captured
@@ -144,6 +148,8 @@ func _build() -> void:
 	_settings_button.pressed.connect(open_settings)
 	tow_button = _button(list, "Tow me to base")
 	tow_button.pressed.connect(_on_tow_pressed)
+	var to_title := _button(list, "Quit to title")
+	to_title.pressed.connect(_quit_to_title)
 	var quit := _button(list, "Quit to desktop")
 	quit.pressed.connect(_quit)
 	settings_menu = SettingsMenu.new()
@@ -181,8 +187,24 @@ func _on_tow_pressed() -> void:
 
 
 func _quit() -> void:
+	_save_before_quitting()
 	Settings.commit()
 	get_tree().quit()
+
+
+## Saves the game where the ship is (Autosave.save_now) before it closes. While cruising or flying itself in or out it
+## can't, and the last save stands.
+func _save_before_quitting() -> void:
+	if autosave != null:
+		autosave.save_now()
+
+
+## Back to the title screen (TitleScreen): the game scene is freed whole, so nothing of it is left running.
+func _quit_to_title() -> void:
+	_save_before_quitting()
+	Settings.commit()
+	get_tree().paused = false
+	get_tree().change_scene_to_file(TitleScreen.SCENE)
 
 
 func _settings_closed() -> void:

@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://game/hud/cockpit_display.gd" id="1_display"]
 [ext_resource type="PackedScene" path="res://game/ship/models/hauler_cockpit.glb" id="2_model"]
+[ext_resource type="Script" path="res://game/nav/nav_screen.gd" id="3_nav_screen"]
 
 [sub_resource type="StandardMaterial3D" id="Mat_screen"]
 shading_mode = 0
@@ -10,6 +11,9 @@ albedo_color = Color(0.02, 0.035, 0.06, 1)
 [sub_resource type="QuadMesh" id="Mesh_screen"]
 material = SubResource("Mat_screen")
 size = Vector2(1, 0.34)
+
+[sub_resource type="QuadMesh" id="Mesh_nav_screen"]
+size = Vector2(1.6, 0.34)
 
 [node name="GreyboxCockpit" type="Node3D"]
 script = ExtResource("1_display")
@@ -50,3 +54,10 @@ double_sided = false
 font_size = 34
 outline_size = 0
 modulate = Color(0.55, 0.8, 1, 1)
+
+[node name="NavScreen" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.667, -5.1414)
+rotation_degrees = Vector3(-22.9, 0, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_nav_screen")
+script = ExtResource("3_nav_screen")

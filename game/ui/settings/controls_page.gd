@@ -20,6 +20,13 @@ const KEYS: Array[Array] = [
 	["Enter or leave orbit", [&"toggle_orbit"]],
 	["Dock, land, undock or take off", [&"dock"]],
 	["Cockpit or chase camera", [&"toggle_camera"]],
+	["Nav computer: open or close", [&"nav_computer"]],
+	["Nav computer: pick a place", [&"nav_up", &"nav_down"]],
+	["Nav computer: pick how to arrive", [&"nav_left", &"nav_right"]],
+	["Nav computer: go now", [&"nav_go"]],
+	["Nav computer: add to the plan", [&"nav_add"]],
+	["Nav computer: clear the plan", [&"nav_clear"]],
+	["Nav computer: pause or resume the plan", [&"nav_pause"]],
 	["Pause, settings and controls", [&"pause"]],
 	["Fullscreen or window", []],
 	["Screenshot", [&"screenshot"]],
@@ -68,7 +75,7 @@ func build() -> void:
 		key.add_theme_color_override("font_color", KEY_COLOUR)
 		grid.add_child(key)
 		key_labels.append(key)
-	add_hint("Click captures the mouse again after it was let go.")
+	add_hint("Click captures the mouse again after it was let go, except while the nav computer is open.")
 
 
 func sync() -> void:

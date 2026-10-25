@@ -7,6 +7,8 @@ dist/
 import.log
 smoke.log
 smoke.log.again
+smoke.log.nav
+smoke.log.nav.again
 unit.log
 # Release workflow logs (.github/workflows/release.yml)
 export.log

@@ -1,0 +1,43 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://game/ui/title_screen.gd" id="1_title"]
+[ext_resource type="Shader" path="res://game/world/starfield.gdshader" id="2_sky"]
+[ext_resource type="Script" path="res://game/ui/start_menu.gd" id="3_menu"]
+[ext_resource type="Resource" path="res://game/ship/starter_ships.tres" id="4_ships"]
+
+[sub_resource type="ShaderMaterial" id="Mat_sky"]
+shader = ExtResource("2_sky")
+
+[sub_resource type="Sky" id="Sky_stars"]
+sky_material = SubResource("Mat_sky")
+
+[sub_resource type="Environment" id="Environment_space"]
+background_mode = 2
+sky = SubResource("Sky_stars")
+
+[node name="TitleScreen" type="Node3D" node_paths=PackedStringArray("menu", "view")]
+script = ExtResource("1_title")
+menu = NodePath("Menu/StartMenu")
+view = NodePath("View")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_space")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, 0, -0.707107, 0.353553, 0.866025, 0.353553, 0.612372, -0.5, 0.612372, 0, 0, 0)
+
+[node name="View" type="Camera3D" parent="."]
+current = true
+fov = 60.0
+
+[node name="Menu" type="CanvasLayer" parent="."]
+
+[node name="StartMenu" type="Control" parent="Menu"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_menu")
+ships = ExtResource("4_ships")

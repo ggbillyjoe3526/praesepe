@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StarterShips" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/ship/starter_ships.gd" id="1_list"]
+[ext_resource type="Script" path="res://game/ship/ship_class.gd" id="2_class"]
+[ext_resource type="Resource" path="res://game/ship/hauler.tres" id="3_hauler"]
+
+[resource]
+script = ExtResource("1_list")
+ships = Array[ExtResource("2_class")]([ExtResource("3_hauler")])

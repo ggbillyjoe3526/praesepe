@@ -59,6 +59,16 @@ collision shapes follow it (a box for the taller back half, one per engine pod a
 mass and inertia stay as approved and the underside stays at 1.2 m below the centre, so flying, docking and the floor
 berth are unchanged.
 
+## Starting a game
+
+The game opens on a title screen: the game's name over a slowly turning starfield, and a start menu.
+
+- **Continue** puts back the saved game exactly as it was saved: the same world (seed, clock, random streams), and the ship docked or landed where it was, or out in space at the same place, heading and speed, with flight assist as it was. A ship saved in orbit goes back into orbit. Loading never moves the ship to a station. Continue only shows when there is a saved game that can be read; one that can't be read is kept in the save folder and the menu says so.
+- **New game** opens "Choose your ship": a card for each starter ship with its "Great for:" hint, strengths and trade-offs. The first playable has one, the Hauler (the test ship's placeholder model stands in for it); the Interceptor and the Surveyor join the list when they are built. The game starts on a fresh world (or the `--seed` one), docked at Halfway Station, and saves straight away. Over an existing save the menu asks first: "This replaces your saved game".
+- **Settings** opens the settings menu. **Quit** closes the game.
+- Esc goes back a page. The pause screen has **Quit to title**. Quitting to the title or the desktop saves first, except while cruising or flying itself in or out, when the last save stands.
+- The ships offered live in `game/ship/starter_ships.tres`, one file per ship (`game/ship/hauler.tres`).
+
 ## Flight and camera
 
 Flight uses one Newtonian physics model with a flight assist toggle. It should never feel arcade-like.
@@ -259,6 +269,62 @@ system scene (`game/system/solar_system.tscn`).
 | Turn on entering | Closes the angle over about 0.8 s, done within 0.5° once settled | Within the ship's own turn limits |
 | Bump limit | 3 m/s | A harder knock leaves orbit |
 | Level out on leaving | 1 s, easing in and out; longer if the turn would beat the ship's turn rates | O or thrust: nose up along the velocity before flight assist takes over |
+
+**Nav computer (first values, to be tuned with the owner)**
+
+Added at the owner's request (2026-10-25, concept A of three): a screen on the dashboard where the pilot picks where to
+go and how to arrive, and the ship flies it. It only gives the orders a pilot would (turn, thrust, F, O, G), so
+everything it does follows the same rules and messages as flying by hand.
+
+- Tab opens it. In the cockpit it lights up on the dashboard, in front of the speed screen and wider than it (its top
+  line repeats the speed and flight assist), and the mouse is let go so it can be clicked; in the chase view the same screen shows as a card at the bottom left. Tab
+  closes it and takes the mouse back. Esc pauses as always (and closes it). The ship keeps flying while it is open.
+- **Where to:** the places that have a marker (Calder, Mote, Halfway Station, The Shingle; bases are reached through
+  their planet), with their distance. Up and Down, or a click, picks one.
+- **Arrive:** the ways the picked place can be arrived at, in a word or two like every prompt in the game (the
+  owner's rule, 2026-10-25: "G Dock", not "G Dock at Halfway Station"). Left and Right, or a click, picks one. A
+  station: "Dock". A planet with a base: "Land" (with several bases, one button per base, named). A planet or moon:
+  "Orbit". Anywhere: "Stop nearby" (cruise there and drop out).
+- **Go** (Enter) replaces the plan with that order and starts flying it. **Add** (Shift+Enter) puts it at the end of
+  the plan. Each button shows its key first: "Enter Go", "Shift+Enter Add", "P Pause", "Backspace Clear". An order becomes steps: "Cruise to Tollgate" then "Land at Tollgate"; "Cruise to Mote"
+  then "Enter orbit round Mote". Leaving a dock or pad comes first by itself ("Undock from Halfway Station", "Take
+  off from Tollgate"), including between a docking and the next cruise in a queued plan. Ordered while the docking
+  computer is taking the ship in, the plan lets it finish, then leaves. A plan holds up to 8 steps;
+  the screen shows 3 on the dashboard and 5 on the card, then "+ 2 more".
+- **How each step is flown:** undocking or taking off presses G. A cruise turns the nose onto the cruise drive's
+  course and presses F with the drive locked onto that place, so it flies round what is in the way and drops out on
+  arriving, as a lock does; starting by a station or base it first climbs 150 m clear so the drive will engage.
+  Orbit flies toward the planet or moon and then at the insertion ring on its orbit line, at 80% of the top entry
+  speed, presses O as soon as orbit is offered, and is done once the orbit has settled. Docking or landing flies toward the port, slowing to 80 m/s as it
+  reaches the docking offer, presses G and lets the docking computer take it in.
+- **The plan:** the screen lists the steps, "NOW" on the one being flown, and says what it is doing ("Lining up for
+  Tollgate", "Cruising to Tollgate", "Slowing down for Halfway Station"). With the screen closed, a strip at the top
+  of the HUD says the same: "NAV 1/2 · Cruising to Tollgate · P Pause".
+- **The pilot always wins:** any thrust key, moving the mouse (more than 15% of a full stick, as with orbit and the
+  cruise lock), or F, O, G, X or Z pauses the plan and leaves the ship exactly as it is: "NAV PAUSED · You took the
+  controls · P Resume". Rolling with Q/E doesn't pause it. P pauses and resumes at any time, open or closed.
+  Something the ship can't get past (the cruise drive's safety drop or a bump, a refused cruise, a docking stopped by
+  a bump, being knocked out of orbit) pauses it with the game's own message. It only presses G or O once docking or
+  orbit is offered, so those are never refused. A step that gets nowhere for 90 s pauses with "taking too long · fly
+  closer". Backspace clears the plan.
+- The plan is not saved; a loaded game starts with an empty plan, and being towed home drops it. Clearing it leaves
+  the ship as it is (a cruise carries on).
+
+**Nav computer tuning**
+
+The values live in `game/nav/nav_tuning.tres`.
+
+| Value | First value | What it does |
+| --- | --- | --- |
+| Turning | 0.8 s | How quickly it turns the nose to where it is going (within the ship's turn rates) |
+| Aim before cruising | 5° | Presses F once the nose is this close to the drive's course; the lock does the rest |
+| Turning before speeding up | 20° | Doesn't push forward while the nose is further than this from the way |
+| Throttle | Full at 10 m/s off the speed it wants | How firmly it holds a speed |
+| Clearance before cruising | 150 m from a station's or base's surface | The drive won't engage among buildings |
+| Closing in on a dock or pad | Arrives at the docking offer within 8 s, at 80% of its top speed (80 m/s) | Fast from far away, never too fast to dock |
+| Lining up for orbit | 80% of the top entry speed (200 m/s) | Always under the orbit limit |
+| Giving up | 90 s on one step | Pauses with a message rather than flying forever |
+| Plan length | 8 steps | Keeps the screen and the strip readable |
 
 ## Contracts
 
@@ -539,6 +605,8 @@ Newest first. Each line: date, the decision, who made it.
   in the pilot's view, and a slim dashboard low across the bottom (William's references and notes; he turned down a
   curved bubble canopy and approved v002) (owner). The collision shapes follow the new shape; mass, centre of mass,
   inertia, the eye, the chase camera and the underside stay where they were (default, Claude).
+- 2026-10-25: A nav computer to give the ship orders: William asked for "an on screen UI menu" that is "a cockpit instrument" in the cockpit and "a ui element but not too obtrusive" in the chase view, for "destinations, landing/take off assist, entering or leaving orbit", where "the player can queue orders/actions for the ship", and chose concept A (the nav computer screen) of three concepts (owner). Until the owner tunes it: behaviour and values as in "Nav computer"; Tab opens it, arrows pick, Enter goes, Shift+Enter adds to the plan, P pauses and resumes (R is rolling upright), Backspace clears; it flies only through the pilot's own controls (F, O, G, turn and thrust); any pilot input pauses the plan; landing at a base cruises to the base rather than going into orbit first; the ship keeps flying while it is open; the plan is not saved (default, Claude).
+- 2026-10-25: A title screen with a start menu (Continue, New game, Settings, Quit), and a new game starts by choosing the ship, then docked at Halfway Station; loading a save puts the ship back where it was saved, even out in space ("if a player saves out in space then they return to those coordinates and not back at a station") (owner). Until the owner says otherwise: the one ship of the first playable is the Hauler, because its jobs are deliveries and mining; a new game saves at once; a new game over a saved game asks first (and isn't offered over a save another program holds or a newer version's); quitting to the title or the desktop saves first; a ship continued out in space carries on at its saved speed and spin; the title screen is a starfield, not the solar system (default, Claude).
 - 2026-10-25: The three buoys (grey posts with an orange lamp) between the start and Halfway Station are gone: they were left over from the first flight test, when the sky was empty and they showed movement; the planets, station, belt and space dust do that now. William asked for them to be removed (owner).
 - 2026-10-25: Four conveniences join the first playable: the time to arrival next to the distance while the cruise
   drive is locked on, an F12 screenshot key, holding the right mouse button to look round the cockpit without steering,

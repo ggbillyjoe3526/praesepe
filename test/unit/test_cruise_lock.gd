@@ -278,3 +278,30 @@ func test_turning_away_while_charging_releases_the_lock() -> void:
 	assert_true(_drive.active() and not _drive.locked(), "cruises where the nose points")
 	_ticks(2.0)
 	assert_lt(_drive.direction.angle_to(Vector3.UP), deg_to_rad(0.5))
+
+
+func test_the_nav_computer_can_lock_it_onto_a_place_the_nose_isnt_aimed_at() -> void:
+	var ahead := _place("Ahead", Vector3(0, 0, -50000), 100.0, 1000.0)
+	var behind := _place("Behind", Vector3(0, 0, 60000), 100.0, 1000.0)
+	_tick()
+	assert_eq(_drive.aimed, ahead, "the nose is aimed elsewhere")
+	assert_eq(_drive.course_to(behind, _at, _nose), Vector3.BACK, "the course to it is straight there")
+	_drive.wanted = behind
+	_engage()
+	assert_true(_drive.locked(), "locked on")
+	assert_eq(_drive.target, behind, "onto the wanted place")
+	assert_null(_drive.wanted, "used once")
+	_until_out()
+	assert_eq(_events.back(), CruiseDrive.Event.ARRIVED)
+	assert_lt(behind.surface_distance(_at), behind.drop_distance, "arrived there")
+
+
+func test_the_turn_towards_a_way_is_the_one_the_lock_uses() -> void:
+	var b := Basis.IDENTITY
+	var rates := Vector3(deg_to_rad(50.0), deg_to_rad(35.0), deg_to_rad(100.0))
+	var right := CruiseDrive.turn_towards(b, Vector3.RIGHT, 0.3, rates, 0.6)
+	assert_eq(right.x, 0.0, "no pitch for a way level with the nose")
+	assert_eq(right.y, 1.0, "full yaw for a way well off to the right")
+	assert_almost_eq(right.z, 0.3, 1.0e-6, "the roll given")
+	_drive.direction = Vector3.RIGHT
+	assert_eq(_drive.turn_for(b, 0.3, rates), right)

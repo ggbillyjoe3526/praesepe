@@ -1,17 +1,20 @@
 # Ships
 
-## The test ship
+## The Hauler
 
-For now you fly one small test ship while the flying is tuned: light grey with orange panels, a flat windscreen
-sloping down to its nose, two engine pods and short swept wings. Its model is a simple placeholder. Inside, a slim
-dashboard runs across the bottom of the view and the windows have no frame bars in the way. It can't carry cargo or
-take damage yet.
+**Great for:** porters and miners. A steady workhorse with room for cargo, and the one ship a new game offers for now.
 
-![The test ship, docked at Halfway Station](images/docked-chase.jpg)
+For now a small test ship stands in for the Hauler while the flying is tuned: light grey with orange panels, a flat
+windscreen sloping down to its nose, two engine pods and short swept wings. Its model is a simple placeholder. Inside,
+a slim dashboard runs across the bottom of the view and the windows have no frame bars in the way. The Hauler's own
+cargo hold and handling come later, and it can't carry cargo or take damage yet. The flight numbers below are the test
+ship's.
+
+![The Hauler (its stand-in model), docked at Halfway Station](images/docked-chase.jpg)
 
 ### Flight
 
-| | Test ship |
+| | Hauler (stand-in) |
 | --- | --- |
 | Top speed (normal flight) | 200 m/s |
 | Top speed backwards (flight assist on) | 50 m/s |
@@ -23,7 +26,7 @@ take damage yet.
 
 ### Cruise drive
 
-| | Test ship |
+| | Hauler (stand-in) |
 | --- | --- |
 | Charge time | 2 s |
 | Cruise speed | 300 m/s to 5 km/s |
@@ -31,7 +34,8 @@ take damage yet.
 
 How these feel in practice is on the [Flying](Flying) and [Cruise Drive](Cruise-Drive) pages.
 
-## The starter ships (not in the game yet)
+## Choosing your ship
 
-The finished game will let you pick one of three starter ships, all at the same price, each with a "Great for" hint.
-They are planned, not playable: see the [Roadmap](Roadmap#the-core-game).
+**New game** on the start menu shows the ships you can start with, each with a "Great for" hint, its strengths and
+its trade-offs. Today that is the Hauler. The finished game offers three starter ships at the same price; the other
+two, the Interceptor and the Surveyor, are planned, not playable: see the [Roadmap](Roadmap#the-core-game).
