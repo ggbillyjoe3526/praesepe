@@ -14,8 +14,8 @@ Saved games live in `%APPDATA%\ProjectPraesepe`, never in the install folder, so
 touches them. Dev and Beta versions are marked as pre-releases.
 
 ## Version names
-Versions are named the way players see them, and each name has one tag (DESIGN.md decisions log, 2026-10-25; still
-an open decision for the owner):
+Versions are named the way players see them, and each name has one tag (William's choice, DESIGN.md decisions log,
+2026-10-25):
 
 | Name | Tag and file names | Windows version number | On GitHub |
 | --- | --- | --- | --- |
