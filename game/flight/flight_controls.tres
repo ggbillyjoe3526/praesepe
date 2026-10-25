@@ -6,3 +6,8 @@
 script = ExtResource("1_controls")
 mouse_gain = 0.004
 stick_return = 3.0
+look_gain = 0.1
+look_side_max = 140.0
+look_up_max = 70.0
+look_down_max = 45.0
+look_return_time = 0.2

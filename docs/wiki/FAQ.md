@@ -26,10 +26,11 @@ keeps your last save instead.) Press **Continue** on the start menu to carry on 
 landed, in orbit or out in space, facing the same way. You have one saved game; **New game** asks before replacing it.
 Your settings are saved separately.
 
-## Where are my saves and settings?
+## Where are my saves, settings and screenshots?
 
-On Windows, in `%APPDATA%\Godot\app_userdata\ProjectPraesepe`: `savegame.json` is your game, `settings.json` your
-settings. The game writes saves safely: it keeps one backup, and if a file is ever damaged it sets it aside and never
+On Windows, in `%APPDATA%\ProjectPraesepe`: `savegame.json` is your game, `settings.json` your settings, and the
+`screenshots` folder holds the pictures you take with **F12** (named by the date and time). When you take one, a
+note in the corner of the screen shows exactly where it went. The game writes saves safely: it keeps one backup, and if a file is ever damaged it sets it aside and never
 deletes it.
 
 ## What is the world seed?

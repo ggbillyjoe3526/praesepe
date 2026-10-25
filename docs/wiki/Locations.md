@@ -21,12 +21,12 @@ The star. It is the light and the bright disc in the sky, not somewhere you can 
 ## Calder
 
 A blue planet with seas, green land, ice caps and a thin blue glow of air, 6 km in radius. Its orbit line is 3 km up, where you
-can park and circle it ([Orbit](Orbit)), and land at its base, Tollgate, from anywhere within 4 km of its surface.
+can park and circle it ([Orbit](Orbit)), and land at its base, Tollgate, within 600 m of its pad.
 
 ## Tollgate
 
-Calder's base: a landing pad with a hangar, a control tower and a beacon. Press G near Calder to land on its pad
-([Docking and Landing](Docking-and-Landing#landing-at-tollgate)). Landing saves the game.
+Calder's base: a landing pad with a hangar, a control tower and a beacon, with a faint cyan guide light shining
+straight up from the pad. Press **G** within 600 m of the pad to land on it ([Docking and Landing](Docking-and-Landing#landing-at-tollgate)). Landing saves the game.
 
 Services: none yet. Jobs, trading and loan payments will be here (see the [Roadmap](Roadmap)).
 
@@ -34,9 +34,9 @@ Services: none yet. Jobs, trading and loan payments will be here (see the [Roadm
 
 ## Halfway Station
 
-A space station of a long spine, a ring and solar panels, with an open docking bay on top framed in green. It hangs
-10 km above Calder, and it is where you start: 2 km away, with three buoys marking the way in. Press G nearby to dock
-([Docking and Landing](Docking-and-Landing#docking-at-halfway-station)). Docking saves the game.
+A space station of a long spine, a ring and solar panels, with an open docking bay on top framed in green, and a faint
+green guide light shining out of the bay. It hangs 10 km above Calder, and it is where you start: 2 km away, with three
+buoys marking the way in. Press **G** nearby to dock ([Docking and Landing](Docking-and-Landing#docking-at-halfway-station)). Docking saves the game.
 
 Services: none yet.
 

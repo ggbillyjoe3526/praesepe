@@ -12,6 +12,7 @@ yet.
 | Space / Ctrl (or C) | Slide up / down |
 | Mouse | Steer (nose up, down, left and right). The stick eases back to the centre when you stop |
 | Q / E | Roll left / right |
+| R | Roll level: rolls round the nose until the nearest planet or moon is below you and its horizon is level. Q or E stops it ([Flying](Flying#rolling-level)) |
 | Z | Flight assist on or off ([Flying](Flying#flight-assist)) |
 | X | Full stop (turns flight assist back on). In cruise, drops out and stops |
 
@@ -28,9 +29,11 @@ yet.
 | Key | What it does |
 | --- | --- |
 | V | Cockpit or chase camera |
+| Hold right mouse | Look round the cockpit without steering (in the chase camera, swing the camera round the ship). Let go to look ahead again ([Flying](Flying#looking-round)) |
 | Esc | Pause. The pause screen has **Settings** ([Settings and Accessibility](Settings-and-Accessibility)), the tow home ([FAQ](FAQ#im-lost-or-stuck-far-from-anywhere)), **Quit to title** and **Quit to desktop** (both save first). On the start menu, Esc goes back a page |
 | F11 or Alt+Enter | Fullscreen or a window |
 | Click | Capture the mouse again after it was let go |
+| F12 | Screenshot, saved as a picture in your screenshots folder ([FAQ](FAQ#where-are-my-saves-settings-and-screenshots)) |
 | F3 | Debug overlay: frame rate, world seed, speed and position |
 
 The game also pauses by itself when its window loses focus or lets go of the mouse.

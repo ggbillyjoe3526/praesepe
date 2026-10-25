@@ -24,6 +24,7 @@ extends Node3D
 func _ready() -> void:
 	_ship.cruise.landmarks = _system.landmarks
 	_ship.orbit.bodies = _system.bodies
+	_ship.upright.bodies = _system.bodies
 	_arrivals.ports = _system.ports
 	_system.track(_ship)
 	_markers.show_places(_system.landmarks)

@@ -73,11 +73,21 @@ Flight uses one Newtonian physics model with a flight assist toggle. It should n
 - Every correction uses the same limited thrusters, so a hard turn at speed slides before the ship lines up again. That slide is the ship's weight.
 - Flight assist off (Z, switchable mid-flight): nothing is cancelled. The ship keeps its speed, direction and spin until the player counters them.
 - X is a full stop: it turns flight assist on and brings the ship to rest.
+- R rolls the ship upright (added at the owner's request, 2026-10-25): it rolls round its nose until its top points
+  away from the nearest planet or moon, so that body's ground is below and its horizon level, and says which body it
+  levelled with ("Rolling level with Calder", then "Level with Calder"). Only the roll changes: the nose stays where it
+  points and the mouse still steers. It uses the ship's own roll thrusters, closing the angle at up to the full roll
+  rate (a turn over in about 2 s), with flight assist on or off, and stops within 0.5°. Q or E takes over at once. With
+  the nose within 10° of straight at the body or away from it no roll is more upright, so it says to pitch toward the
+  horizon first. While the orbit turns the ship to face along it, or levels it out to leave, the orbit has the roll.
+- Holding the right mouse button looks round instead of steering (added at the owner's request, 2026-10-25): the mouse
+  turns the pilot's head (or swings the chase camera round the ship) and the stick eases back to the centre, so the
+  ship's turn settles just as when the mouse stops. Let go and the view turns back to the front in about 0.2 s.
 - The velocity marker sits where the ship is really going; when it is going backwards a crossed marker shows where it is moving away from.
 
 **Flight tuning**
 
-The values live in `game/ship/greybox_ship_tuning.tres` (per ship) and `game/flight/flight_controls.tres` (mouse). Change them here and there together.
+The values live in `game/ship/greybox_ship_tuning.tres` (per ship) and `game/flight/flight_controls.tres` (mouse and looking round). Change them here and there together.
 
 | Value | Greybox ship | What it does |
 | --- | --- | --- |
@@ -90,6 +100,8 @@ The values live in `game/ship/greybox_ship_tuning.tres` (per ship) and `game/fli
 | Turn acceleration | pitch 120°/s², yaw 90°/s², roll 250°/s² | How heavy turns feel to start and stop |
 | Assist response | 0.35 s (speed), 0.12 s (turning) | How eagerly assist corrects, within the thruster limits |
 | Mouse | 250 px for a full stick, eases back at 3 per second | Shared by every ship; the player's sensitivity setting multiplies it (1× is this) |
+| Looking round (right mouse) | 0.1° per px; 140° to either side, 70° up, 45° down; back to the front over 0.2 s | Shared by every ship; the sensitivity setting multiplies it and invert flips it, as for steering |
+| Rolling upright (R) | Closes the roll left over 0.4 s, at most the full roll rate; level within 0.5°, rolling under 1°/s (under 0.02°/s with flight assist off, where nothing stops a leftover roll) | Per ship |
 | Floating origin | Re-centres beyond 2048 m | Technical, not feel |
 
 **Camera**
@@ -107,6 +119,13 @@ The values live in `game/ship/greybox_ship_tuning.tres` (per ship) and `game/fli
 - Head bob in the cockpit: the pilot's head sways a few centimetres against the thrusters' push (back when speeding up, sideways when sliding), easing in and out.
 - Camera shake: a faint rumble while the thrusters push, and a wobble after a bump that dies away in under a second.
 - Chase camera: behind and above the ship, looking down at it a little, turning a moment after the ship does. With flight assist off it turns toward where the ship is really moving, by half the angle between nose and motion, at most 25°. Anything between it and the ship pulls it in at once; it eases back out when the way is clear.
+- Looking round: while the right mouse button is held, the cockpit camera turns with the pilot's head and the chase
+  camera swings round the ship by the same angles, still looking at it. The nose mark stays on the screen, at its edge
+  on the side to turn back to when it is out of view.
+- Screenshots (added at the owner's request, 2026-10-25): F12 saves the picture on the screen, HUD and all, as a PNG
+  in the `screenshots` folder in the user folder (named by the date and time it was taken), and a note in the bottom
+  left corner says where for 4 s. It works while paused too, and never holds up flight (the file is written in the
+  background).
 - Comfort settings, on the Comfort page of the settings menu, saved between sessions: field of view, camera shake, head bob and reduce motion (no shake or head bob, and a chase camera that swings half as much).
 
 **Settings menu**
@@ -144,7 +163,12 @@ The values live in `game/camera/camera_tuning.tres` (shared by every ship). Wher
 - In cruise the dashboard and HUD show "CRUISE · F to drop out" and the speed in km/s, and the space dust fades out (it can't show such speeds) while a coarser cruise dust, specks kilometres apart, fades in so the speed still reads.
 - Every place has a marker on the HUD with its name and distance (to the surface, or to the belt's home pocket), so the player can point at it and go.
 - **Which markers show** (added at the owner's request, 2026-10-25, because names cluttered the screen): two settings on the settings menu's Interface page, "Place markers" (the diamonds) and "Place names" (the name and distance), each Always, Near or looked at, or Off. Near or looked at shows a place that is within 5 km, whose marker is within 10° of the middle of the view (it stays until 14°, so a name at the edge doesn't flicker), that the nose is aimed at for a lock, or that the cruise drive is locked onto. Markers start on Always and names on Near or looked at. Diamonds and names fade in and out over 0.25 s rather than popping. With markers Off, the place aimed at for a lock still gets its corner brackets (blue when locked). The values are in `game/hud/landmark_markers.gd`.
-- **Locking on** (added at the owner's request, 2026-10-25): with the nose within 4° of a place's marker (the nearest one, if several), or else anywhere on a place's disc (a planet or moon, or a station close up), that marker is framed in corner brackets and the HUD offers "F  Cruise" (not while docking or landing is offered, where G is what matters). F then locks the drive onto it: once charged it flies there by itself and the player can sit back. The travel heads for the place (following it over 0.4 s, as when steering), and the nose is turned to follow the travel (closing the angle in 0.6 s), so the place stays ahead in the cockpit window. The locked place's marker turns cruise blue, the readout says "CRUISE LOCKED · F to drop out" and the dashboard (and the chase view's plate) shows "TARGET  Mote · 12 km".
+- **Locking on** (added at the owner's request, 2026-10-25): with the nose within 4° of a place's marker (the nearest one, if several), or else anywhere on a place's disc (a planet or moon, or a station close up), that marker is framed in corner brackets and the HUD offers "F  Cruise" (not while docking or landing is offered, where G is what matters). F then locks the drive onto it: once charged it flies there by itself and the player can sit back. The travel heads for the place (following it over 0.4 s, as when steering), and the nose is turned to follow the travel (closing the angle in 0.6 s), so the place stays ahead in the cockpit window. The locked place's marker turns cruise blue, the readout says "CRUISE LOCKED · F to drop out" and the dashboard (and the chase view's plate) shows "TARGET  Mote · 12 km · 18 s".
+- **Time to arrival** (added at the owner's request, 2026-10-25): locked on, the target line ends with about how long
+  until the drive arrives, in whole seconds rounded up ("1 min 20 s" from a minute; trips over ten minutes, which this system doesn't have, show no time). It is
+  worked out by flying the rest of the trip ahead the way the drive will fly it (the rest of the charge, the way round
+  anything in the way, slowing on the way in), afresh every second, and counts down in between; on test trips it is
+  within a second of the real time.
 - Locked on, it only drops out on arriving at that place: it flies on through other places' zones (so a trip to Tollgate doesn't stop at Calder). A planet, moon or station in the way is flown round, along the shortest way and a planet's radius above it (never closer than its arrival zone): the drive heads along the line that just touches that clearance, follows it, and goes straight once the way is clear. A base on a planet's surface is flown at straight once it is seen at least 15° above its horizon; from lower, or from the far side, the drive goes round the planet first and comes down at it from above. The safety drop still holds.
 - Moving the mouse (more than 15% of a full stick push, as with orbit), while the drive charges or cruises, releases the lock, "Lock released · steering yourself": the drive then charges or carries on where the nose points, as without a lock. F or X drop out as usual. Rolling with Q/E doesn't release it. Taking over while inside another place's zone doesn't drop out there (it counts as left behind, like a place the drive starts at), and a ship that reaches its target while still charging has simply arrived. With nothing aimed at, F cruises where the nose points, exactly as before. A place the ship is already at (inside its arrival zone) can't be locked onto.
 
@@ -510,6 +534,14 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 Newest first. Each line: date, the decision, who made it.
 
 - 2026-10-25: A title screen with a start menu (Continue, New game, Settings, Quit), and a new game starts by choosing the ship, then docked at Halfway Station; loading a save puts the ship back where it was saved, even out in space ("if a player saves out in space then they return to those coordinates and not back at a station") (owner). Until the owner says otherwise: the one ship of the first playable is the Hauler, because its jobs are deliveries and mining; a new game saves at once; a new game over a saved game asks first (and isn't offered over a save another program holds or a newer version's); quitting to the title or the desktop saves first; a ship continued out in space carries on at its saved speed and spin; the title screen is a starfield, not the solar system (default, Claude).
+- 2026-10-25: Four conveniences join the first playable: the time to arrival next to the distance while the cruise
+  drive is locked on, an F12 screenshot key, holding the right mouse button to look round the cockpit without steering,
+  and a key that rolls the ship upright against the nearest planet or moon. William approved them from a list of
+  quality-of-life ideas (owner). Until the owner tunes them: R is the roll-upright key, it works anywhere against the
+  nearest planet or moon (by distance to its surface) and also with flight assist off; looking round reaches 140° to
+  either side, 70° up and 45° down, and in the chase view swings the camera round the ship; screenshots go to
+  `screenshots` in the user folder named `praesepe_<date>_<time>.png`; values as in "How it flies" and "How the
+  cruise drive works" (default, Claude).
 - 2026-10-25: The player wiki describes the newest development build (what is merged to `main`), not only released builds, and is updated in the same pull request as each player-facing change: William asked for a wiki "kept up to date as the game is developed. For example, when a new feature/content or any important is changed it will update the wiki." Pages live in `docs/wiki/` and are published to the GitHub wiki on every merge, as in katanashotgun; work still being built or planned stays on the Roadmap page (owner asked; the publishing setup default, Claude).
 - 2026-10-25: Version names and tags: players see "0.1 Dev 1", "0.1 Beta 2", then "0.1", tagged `v0.1-dev.1`, `v0.1-beta.2` and `v0.1`, like the owner's katanashotgun; Dev and Beta are GitHub pre-releases. William chose this on 2026-10-25 (owner). A tag on main (or the Release workflow's button) publishes a Windows installer and a portable zip; steps in `RELEASING.md` (default, Claude).
 - 2026-10-25: Autosave every few minutes in flight as well as on docking and landing, and a "Tow me to base" button on the pause screen, free until money exists and then the towing fee (owner approved both, 2026-10-25). Until the owner tunes them: every 3 minutes of in-game time; the tow goes to the last port the ship arrived at, or the nearest if none, asks for a second press, and is not offered while docked; the save file goes to version 2 (old saves are brought up to date when read) (default, Claude).

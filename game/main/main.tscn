@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=31 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_ship.tscn" id="2_ship"]
@@ -23,6 +23,7 @@
 [ext_resource type="Script" path="res://game/save/autosave.gd" id="22_autosave"]
 [ext_resource type="Script" path="res://game/world/orbit_line.gd" id="23_orbit_line"]
 [ext_resource type="Script" path="res://game/hud/orbit_marker.gd" id="24_orbit_marker"]
+[ext_resource type="Script" path="res://game/ui/screenshots.gd" id="25_screenshots"]
 
 [sub_resource type="ShaderMaterial" id="Mat_sky"]
 shader = ExtResource("3_sky")
@@ -114,10 +115,11 @@ near = 0.2
 far = 150000.0
 script = ExtResource("16_chase_camera")
 
-[node name="PilotControls" type="Node" parent="." node_paths=PackedStringArray("ship")]
+[node name="PilotControls" type="Node" parent="." node_paths=PackedStringArray("ship", "cameras")]
 script = ExtResource("8_pilot")
 ship = NodePath("../World/Ship")
 controls = ExtResource("9_controls")
+cameras = NodePath("../ShipCameras")
 
 [node name="Arrivals" type="Node" parent="." node_paths=PackedStringArray("ship")]
 script = ExtResource("18_arrivals")
@@ -251,6 +253,9 @@ script = ExtResource("11_pause")
 controls = NodePath("../PilotControls")
 arrivals = NodePath("../Arrivals")
 autosave = NodePath("../Autosave")
+
+[node name="Screenshots" type="CanvasLayer" parent="."]
+script = ExtResource("25_screenshots")
 
 [node name="DebugPerf" type="CanvasLayer" parent="." node_paths=PackedStringArray("ship", "origin")]
 script = ExtResource("12_perf")
