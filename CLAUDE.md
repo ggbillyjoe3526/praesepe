@@ -6,8 +6,8 @@ flags. The project instructions hold the full rules; this file holds what is spe
 
 ## Repo notes
 - **Godot 4.7.2-stable**, standard build, typed GDScript, Forward+, Jolt physics at a fixed 60 Hz tick. The version is
-  pinned in `project.godot` (`config/features`) and `GODOT_VERSION` in `.github/workflows/ci.yml`; they change
-  together, and only with the owner.
+  pinned in `project.godot` (`config/features`) and `GODOT_VERSION` in `.github/workflows/ci.yml` and
+  `release.yml`; they change together, and only with the owner.
 - **Cloud sessions:** the SessionStart hook (`.claude/hooks/session-start.mjs`) installs that Godot as `godot` on PATH.
   Export templates are not installed. Cloud machines have no GPU: never judge feel or report frame rates from here.
 - **Checks** (CI runs all of them on every pull request): `tools/smoke_test.sh` (import, then `-- --smoke`, fails on
@@ -19,6 +19,8 @@ flags. The project instructions hold the full rules; this file holds what is spe
   (`game/core/events.gd`); every docking and landing goes through `Arrivals.arrive()` (`game/arrival/arrivals.gd`).
 - **Saves** go through `SaveFile` (`game/save/save_file.gd`): atomic write, read-back check, one backup, damaged copies
   set aside and never deleted.
+- **Releases:** `RELEASING.md`. A `v0.1-dev.1`-style tag on `main` (or the Release workflow's button) builds, tests and
+  publishes the Windows installer and zip (`.github/workflows/release.yml`); only the owner releases.
 - **Changelog:** never edit `CHANGELOG.md` in a feature pull request. Add one new file `changelog.d/<short-name>.md`
   (`changelog.d/README.md`).
 - **Git:** branch from the latest `main`, open a pull request; the owner merges. Never push to `main`, never create a
