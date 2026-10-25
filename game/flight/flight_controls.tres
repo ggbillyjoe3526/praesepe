@@ -6,4 +6,3 @@
 script = ExtResource("1_controls")
 mouse_gain = 0.004
 stick_return = 3.0
-invert_pitch = false
