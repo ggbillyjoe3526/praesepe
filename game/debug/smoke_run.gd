@@ -93,8 +93,9 @@ const CLEAR_OF_BASE := 320.0
 ## The approach to the station's dock: the speed (m/s) the autopilot slows to, and how long (ticks) it may take.
 const APPROACH_SPEED := 80.0
 const APPROACH_LIMIT := 2400
-## How long (ticks) a save in flight may take to be written.
-const SAVE_LIMIT := 120
+## How long (ticks) after a save in flight is due the autopilot waits for it to be written (so the run is as long
+## however fast the disk is).
+const SAVE_WAIT := 2
 
 var ship: Ship
 var origin: FloatingOrigin
@@ -778,13 +779,12 @@ func _save_in_flight(input: ShipInput) -> void:
 				_expect(false, "stops clear of the station (%.2f m/s)" % ship.speed())
 				_finish()
 		1:
-			if autosave.flight_saves > _flight_saves:
+			if _phase_ticks >= SAVE_WAIT:
+				autosave.finish_writing()
+				_expect(autosave.flight_saves == _flight_saves + 1, "saves in flight once it is due")
 				_check_flight_save()
 				_stage = 0
 				_next()
-			elif _phase_ticks >= SAVE_LIMIT:
-				_expect(false, "saves in flight within %d ticks" % SAVE_LIMIT)
-				_finish()
 
 
 ## The save in flight reads back: no berth, the station as home, and the ship where it was.

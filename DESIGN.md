@@ -339,7 +339,8 @@ the station's and base's scenes (`game/system/greybox_station.tscn`, `game/syste
   it flies itself in to a berth or out of one. Its file is written in the background, so it never holds up a frame.
 - The save holds the world (seed, clock, random streams), the berth ("" in flight), home (the last port the ship
   arrived at), and the ship: which one, where it is in the solar system's own coordinates, which way it faces, how it
-  moves, flight assist and the planet or moon it orbits. Loading puts the ship back exactly there, in space too.
+  moves, flight assist and the orbit it is settled in (the planet or moon, its height and its axis). Loading (being
+  built with the start menu) is to put the ship back exactly there, in space too.
 - "Tow me to base" on the pause screen puts the ship straight back at home (the nearest port if it has never docked
   or landed), whatever it was doing, through the one arrival function, so it is docked or landed there and the game
   saves. It asks for a second press first. It isn't offered while docked or landed. It is free until money exists;

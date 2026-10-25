@@ -32,7 +32,8 @@ static func snapshot(berth: Port, home: Port, ship: Ship = null, origin: Floatin
 ## Where `ship` is and how it moves. "at" is its true position in the solar system's own coordinates (the planet's
 ## centre is 0, 0, 0), in 64-bit, so it is the same whatever the floating origin has done; "turn" is its attitude as a
 ## quaternion (x, y, z, w); "velocity" (m/s) and "spin" (rad/s) are in world axes; "held" is the forward speed flight
-## assist holds; "orbit" names the planet or moon it is in orbit round, or "".
+## assist holds; "orbit" is empty out of orbit, or, settled in orbit, the planet or moon's id ("body"), the orbit's
+## distance from its centre ("radius", m) and its axis ("axis"), so the ship goes back to the very same orbit.
 static func ship_state(ship: Ship, origin: FloatingOrigin = null) -> Dictionary:
 	var at := ship.global_position
 	var true_at := origin.true_position(at) if origin != null else PackedFloat64Array([at.x, at.y, at.z])
@@ -47,8 +48,16 @@ static func ship_state(ship: Ship, origin: FloatingOrigin = null) -> Dictionary:
 		"spin": [spin.x, spin.y, spin.z],
 		"assist": ship.assist_on(),
 		"held": ship.held_speed(),
-		"orbit": ship.orbit.body.display_name if ship.orbit.active() and ship.orbit.body != null else "",
+		"orbit": SaveGame.orbit_state(ship.orbit),
 	}
+
+
+## The orbit `orbit` the ship is settled in, or {} when it isn't in one.
+static func orbit_state(orbit: Orbit) -> Dictionary:
+	if orbit.phase != Orbit.Phase.ORBITING or orbit.body == null:
+		return {}
+	var axis := orbit.axis
+	return {"body": String(orbit.body.id), "radius": orbit.radius, "axis": [axis.x, axis.y, axis.z]}
 
 
 ## Writes `data` (a snapshot()) to `path`. Returns false (keeping the last good save) when the write failed. Safe to

@@ -43,12 +43,12 @@ func _exit_tree() -> void:
 	if Events.arrived.is_connected(_on_arrived):
 		Events.arrived.disconnect(_on_arrived)
 	# Never leave a write cut short.
-	_finish_writing()
+	finish_writing()
 
 
 func _physics_process(_delta: float) -> void:
 	if _task >= 0 and WorkerThreadPool.is_task_completed(_task):
-		_finish_writing()
+		finish_writing()
 	if _task < 0 and Game.clock >= due and can_save_in_flight():
 		var data := _snapshot()
 		var to := path
@@ -71,11 +71,11 @@ func can_save_in_flight() -> bool:
 	return ship.orbit.phase == Orbit.Phase.OFF or ship.orbit.phase == Orbit.Phase.ORBITING
 
 
-## Writes the game now, wherever the ship is, and waits until it is on disk (for quitting). Returns false, leaving the
+## Writes the game now, wherever the ship is, and waits until it is on disk (for quitting to the title or the desktop). Returns false, leaving the
 ## last save as it was, when the write failed or the ship is somewhere a save can't put it back (cruising, or being
 ## flown in to a berth or out of it).
 func save_now() -> bool:
-	_finish_writing()
+	finish_writing()
 	var docked := ship != null and ship.berth != null and not ship.guided \
 			and (arrivals == null or arrivals.stage == Arrivals.Stage.DOCKED)
 	if not docked and not can_save_in_flight():
@@ -85,7 +85,7 @@ func save_now() -> bool:
 
 
 func _on_arrived(port: Port) -> void:
-	_finish_writing()
+	finish_writing()
 	last_berth = port.id
 	var data := SaveGame.snapshot(port, port, ship, origin)
 	_saved(SaveGame.write(path, data))
@@ -103,7 +103,7 @@ func _write_on_worker(to: String, data: Dictionary) -> void:
 
 
 ## Waits for the save being written on the worker thread, if there is one, and says how it went.
-func _finish_writing() -> void:
+func finish_writing() -> void:
 	if _task < 0:
 		return
 	WorkerThreadPool.wait_for_task_completion(_task)

@@ -75,7 +75,7 @@ func test_writes_the_ship_where_it_truly_is() -> void:
 	assert_eq(saved.velocity, [1.0, 2.0, 3.0])
 	assert_almost_eq(float(saved.spin[0]), 0.1, 0.0001)
 	assert_true(saved.assist)
-	assert_eq(saved.orbit, "")
+	assert_eq(saved.orbit, {}, "not in orbit")
 
 
 func test_a_version_1_save_is_brought_up_to_date() -> void:

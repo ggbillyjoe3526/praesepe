@@ -1,7 +1,7 @@
 extends GutTest
 ## The greybox ship in orbit round a plain planet (design doc, "Orbit"): the orbit has the velocity, the ship's
 ## attitude turns with it so its view of the planet holds still, and every key that flies the ship leaves orbit
-## without a lurch: O and W level the nose out and fly on without sinking, X stops, Z drifts.
+## without a lurch: O and W level the nose out and fly on without sinking, X stops, Z drifts. A save keeps the orbit.
 
 var _ship: Ship
 var _planet: CelestialBody
@@ -121,3 +121,15 @@ func test_the_cruise_drive_takes_over_from_the_orbit() -> void:
 	# Nothing in the drive's way here (it knows no places), so it engages and the orbit gives way.
 	assert_true(_ship.cruise.active(), "the drive engages")
 	assert_false(_ship.orbit.active(), "and the ship leaves orbit")
+
+
+func test_a_save_keeps_the_very_same_orbit() -> void:
+	_planet.id = &"test_planet"
+	assert_eq(SaveGame.orbit_state(_ship.orbit), {}, "not in orbit yet")
+	await _enter()
+	var saved := SaveGame.orbit_state(_ship.orbit)
+	assert_eq(saved.body, "test_planet")
+	assert_eq(saved.radius, _ship.orbit.radius)
+	var axis := _ship.orbit.axis
+	assert_eq(saved.axis, [axis.x, axis.y, axis.z])
+	assert_eq(SaveGame.ship_state(_ship).orbit, saved)
