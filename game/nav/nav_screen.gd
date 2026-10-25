@@ -10,8 +10,12 @@ extends MeshInstance3D
 @export var font_size: int = 30
 @export var max_rows: int = 3
 
+## The quad's corners (as shares of its size), and the world-space corners refilled from them (corners()).
+const CORNERS: Array[Vector2] = [Vector2(-0.5, -0.5), Vector2(0.5, -0.5), Vector2(0.5, 0.5), Vector2(-0.5, 0.5)]
+
 var _viewport: SubViewport
 var _panel: NavPanel
+var _corners: PackedVector3Array = PackedVector3Array([Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO])
 
 
 func _ready() -> void:
@@ -36,13 +40,20 @@ func attach(nav: NavComputer) -> void:
 	_panel.font_size = font_size
 	_panel.max_rows = max_rows
 	_panel.compact = false
+	_panel.shown_by = self
+	_panel.dashboard = get_parent() as CockpitDisplay
 	_viewport.add_child(_panel)
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_panel.attach(nav)
+	# Drawn once now, at load, so the first Tab in flight doesn't have to lay out and draw it from nothing.
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
 func _on_visibility_changed() -> void:
+	# Drawn every frame while lit, so hovering and pressing its buttons shows at once.
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if visible else SubViewport.UPDATE_DISABLED
+	if visible and _panel != null:
+		_panel.shown()
 
 
 func _input(event: InputEvent) -> void:
@@ -62,13 +73,15 @@ func _input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-## The screen's four corners, in world space.
+## The screen's four corners, in world space (refilled in place on each call).
 func corners() -> PackedVector3Array:
-	var half := (mesh as QuadMesh).size * 0.5 if mesh is QuadMesh else Vector2.ZERO
-	var out := PackedVector3Array()
-	for c: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-		out.append(global_transform * Vector3(c.x * half.x, c.y * half.y, 0.0))
-	return out
+	var quad := mesh as QuadMesh
+	var area := quad.size if quad != null else Vector2.ZERO
+	# Where it is drawn this frame (physics interpolation), as the camera sees it.
+	var place := get_global_transform_interpolated()
+	for i in CORNERS.size():
+		_corners[i] = place * Vector3(CORNERS[i].x * area.x, CORNERS[i].y * area.y, 0.0)
+	return _corners
 
 
 ## Where a ray from `from` along `along` (world space) meets the screen, in the panel's canvas (px), or (-1, -1) when
@@ -77,7 +90,8 @@ func screen_point(from: Vector3, along: Vector3) -> Vector2:
 	var quad := mesh as QuadMesh
 	if quad == null:
 		return Vector2(-1.0, -1.0)
-	var to_local := global_transform.affine_inverse()
+	# Where it is drawn this frame (physics interpolation), so a click lands on what is under the mouse at any speed.
+	var to_local := get_global_transform_interpolated().affine_inverse()
 	var o := to_local * from
 	var d := to_local.basis * along
 	if absf(d.z) < 1.0e-6:

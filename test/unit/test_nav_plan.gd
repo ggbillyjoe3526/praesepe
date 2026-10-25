@@ -64,7 +64,7 @@ func test_lists_places_with_markers_but_reaches_a_base_through_its_planet() -> v
 
 func test_ways_to_arrive_at_each_kind_of_place() -> void:
 	assert_eq(_labels(NavPlan.options(_station, _ports)), "Dock,Stop nearby")
-	assert_eq(_labels(NavPlan.options(_planet, _ports)), "Land at Tollgate,Orbit,Stop nearby")
+	assert_eq(_labels(NavPlan.options(_planet, _ports)), "Land,Orbit,Stop nearby")
 	assert_eq(_labels(NavPlan.options(_belt, _ports)), "Stop nearby")
 
 
@@ -139,9 +139,9 @@ func test_the_hud_strip_says_which_step_and_what_it_is_doing() -> void:
 	nav.plan.replace(NavPlan.options(_planet, _ports)[1].steps, _dock)
 	nav.plan.advance()
 	nav.state = NavComputer.State.RUNNING
-	assert_eq(NavStrip.line_for(nav), "NAV  2 of 3  ·  Cruise to Calder  ·  R pause  ·  Tab plan")
+	assert_eq(NavStrip.line_for(nav), "NAV  2/3  ·  Cruise to Calder  ·  R  Pause")
 	nav.activity = "Lining up for Calder"
-	assert_eq(NavStrip.line_for(nav), "NAV  2 of 3  ·  Lining up for Calder  ·  R pause  ·  Tab plan")
+	assert_eq(NavStrip.line_for(nav), "NAV  2/3  ·  Lining up for Calder  ·  R  Pause")
 	nav.state = NavComputer.State.PAUSED
-	nav.activity = "You took the controls  ·  R to carry on"
-	assert_eq(NavStrip.line_for(nav), "NAV PAUSED  ·  2 of 3  ·  You took the controls  ·  R to carry on")
+	nav.activity = "You took the controls"
+	assert_eq(NavStrip.line_for(nav), "NAV PAUSED  ·  2/3  ·  You took the controls  ·  R  Resume")

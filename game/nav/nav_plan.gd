@@ -1,7 +1,7 @@
 class_name NavPlan
 extends RefCounted
 ## The nav computer's plan (design doc, "Nav computer"): the orders queued for the ship, flown one after another. The
-## pilot picks a place and how to arrive there (an Option, such as "Dock" or "Land at Tollgate") and the plan gets the
+## pilot picks a place and how to arrive there (an Option, such as "Dock" or "Land") and the plan gets the
 ## steps that takes: cruise there, then dock, land or enter orbit. A plan that starts at a berth, or continues after a
 ## docking or landing, gets the undocking or take-off first. A finished step leaves the plan, so its first step is
 ## always the one being flown. Nothing here touches nodes but reading how the solar system is laid out, so the unit
@@ -85,7 +85,7 @@ func replace(route: Array[NavStep], berth: Port) -> bool:
 
 
 ## The places the nav computer lists, in the solar system's order: every place with a HUD marker, except a base on a
-## planet or moon, which is landed at from its planet's entry ("Land at Tollgate" under Calder).
+## planet or moon, which is landed at from its planet's entry ("Land" under Calder, for Tollgate).
 static func places(landmarks: Array[Landmark]) -> Array[Landmark]:
 	var out: Array[Landmark] = []
 	for l: Landmark in landmarks:
@@ -113,9 +113,14 @@ static func options(place: Landmark, ports: Array[Port]) -> Array[Option]:
 			out.append(Option.new("Dock", [NavStep.cruise(place), NavStep.arrive(p)]))
 	var body := place as CelestialBody
 	if body != null:
+		# Kept short, as the game's prompts are: "Land" for a planet's only base, the base's name when it has several.
+		var pads: Array[Port] = []
 		for p: Port in ports:
 			if p.body == body and p.place != null:
-				out.append(Option.new("Land at %s" % p.place_name(), [NavStep.cruise(p.place), NavStep.arrive(p)]))
+				pads.append(p)
+		for p: Port in pads:
+			var words := "Land" if pads.size() == 1 else p.place_name()
+			out.append(Option.new(words, [NavStep.cruise(p.place), NavStep.arrive(p)]))
 		out.append(Option.new("Orbit", [NavStep.cruise(body), NavStep.orbit(body)]))
 	out.append(Option.new("Stop nearby", [NavStep.cruise(place)]))
 	return out

@@ -24,7 +24,7 @@ const KEYS: Array[Array] = [
 	["Nav computer: go now", [&"nav_go"]],
 	["Nav computer: add to the plan", [&"nav_add"]],
 	["Nav computer: clear the plan", [&"nav_clear"]],
-	["Nav computer: pause or carry on the plan", [&"nav_pause"]],
+	["Nav computer: pause or resume the plan", [&"nav_pause"]],
 	["Pause, settings and controls", [&"pause"]],
 	["Fullscreen or window", []],
 	["Debug overlay", []],

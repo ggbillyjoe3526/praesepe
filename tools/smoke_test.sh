@@ -53,4 +53,12 @@ if ! grep -q "^SMOKE NAV: ok" "$LOG.nav"; then
   echo "FAIL: the nav computer's smoke run never reported (exit $status, see $LOG.nav)"; exit 1
 fi
 grep "^SMOKE NAV: ok" "$LOG.nav"
-echo "PASS: nav computer smoke run with zero errors"
+timeout 180 "$GODOT" --headless --fixed-fps 60 --path . -- --smoke --nav --seed 1234 > "$LOG.nav.again" 2>&1
+if errors_in "$LOG.nav.again"; then
+  echo "FAIL: errors during the nav computer's second smoke run (see $LOG.nav.again)"; exit 1
+fi
+if [ "$(grep "^SMOKE NAV: ok" "$LOG.nav")" != "$(grep "^SMOKE NAV: ok" "$LOG.nav.again")" ]; then
+  grep "^SMOKE" "$LOG.nav.again"
+  echo "FAIL: the nav computer's second run on the same seed ended differently (see $LOG.nav.again)"; exit 1
+fi
+echo "PASS: nav computer smoke run with zero errors, the same on a second run"

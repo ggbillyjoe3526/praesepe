@@ -2,9 +2,10 @@ class_name NavSmokeRun
 extends Node
 ## The nav computer's headless smoke run (`godot --headless --path . -- --smoke --nav`, tools/smoke_test.sh): nobody
 ## touches the controls, and the nav computer (NavComputer) flies every order it is given, the way a player would give
-## them on its screen. It checks the screen opens in the cockpit and as a card in the chase view; docks at Halfway
-## Station from the start; undocks, cruises to Tollgate and lands there, carrying on after the pilot takes the stick
-## for a moment on the way (which pauses it) and R; takes off and settles into orbit round Mote; and queues a longer
+## them on its screen. It checks the screen opens in the cockpit and as a card in the chase view; heads to dock at
+## Halfway Station from the start and, once the docking computer is taking the ship in, is told to land at Tollgate
+## instead, so it finishes docking, undocks, cruises to Tollgate and lands there, carrying on after the pilot takes the
+## stick for a moment on the way (which pauses it) and R; takes off and settles into orbit round Mote; and queues a longer
 ## plan, which puts the undocking between a docking and the cruise after it. Prints "SMOKE NAV: ok ..." and quits
 ## with 0, or pushes an error per failed check and quits with 1.
 
@@ -28,6 +29,7 @@ var _phase_ticks: int = 0
 var _failures: int = 0
 var _touched: bool = false
 var _cruise_ticks: int = 0
+var _docked_first: bool = false
 var _done: PackedStringArray = PackedStringArray()
 
 
@@ -44,20 +46,26 @@ func _physics_process(_delta: float) -> void:
 		0:
 			_check_screens()
 			_next()
-		1: # Dock at Halfway Station, from the start.
+		1: # Dock at Halfway Station, from the start, until the docking computer has the ship.
 			if _phase_ticks == 1:
 				_order("Halfway Station", "Dock", false, ["Cruise to Halfway Station", "Dock at Halfway Station"])
-			elif _await_plan("docks at Halfway Station"):
-				_expect(arrivals.stage == Arrivals.Stage.DOCKED and arrivals.port == system.port(&"halfway_station"),
-						"is docked at Halfway Station after the plan")
+			elif arrivals.stage == Arrivals.Stage.APPROACHING:
+				_done.append("docking@%d" % _frames)
 				_next()
-		2: # Undock, cruise to Tollgate and land, taking the stick for a moment on the way.
+			elif _await_plan("docks at Halfway Station"):
+				_expect(false, "hands the ship to the docking computer before the plan ends")
+				_next()
+		2: # Told to land at Tollgate while docking: it docks, undocks, cruises to Tollgate and lands, taking the stick
+			# for a moment on the way.
 			if _phase_ticks == 1:
-				_order("Calder", "Land at Tollgate", false, ["Undock from Halfway Station", "Cruise to Tollgate",
+				_order("Calder", "Land", false, ["Undock from Halfway Station", "Cruise to Tollgate",
 						"Land at Tollgate"])
 			else:
+				if arrivals.stage == Arrivals.Stage.DOCKED and arrivals.port == system.port(&"halfway_station"):
+					_docked_first = true
 				_touch_on_the_way()
 				if _await_plan("lands at Tollgate"):
+					_expect(_docked_first, "finished docking at Halfway Station before leaving")
 					_expect(_touched, "was paused by the pilot on the way and carried on")
 					_expect(arrivals.stage == Arrivals.Stage.DOCKED and arrivals.port == system.port(&"tollgate"),
 							"is landed at Tollgate after the plan")
@@ -84,7 +92,7 @@ func _check_screens() -> void:
 	var labels: PackedStringArray = []
 	for o: NavPlan.Option in nav.options:
 		labels.append(o.label)
-	_expect(",".join(labels) == "Land at Tollgate,Orbit,Stop nearby", "offers Calder's ways to arrive (%s)"
+	_expect(",".join(labels) == "Land,Orbit,Stop nearby", "offers Calder's ways to arrive (%s)"
 			% ",".join(labels))
 	nav.open_menu()
 	_expect(screen.visible and not card.visible, "opens on the dashboard in the cockpit")

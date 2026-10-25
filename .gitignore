@@ -8,6 +8,7 @@ import.log
 smoke.log
 smoke.log.again
 smoke.log.nav
+smoke.log.nav.again
 unit.log
 # OS / editors
 .DS_Store

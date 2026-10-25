@@ -4,7 +4,8 @@ extends PanelContainer
 ## computer is doing now. The same panel shows on the cockpit's dashboard (NavScreen: wide, the places and the plan
 ## side by side) and as a card in the chase view (compact: one above the other), so both read the same. Everything on
 ## it works with the mouse and with keys, and each button says its key. Text is rebuilt only when the nav computer
-## says something changed, and the distances four times a second while it shows. Buttons never take keyboard focus,
+## says something changed while the panel shows (or once it shows again), the ways to arrive only when they or the
+## pick change, and the distances four times a second while it shows; the button looks are made once. Buttons never take keyboard focus,
 ## so Space and the arrows keep flying the ship and working the list. Placeholder look until the art style is chosen.
 
 const PLATE_COLOUR := Color(0.012, 0.02, 0.047, 0.94)
@@ -30,6 +31,11 @@ const DISTANCE_EVERY := 0.25
 @export var max_rows: int = 5
 
 var computer: NavComputer = null
+## What shows the panel, when that isn't the panel itself (NavScreen, whose viewport's Controls always count as visible).
+var shown_by: Node3D = null
+## The cockpit's speed screen, which the panel covers on the dashboard: its speed and flight assist are repeated in the
+## panel's top line (none on the chase view's card, where the HUD shows them).
+var dashboard: CockpitDisplay = null
 
 
 ## The diamond each place has, as its HUD marker does.
@@ -61,24 +67,56 @@ var _activity: Label
 var _pause: Button
 var _clear: Button
 var _distance_left: float = 0.0
+var _speed_line: Label
+var _assist_line: Label
+## Something changed while the panel was hidden; it is brought up to date when it shows.
+var _stale: bool = false
+## The place row and the ways to arrive (and the pick among them) as last drawn.
+var _shown_selected: int = -1
+var _shown_options: Array[NavPlan.Option] = []
+var _shown_choice: int = -1
+## Each look a place row or a way-to-arrive pill can have (normal, hover, pressed), made once.
+var _row_on: Array[StyleBoxFlat] = []
+var _row_off: Array[StyleBoxFlat] = []
+var _pill_on: Array[StyleBoxFlat] = []
+var _pill_off: Array[StyleBoxFlat] = []
 
 
 ## Builds the panel for `nav` and keeps it up to date.
 func attach(nav: NavComputer) -> void:
 	computer = nav
 	_build()
-	computer.changed.connect(_refresh)
+	computer.changed.connect(_on_changed)
+	visibility_changed.connect(shown)
 	_refresh()
 
 
+## Whether the player can see the panel now.
+func showing() -> bool:
+	return shown_by.is_visible_in_tree() if shown_by != null else is_visible_in_tree()
+
+
+## Brings the panel up to date if it changed while hidden; whatever shows it calls this when it does.
+func shown() -> void:
+	if _stale and showing():
+		_refresh()
+
+
 func _exit_tree() -> void:
-	if computer != null and computer.changed.is_connected(_refresh):
-		computer.changed.disconnect(_refresh)
+	if computer != null and computer.changed.is_connected(_on_changed):
+		computer.changed.disconnect(_on_changed)
 
 
 func _process(delta: float) -> void:
-	if computer == null or not is_visible_in_tree():
+	if computer == null or not showing():
 		return
+	if dashboard != null:
+		# Copied only when they change, which the dashboard's own text does only when its numbers do.
+		if _speed_line.text != dashboard.speed_line():
+			_speed_line.text = dashboard.speed_line()
+		if _assist_line.text != dashboard.assist_line():
+			_assist_line.text = dashboard.assist_line()
+			_assist_line.add_theme_color_override("font_color", dashboard.assist_colour())
 	_distance_left -= delta
 	if _distance_left > 0.0:
 		return
@@ -98,6 +136,14 @@ func _size(share: float) -> int:
 
 func _build() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_row_on = [_box(PICKED_FILL, Color(PICKED_COLOUR, 0.55), 0.15), _box(PICKED_FILL, Color(PICKED_COLOUR, 0.55), 0.15),
+			_box(PICKED_FILL, Color(PICKED_COLOUR, 0.55), 0.15)]
+	_row_off = [_box(Color(PICKED_FILL, 0.0), Color(0, 0, 0, 0), 0.15),
+			_box(Color(PICKED_FILL, 0.6), Color(0, 0, 0, 0), 0.15), _box(PICKED_FILL, Color(0, 0, 0, 0), 0.15)]
+	_pill_on = [_box(TEXT_COLOUR, TEXT_COLOUR, 0.6), _box(TEXT_COLOUR, TEXT_COLOUR, 0.6),
+			_box(TEXT_COLOUR, TEXT_COLOUR, 0.6)]
+	_pill_off = [_box(Color(TEXT_COLOUR, 0.0), KEYCAP_COLOUR, 0.6), _box(PICKED_FILL, KEYCAP_COLOUR, 0.6),
+			_box(TEXT_COLOUR, TEXT_COLOUR, 0.6)]
 	var plate := StyleBoxFlat.new()
 	plate.bg_color = PLATE_COLOUR
 	plate.border_color = EDGE_COLOUR
@@ -112,7 +158,14 @@ func _build() -> void:
 	page.add_child(head)
 	var title := _label(head, "NAV COMPUTER", 0.7, DIM_COLOUR)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(head, "Tab  close", 0.7, DIM_COLOUR)
+	if dashboard != null:
+		head.add_theme_constant_override("separation", _size(0.8))
+		_speed_line = _label(head, "", 0.8, TEXT_COLOUR)
+		_assist_line = _label(head, "", 0.8, TEXT_COLOUR)
+		var gap := Control.new()
+		gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		head.add_child(gap)
+	_label(head, "Tab  Close", 0.7, DIM_COLOUR)
 	_rule(page)
 	var columns := BoxContainer.new()
 	columns.vertical = compact
@@ -140,7 +193,7 @@ func _build_places(parent: Control) -> VBoxContainer:
 	side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side.add_theme_constant_override("separation", _size(0.12))
 	parent.add_child(side)
-	_label(side, "WHERE TO   (Up, Down)", 0.7, DIM_COLOUR)
+	_label(side, "WHERE TO   Up / Down", 0.7, DIM_COLOUR)
 	for i in computer.places.size():
 		var row := _flat_button(side)
 		row.custom_minimum_size.y = _size(1.25)
@@ -163,6 +216,7 @@ func _build_places(parent: Control) -> VBoxContainer:
 		place.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var distance := _label(line, "", 0.85, DIM_COLOUR)
 		distance.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_style_row(row, false)
 		_place_buttons.append(row)
 		_distance_labels.append(distance)
 		_distance_keys.append(-1)
@@ -175,7 +229,7 @@ func _build_orders(side: VBoxContainer) -> void:
 	var arrive: BoxContainer = HBoxContainer.new() if compact else VBoxContainer.new()
 	arrive.add_theme_constant_override("separation", _size(0.4) if compact else _size(0.12))
 	side.add_child(arrive)
-	_label(arrive, "ARRIVE   (Left, Right)", 0.7, DIM_COLOUR)
+	_label(arrive, "ARRIVE   Left / Right", 0.7, DIM_COLOUR)
 	_options = HFlowContainer.new()
 	_options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_options.add_theme_constant_override("h_separation", _size(0.3))
@@ -188,9 +242,9 @@ func _build_orders(side: VBoxContainer) -> void:
 	var buttons: BoxContainer = HBoxContainer.new() if compact else VBoxContainer.new()
 	buttons.add_theme_constant_override("separation", _size(0.4) if compact else _size(0.25))
 	side.add_child(buttons)
-	_go = _action_button(buttons, "Go now   Enter", true)
+	_go = _action_button(buttons, "Enter  Go", true)
 	_go.pressed.connect(computer.go)
-	_add = _action_button(buttons, "Add to plan   Shift+Enter", false)
+	_add = _action_button(buttons, "Shift+Enter  Add", false)
 	_add.pressed.connect(computer.add)
 
 
@@ -223,7 +277,7 @@ func _build_plan(parent: Control) -> void:
 		tag.add_theme_stylebox_override("panel", tag_box)
 		tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(tag)
-		var tag_words := _label(tag, "NOW", 0.5, DARK_COLOUR)
+		var tag_words := _label(tag, "NOW", 0.6, DARK_COLOUR)
 		_rows.append(row)
 		_row_numbers.append(number)
 		_row_texts.append(words)
@@ -241,28 +295,44 @@ func _build_plan(parent: Control) -> void:
 	side.add_child(buttons)
 	_pause = _action_button(buttons, "Pause   R", false)
 	_pause.pressed.connect(computer.toggle_pause)
-	_clear = _action_button(buttons, "Clear   Backspace", false)
+	_clear = _action_button(buttons, "Backspace  Clear", false)
 	_clear.pressed.connect(computer.clear)
 
 
+func _on_changed() -> void:
+	if showing():
+		_refresh()
+	else:
+		_stale = true
+
+
 func _refresh() -> void:
-	for i in _place_buttons.size():
-		var on := i == computer.selected
-		_style_row(_place_buttons[i], on)
-		var line := _place_buttons[i].get_child(0)
-		(line.get_child(1) as Label).add_theme_color_override("font_color", PICKED_COLOUR if on else TEXT_COLOUR)
-	_refresh_options()
+	_stale = false
+	if computer.selected != _shown_selected:
+		for i in _place_buttons.size():
+			if i == computer.selected or i == _shown_selected:
+				_style_row(_place_buttons[i], i == computer.selected)
+		_shown_selected = computer.selected
+	if not is_same(computer.options, _shown_options) or computer.choice != _shown_choice:
+		_refresh_options()
 	_refresh_plan()
 
 
 func _refresh_options() -> void:
-	for child: Node in _options.get_children():
-		_options.remove_child(child)
-		child.queue_free()
-	for i in computer.options.size():
-		var pill := _pill(computer.options[i].label, i == computer.choice)
-		pill.pressed.connect(computer.pick.bind(i))
-		_options.add_child(pill)
+	if not is_same(computer.options, _shown_options):
+		for child: Node in _options.get_children():
+			_options.remove_child(child)
+			child.queue_free()
+		for i in computer.options.size():
+			var pill := _pill(computer.options[i].label)
+			pill.pressed.connect(computer.pick.bind(i))
+			_options.add_child(pill)
+		_shown_options = computer.options
+		_shown_choice = -1
+	for i in _options.get_child_count():
+		if i == computer.choice or i == _shown_choice:
+			_style_pill(_options.get_child(i) as Button, i == computer.choice)
+	_shown_choice = computer.choice
 	_go.disabled = computer.options.is_empty()
 	_add.disabled = computer.options.is_empty()
 
@@ -300,7 +370,7 @@ func _refresh_plan() -> void:
 	_activity.text = computer.activity
 	_activity.visible = not computer.activity.is_empty()
 	_activity.add_theme_color_override("font_color", PAUSED_COLOUR if paused else DIM_COLOUR)
-	_pause.text = "Carry on   R" if paused else "Pause   R"
+	_pause.text = "R  Resume" if paused else "R  Pause"
 	_pause.disabled = plan.is_empty()
 	_clear.disabled = plan.is_empty()
 
@@ -342,29 +412,34 @@ func _flat_button(parent: Control) -> Button:
 
 
 func _style_row(row: Button, on: bool) -> void:
-	var fill := PICKED_FILL if on else Color(PICKED_FILL, 0.0)
-	var edge := Color(PICKED_COLOUR, 0.55) if on else Color(0, 0, 0, 0)
-	row.add_theme_stylebox_override("normal", _box(fill, edge, 0.15))
-	row.add_theme_stylebox_override("hover", _box(PICKED_FILL if on else Color(PICKED_FILL, 0.6), edge, 0.15))
-	row.add_theme_stylebox_override("pressed", _box(PICKED_FILL, edge, 0.15))
+	var looks := _row_on if on else _row_off
+	row.add_theme_stylebox_override("normal", looks[0])
+	row.add_theme_stylebox_override("hover", looks[1])
+	row.add_theme_stylebox_override("pressed", looks[2])
+	var line := row.get_child(0)
+	(line.get_child(1) as Label).add_theme_color_override("font_color", PICKED_COLOUR if on else TEXT_COLOUR)
 
 
-func _pill(words: String, on: bool) -> Button:
+func _pill(words: String) -> Button:
 	var pill := Button.new()
 	pill.text = words
 	pill.focus_mode = Control.FOCUS_NONE
 	pill.add_theme_font_size_override("font_size", _size(0.8))
-	var fill := TEXT_COLOUR if on else Color(TEXT_COLOUR, 0.0)
-	var edge := TEXT_COLOUR if on else KEYCAP_COLOUR
-	pill.add_theme_stylebox_override("normal", _box(fill, edge, 0.6))
-	pill.add_theme_stylebox_override("hover", _box(fill if on else Color(PICKED_FILL, 1.0), edge, 0.6))
-	pill.add_theme_stylebox_override("pressed", _box(TEXT_COLOUR, TEXT_COLOUR, 0.6))
-	var words_colour := DARK_COLOUR if on else TEXT_COLOUR
-	for state: String in ["font_color", "font_hover_color", "font_focus_color"]:
-		pill.add_theme_color_override(state, words_colour)
 	pill.add_theme_color_override("font_pressed_color", DARK_COLOUR)
 	pill.custom_minimum_size.y = _size(1.2)
+	_style_pill(pill, false)
 	return pill
+
+
+func _style_pill(pill: Button, on: bool) -> void:
+	var looks := _pill_on if on else _pill_off
+	pill.add_theme_stylebox_override("normal", looks[0])
+	pill.add_theme_stylebox_override("hover", looks[1])
+	pill.add_theme_stylebox_override("pressed", looks[2])
+	var words_colour := DARK_COLOUR if on else TEXT_COLOUR
+	pill.add_theme_color_override("font_color", words_colour)
+	pill.add_theme_color_override("font_hover_color", words_colour)
+	pill.add_theme_color_override("font_focus_color", words_colour)
 
 
 func _action_button(parent: Control, words: String, main: bool) -> Button:

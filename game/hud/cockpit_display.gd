@@ -42,6 +42,20 @@ func _process(_delta: float) -> void:
 		_target.text = FlightHud.target_text(t.display_name, t.marker_distance(_ship.global_position)) if t != null else ""
 
 
+## The speed and flight assist lines as the screen shows them now, and the flight assist line's colour: the nav
+## computer's screen (NavPanel) repeats them while it covers this one.
+func speed_line() -> String:
+	return _speed.text
+
+
+func assist_line() -> String:
+	return _assist.text
+
+
+func assist_colour() -> Color:
+	return _assist.modulate
+
+
 ## What the screen shows now, for the smoke test: the speed line, the flight assist line and the target line.
 func shown() -> PackedStringArray:
 	return PackedStringArray([_speed.text, _assist.text, _target.text])
