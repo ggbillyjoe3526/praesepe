@@ -1,12 +1,14 @@
 extends GutTest
 ## The way in to a port (Approach; design doc, "How docking and landing work"), flown without the physics engine so
 ## a whole approach takes a moment: the ship goes round the station or planet, never nearer its centre than the gate,
-## takes the final leg straight in, lined up before it is inside the bay or near the pad, and touches its berth softly.
+## takes the final leg straight in, lined up before it is inside the bay or near the pad, settles onto the bay's floor,
+## and touches its berth softly. It carries on at about the speed the ship was going, never climbing higher than it
+## must.
 ## Run against the real station and base, so their ports' gates are checked to clear everything there.
 
 const DT := 1.0 / 60.0
-## Longest any approach here may take (s): the far side of the planet is the longest way in.
-const LIMIT := 120.0
+## Longest any approach here may take (s): from rest at the edge of the landing offer is the longest way in.
+const LIMIT := 150.0
 
 var _tuning: ArrivalTuning
 var _rates: Vector3
@@ -49,13 +51,19 @@ class Flight:
 	var done: bool = false
 	var final_at: Array[Vector3] = []
 	var final_basis: Array[Basis] = []
+	## Every place it went until it settled (path), and from then on (settle_path), with the attitude it settled in.
 	var path: Array[Vector3] = []
+	var settle_path: Array[Vector3] = []
+	var settle_basis: Array[Basis] = []
+	## The highest it went above the centre it goes round (m).
+	var highest: float = 0.0
 	var turn_rates: Vector3 = Vector3.ZERO
 
 
 ## Flies the way in to `port` from `at`, moving at `moving`, the ship turning and moving as it is asked each tick.
 func _fly(port: Port, at: Vector3, moving: Vector3 = Vector3.ZERO, ship_basis: Basis = Basis.IDENTITY) -> Flight:
 	var a := Approach.new(port, _tuning)
+	a.start_from(at, moving)
 	var structure := port.get_parent().get_node_or_null(^"Structure") as Node3D
 	if structure != null:
 		a.obstacle = _in_the_way.bind(structure)
@@ -70,14 +78,19 @@ func _fly(port: Port, at: Vector3, moving: Vector3 = Vector3.ZERO, ship_basis: B
 			break
 		moving = a.velocity
 		spinning = a.spin
-		f.path.append(at)
 		f.top = maxf(f.top, moving.length())
+		f.highest = maxf(f.highest, at.distance_to(centre))
 		var local := (ship_basis.inverse() * spinning).abs()
 		f.turn_rates = f.turn_rates.max(local)
-		if a.final:
+		if a.settling:
+			f.settle_path.append(at)
+			f.settle_basis.append(ship_basis)
+		elif a.final:
+			f.path.append(at)
 			f.final_at.append(at)
 			f.final_basis.append(ship_basis)
 		else:
+			f.path.append(at)
 			f.nearest = minf(f.nearest, at.distance_to(centre))
 		at += moving * DT
 		if spinning.length() > 0.0:
@@ -172,6 +185,19 @@ func test_speed_eases_down_to_a_soft_touch() -> void:
 		last = speed
 
 
+func test_carries_on_at_about_the_speed_it_was_going() -> void:
+	assert_eq(Approach.speed_limit(0.0, _tuning), _tuning.least_speed, "from rest, its least speed")
+	assert_almost_eq(Approach.speed_limit(80.0, _tuning), 80.0 * _tuning.speed_up, 0.001, "a little faster at most")
+	assert_eq(Approach.speed_limit(1000.0, _tuning), _tuning.top_speed, "never past its top speed")
+	assert_eq(Approach.speed_for(100000.0, 200.0, _tuning, 50.0), 50.0, "no faster than it is told")
+	var dock := _station()
+	for speed: float in [10.0, 80.0]:
+		var f := _fly(dock, dock.gate() + Vector3(1200, 100, 300), Vector3(-speed, 0, 0), Basis(Vector3.UP, PI / 2.0))
+		assert_true(f.done, "arrives from %.0f m/s" % speed)
+		gut.p("docked from %.0f m/s in %.1f s, top %.0f m/s" % [speed, f.time, f.top])
+		assert_lte(f.top, Approach.speed_limit(speed, _tuning) + 0.01, "never much faster than it was going")
+
+
 func test_going_round_never_comes_nearer_the_centre() -> void:
 	var from := Vector3(0, -7500, 0)
 	var to := Vector3(0, 6155, 0)
@@ -198,6 +224,25 @@ func test_the_stations_gate_clears_everything_on_it() -> void:
 	var radius := dock.gate().distance_to(dock.centre())
 	for corner in _corners(dock.get_parent().get_node(^"Structure")):
 		assert_lt(corner.length(), radius - 5.0, "the station's parts are all inside the gate's distance (%s)" % corner)
+
+
+func test_the_berths_sit_on_the_floor() -> void:
+	var ship: Node3D = load("res://game/ship/greybox_ship.tscn").instantiate()
+	add_child_autofree(ship)
+	var lowest := INF
+	for child in ship.get_children():
+		var shape := child as CollisionShape3D
+		if shape != null:
+			lowest = minf(lowest, (shape.transform * shape.shape.get_debug_mesh().get_aabb()).position.y)
+	var dock := _station()
+	var floor_top := dock.get_parent().get_node(^"Structure/BayFloorShape") as CollisionShape3D
+	var top := floor_top.position.y + (floor_top.shape as BoxShape3D).size.y * 0.5
+	assert_almost_eq(dock.position.y + lowest, top + 0.05, 0.01, "the docked ship's underside is on the bay's floor")
+	assert_almost_eq(dock.lane_origin().y, 155.0, 0.01, "and the way in runs down the middle of its mouth")
+	var pad := _planet_pad()
+	var pad_shape := pad.get_parent().get_node(^"Structure/PadShape") as CollisionShape3D
+	top = pad_shape.position.y + (pad_shape.shape as CylinderShape3D).height * 0.5
+	assert_almost_eq(pad.position.y + lowest, top + 0.05, 0.01, "the landed ship's underside is on the pad")
 
 
 func test_the_bases_gate_is_above_everything_on_it() -> void:
@@ -262,7 +307,7 @@ func test_docks_from_anywhere_inside_the_bay() -> void:
 	var dock := _station()
 	var structure := dock.get_parent().get_node(^"Structure") as Node3D
 	var station := dock.get_parent() as Node3D
-	# Off to each side, high and low, behind the berth, and just inside the mouth (the berth is at (0, 155, 0)).
+	# Off to each side, high and low, behind the berth, and just inside the mouth (the way in runs 155 m up).
 	var starts: Array[Vector3] = [Vector3(20, 155, 15), Vector3(-20, 160, 10), Vector3(30, 148, -14),
 			Vector3(-15, 150, -12), Vector3(35, 162, 0)]
 	for start in starts:
@@ -294,22 +339,36 @@ func test_rises_onto_the_pad_from_just_under_its_marker() -> void:
 	assert_lt(f.time, 5.0, "straight onto it, not round by the gate (%.1f s)" % f.time)
 
 
-func test_lands_from_the_far_side_of_the_planet_going_round_it() -> void:
+func test_lands_from_low_and_far_without_climbing_higher_than_it_must() -> void:
 	var pad := _planet_pad()
 	var planet := pad.body
-	var f := _fly(pad, planet.global_position + Vector3(300, -7500, 0), Vector3(60, 0, 0))
+	var base_height := pad.global_position.distance_to(planet.global_position)
+	# 60 m up, 3.5 km from the base, heading for it at 50 m/s.
+	var start := (pad.global_position + Vector3(3500, 0, 0)).normalized() * (base_height + 60.0)
+	var f := _fly(pad, start, (pad.global_position - start).normalized() * 50.0)
 	assert_true(f.done, "arrives within %.0f s" % LIMIT)
-	gut.p("landed from the far side in %.1f s, top %.0f m/s, lowest %.0f m up before the final leg"
-			% [f.time, f.top, f.nearest - planet.radius])
-	assert_gt(f.nearest, pad.gate().distance_to(planet.global_position) - 2.0, "keeps above the gate's height")
-	assert_lte(f.top, _tuning.top_speed + 0.01)
+	gut.p("landed from low and far in %.1f s, top %.0f m/s, highest %.0f m above the pad"
+			% [f.time, f.top, f.highest - base_height])
+	assert_lt(f.highest - base_height, pad.low_gate + 5.0, "climbs only as high as it must to clear the base")
+	assert_gt(f.nearest, planet.radius + 40.0, "never near the ground")
+	assert_lte(f.top, Approach.speed_limit(50.0, _tuning) + 0.01, "never much faster than it was going")
+	_check_final(pad, f)
+
+
+func test_lands_from_the_edge_of_the_offer_at_rest() -> void:
+	var pad := _planet_pad()
+	var start := pad.global_position + Vector3(2800, 2800, 0)
+	assert_lt(pad.distance(start), pad.offer_range, "landing is offered here")
+	var f := _fly(pad, start)
+	assert_true(f.done, "arrives within %.0f s" % LIMIT)
+	gut.p("landed from rest %.1f km out in %.1f s" % [pad.distance(start) / 1000.0, f.time])
 	_check_final(pad, f)
 
 
 func test_lands_from_orbit_over_the_base() -> void:
 	var pad := _planet_pad()
-	# 1.5 km up, 2 km along the orbit from the base, going round at Calder's orbit speed.
-	var f := _fly(pad, pad.global_position + Vector3(2000, 1200, 0), Vector3(0, 0, 90))
+	# 1.5 km up, 2 km along the orbit from the base, going round at an orbit's speed.
+	var f := _fly(pad, pad.global_position + Vector3(2000, 1200, 0), Vector3(0, 0, 60))
 	assert_true(f.done, "arrives within %.0f s" % LIMIT)
 	gut.p("landed from orbit over the base in %.1f s, top %.0f m/s" % [f.time, f.top])
 	assert_lt(f.time, 60.0, "takes under a minute")
@@ -328,7 +387,8 @@ func test_lands_from_low_beside_the_base_climbing_clear_first() -> void:
 
 
 ## The final leg: lined up before it is within the hold-short distance (nose first into a bay), close to the line in,
-## turning round in a bay by yawing in place (never flipping over), and touching softly at the berth, facing its way.
+## turning round in a bay by yawing in place (never flipping over), then in a bay settling straight down onto the
+## floor, and touching softly at the berth, facing its way.
 func _check_final(port: Port, f: Flight) -> void:
 	assert_false(f.final_at.is_empty(), "takes a final leg")
 	assert_lt(f.touch, _tuning.touch_speed + 0.5, "touches softly (%.2f m/s)" % f.touch)
@@ -342,7 +402,7 @@ func _check_final(port: Port, f: Flight) -> void:
 	var worst_tilt := 0.0
 	var deepest := INF
 	for i in f.final_at.size():
-		var rel := f.final_at[i] - port.global_position
+		var rel := f.final_at[i] - port.lane_origin()
 		var along := rel.dot(out)
 		if along < _tuning.hold_short - 1.0:
 			worst_side = maxf(worst_side, (rel - out * along).length())
@@ -355,4 +415,20 @@ func _check_final(port: Port, f: Flight) -> void:
 	assert_lt(worst_tilt, 5.0, "stays level with the berth, never flipping over (%.2f degrees)" % worst_tilt)
 	assert_gt(deepest, -0.5, "never goes past the berth (%.2f m)" % deepest)
 	var last := f.final_basis[f.final_basis.size() - 1]
+	if port.settle > 0.0:
+		assert_false(f.settle_path.is_empty(), "settles onto the floor")
+		var up := port.global_basis.y
+		var worst_drift := 0.0
+		var lowest := INF
+		for i in f.settle_path.size():
+			var rel := f.settle_path[i] - port.global_position
+			worst_drift = maxf(worst_drift, (rel - up * rel.dot(up)).length())
+			lowest = minf(lowest, rel.dot(up))
+			worst_angle = maxf(worst_angle, rad_to_deg(f.settle_basis[i].z.angle_to(berth.z)))
+		assert_lt(worst_drift, 1.5, "straight down over the berth (%.2f m off)" % worst_drift)
+		assert_gt(lowest, -0.05, "never through the floor (%.2f m)" % lowest)
+		assert_lt(worst_angle, _tuning.lined_up_angle * 3.0 + 0.5, "facing out of the mouth all the way down")
+		last = f.settle_basis[f.settle_basis.size() - 1]
+	else:
+		assert_true(f.settle_path.is_empty(), "a pad's way in already comes straight down")
 	assert_lt(rad_to_deg(last.z.angle_to(berth.z)), _tuning.lined_up_angle * 3.0 + 0.5, "ends facing the berth's way")

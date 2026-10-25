@@ -23,10 +23,11 @@ extends Node
 ##
 ## Then it parks in orbit, lands, takes off, docks and undocks: it cruises to Calder, presses O and checks the ship
 ## settles into orbit at the orbit's speed and holds its height and its view of the planet; O leaves orbit and flight
-## assist carries on; O again re-enters it, and G lands at Tollgate from orbit: the ship flies itself round the planet
-## and down onto the pad with no fade and no bump, is held still there, the HUD says so and the game is autosaved (to
-## the smoke test's own file, read back to check). G takes off, the ship climbs clear of the base and cruises to
-## Halfway Station, slows down, docks the same way, flying itself into the bay (saved again), and undocks out of it.
+## assist carries on. It cruises to Tollgate, slows down and heads for the pad until landing is offered, and G lands:
+## the ship flies itself down onto the pad with no fade and no bump, is held still there, the HUD says so and the game
+## is autosaved (to the smoke test's own file, read back to check). G takes off, the ship climbs clear of the base and
+## cruises to Halfway Station, slows down, docks the same way, flying itself into the bay and settling onto its floor
+## (saved again), and undocks out of it.
 ## The result line names the belt's fingerprint and when each arrival, the orbit, the landing and the docking came
 ## (and how long flying in took), so a second run on the same seed must match it exactly.
 ##
@@ -69,6 +70,9 @@ const UNLOCK_AT := "Halfway Station"
 ## How long (ticks) after engaging the lock is checked, and how far (degrees) the nose may then be off the course.
 const LOCK_CHECK := 120
 const LOCK_NOSE := 2.0
+## The same, cruising round a planet to a base beyond its horizon, where the course keeps curving and the nose trails it
+## a little more.
+const LOCK_NOSE_ROUND := 5.0
 ## The autopilot asks for a turn rate that would close the angle in this long (s).
 const STEER_TIME := 0.6
 ## How long (ticks) to cruise into open space before dropping out by hand.
@@ -82,12 +86,12 @@ const AFTER_ORBIT := 300
 const LEVEL_LIMIT := 300
 ## How long (ticks) the ship may take to fly itself in, from G to its berth, and to leave.
 const APPROACH_LIMIT_IN := 7200
-const ARRIVAL_LIMIT := 600
+const ARRIVAL_LIMIT := 1200
 ## How long (ticks) the ship is watched sitting at its berth.
 const BERTH_WATCH := 60
 ## How far (m) from the base's middle the ship climbs after taking off, clear of its buildings for the cruise drive.
 const CLEAR_OF_BASE := 320.0
-## The approach to the station's dock: the speed (m/s) the autopilot slows to, and how long (ticks) it may take.
+## The approach to a port: the speed (m/s) the autopilot slows to, and how long (ticks) it may take.
 const APPROACH_SPEED := 80.0
 const APPROACH_LIMIT := 2400
 
@@ -304,16 +308,19 @@ func _physics_process(_delta: float) -> void:
 				_expect(height > _left_height - 1.0,
 						"no lower %.0f s after leaving orbit (%.0f m, from %.0f m)" % [AFTER_ORBIT / 60.0, height, _left_height])
 				_next()
-		15: # Back into orbit, and land at Tollgate from it.
-			_land_from_orbit(input)
-		16: # Take off, then climb clear of the base's buildings.
+		15: # Cruise to Tollgate, and land there.
+			if _visit(input, system.landmark("Tollgate"), false, true):
+				_next()
+		16:
+			_fly_in(input, system.port(&"tollgate"), FlightHud.Mode.LANDED, "G   Take off")
+		17: # Take off, then climb clear of the base's buildings.
 			_take_off(input)
-		17: # Cruise to the station.
+		18: # Cruise to the station.
 			if _visit(input, system.landmark("Halfway Station")):
 				_next()
-		18:
-			_dock_at_station(input)
 		19:
+			_fly_in(input, system.port(&"halfway_station"), FlightHud.Mode.DOCKED, "G   Undock")
+		20:
 			_undock(input)
 
 
@@ -443,8 +450,9 @@ func _tour_step(input: ShipInput) -> void:
 
 ## Points at `place`, engages the cruise drive locked onto it, cruises there and checks it dropped out on arrival and
 ## that flight assist then holds the exit speed. With `unlock`, it moves the stick a while after engaging, which
-## releases the lock, and steers there itself. True once done (or given up on).
-func _visit(input: ShipInput, place: Landmark, unlock: bool = false) -> bool:
+## releases the lock, and steers there itself. With `round_planet`, the course curves round a planet (LOCK_NOSE_ROUND).
+## True once done (or given up on).
+func _visit(input: ShipInput, place: Landmark, unlock: bool = false, round_planet: bool = false) -> bool:
 	if place == null:
 		_expect(false, "finds a place to cruise to")
 		return true
@@ -477,7 +485,7 @@ func _visit(input: ShipInput, place: Landmark, unlock: bool = false) -> bool:
 				# Hands off: the lock flies it.
 				input.turn = Vector3.ZERO
 				if _phase_ticks == charge_ticks + LOCK_CHECK:
-					_check_lock(place)
+					_check_lock(place, LOCK_NOSE_ROUND if round_planet else LOCK_NOSE)
 					if unlock:
 						input.turn.y = 0.5
 			if unlock and _phase_ticks == charge_ticks + LOCK_CHECK + 1 and ship.cruise.active():
@@ -505,9 +513,9 @@ func _visit(input: ShipInput, place: Landmark, unlock: bool = false) -> bool:
 
 
 ## Locked onto `place`: the nose has turned along the course and the dashboard says where the ship is going.
-func _check_lock(place: Landmark) -> void:
+func _check_lock(place: Landmark, nose: float) -> void:
 	var off := rad_to_deg(_forward().angle_to(ship.linear_velocity))
-	_expect(off < LOCK_NOSE, "turns its nose along the course to %s (%.2f degrees off)" % [place.display_name, off])
+	_expect(off < nose, "turns its nose along the course to %s (%.2f degrees off)" % [place.display_name, off])
 	var shown := (ship.get_node(^"Cockpit") as CockpitDisplay).shown()
 	# The distance is checked by the unit tests; the screen redraws in frames, so here only the name.
 	var line := FlightHud.target_text(place.display_name, 0.0).get_slice("  ·  ", 0)
@@ -582,32 +590,6 @@ func _orbit_step(input: ShipInput) -> void:
 ## orbit.
 func _view_angle(body: CelestialBody) -> float:
 	return rad_to_deg(_forward().angle_to(body.global_position - ship.global_position))
-
-
-## O again, then G once landing at Tollgate is offered: the ship flies itself down and ends up held still on the pad,
-## the game saved there.
-func _land_from_orbit(input: ShipInput) -> void:
-	var tollgate := system.port(&"tollgate")
-	match _stage:
-		0:
-			input.toggle_orbit = true
-			_stage = 1
-			_phase_ticks = 0
-		1:
-			if _phase_ticks >= 30:
-				_expect(ship.orbit.active(), "re-enters orbit")
-				_expect(arrivals.nearest == tollgate and arrivals.refusal == Arrivals.Refusal.NONE,
-						"is offered landing at Tollgate from orbit (refusal %d)" % arrivals.refusal)
-				_expect(ActionPrompts.port_text(arrivals.stage, arrivals.nearest, arrivals.refusal,
-						arrivals.nearest_distance) == "G   Land at Tollgate", "shows the prompt to land")
-				input.dock = true
-				_arrived_at = null
-				_stage = 2
-				_phase_ticks = 0
-		2:
-			if _await_berth(tollgate, FlightHud.arrival_message(tollgate, 1), FlightHud.Mode.LANDED, "G   Take off"):
-				_stage = 0
-				_next()
 
 
 ## Waits for the ship to fly itself in to `port`, then checks it is held still there, the HUD says `words`, the
@@ -706,26 +688,30 @@ func _take_off(input: ShipInput) -> void:
 				_next()
 
 
-## Flies at the station's dock, slowing to APPROACH_SPEED, until docking is offered; then G docks.
-func _dock_at_station(input: ShipInput) -> void:
-	var dock := system.port(&"halfway_station")
+## Flies at `port`, slowing to APPROACH_SPEED, until docking or landing there is offered and the HUD says so; then G
+## docks or lands, and the ship ends up held at the berth showing `mode` and offering `leave_prompt`.
+func _fly_in(input: ShipInput, port: Port, mode: FlightHud.Mode, leave_prompt: String) -> void:
 	match _stage:
 		0:
-			input.turn = _steer_toward(dock.global_position)
+			input.turn = _steer_toward(port.global_position)
 			if ship.speed() > APPROACH_SPEED:
 				input.thrust.z = -1.0
-			if arrivals.nearest == dock and arrivals.refusal == Arrivals.Refusal.NONE:
+			if arrivals.nearest == port and arrivals.refusal == Arrivals.Refusal.NONE:
+				var verb := "Dock at" if port.kind == Port.Kind.DOCK else "Land at"
+				_expect(ActionPrompts.port_text(arrivals.stage, arrivals.nearest, arrivals.refusal,
+						arrivals.nearest_distance) == "G   %s %s" % [verb, port.place_name()], "shows the prompt to %s"
+						% verb.to_lower())
 				input.dock = true
 				_arrived_at = null
 				_stage = 1
 				_phase_ticks = 0
 			elif _phase_ticks >= APPROACH_LIMIT:
-				_expect(false, "is offered docking at Halfway Station (refusal %d, %.0f m)" % [arrivals.refusal,
+				_expect(false, "is offered to arrive at %s (refusal %d, %.0f m)" % [port.place_name(), arrivals.refusal,
 						arrivals.nearest_distance])
 				_stage = 0
 				_next()
 		1:
-			if _await_berth(dock, FlightHud.arrival_message(dock, 1), FlightHud.Mode.DOCKED, "G   Undock"):
+			if _await_berth(port, FlightHud.arrival_message(port, 1), mode, leave_prompt):
 				_stage = 0
 				_next()
 

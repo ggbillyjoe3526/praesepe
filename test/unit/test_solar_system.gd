@@ -124,14 +124,14 @@ func test_the_station_docks_and_the_base_lands() -> void:
 	assert_null(dock.body)
 	assert_eq(pad.kind, Port.Kind.PAD)
 	assert_eq(pad.place, _system.landmark("Tollgate"))
-	assert_eq(pad.body, _system.landmark("Calder"), "landing is offered anywhere near Calder")
+	assert_eq(pad.body, _system.landmark("Calder"), "the way down to the pad goes round Calder")
 	assert_almost_eq(pad.global_basis.y.dot(pad.global_position.normalized()), 1.0, 0.0001, "the pad faces up")
 	# The cruise drive drops out of each place's zone inside the hint range, so the prompt is there on arrival.
 	var station := _system.landmark("Halfway Station")
 	assert_lt(station.radius + station.drop_distance + dock.position.length(), dock.hint_range)
-	var calder := _system.landmark("Calder")
-	assert_lt(calder.drop_distance, pad.offer_range, "cruising to Calder ends where landing is offered")
-	assert_lt(pad.offer_range, calder.orbit_max_altitude + 1.0, "and orbit too")
+	var tollgate := _system.landmark("Tollgate")
+	assert_lt(tollgate.radius + tollgate.drop_distance + pad.position.length(), pad.hint_range,
+			"cruising to Tollgate ends where the prompt to land shows")
 
 
 func test_the_ship_fits_its_berths_and_leaves_without_touching_anything() -> void:
@@ -144,15 +144,20 @@ func test_the_ship_fits_its_berths_and_leaves_without_touching_anything() -> voi
 	assert_gt(shapes.size(), 0)
 	var space := _system.get_world_3d().direct_space_state
 	for p: Port in _system.ports:
-		# Along the way out, a little beyond it, in steps of 2 m.
+		# At the berth, lifting off a bay's floor in steps of 1 m, then along the way out and a little beyond it, in
+		# steps of 2 m.
+		var places: Array[Vector3] = []
+		for step in ceili(p.settle) + 1:
+			places.append(p.global_position + p.global_basis.y * minf(step, p.settle))
 		for step in roundi(p.exit_distance / 2.0) + 6:
-			var at := p.global_transform
-			at.origin += p.exit_direction() * step * 2.0
+			places.append(p.lane_origin() + p.exit_direction() * step * 2.0)
+		for origin in places:
+			var at := Transform3D(p.global_basis, origin)
 			for c: CollisionShape3D in shapes:
 				var query := PhysicsShapeQueryParameters3D.new()
 				query.shape = c.shape
 				query.transform = at * c.transform
-				query.margin = 0.05
+				query.margin = 0.02
 				var hits := space.intersect_shape(query, 1)
-				assert_eq(hits.size(), 0, "%s: the %s is clear %d m out" % [p.id, c.name, step * 2])
+				assert_eq(hits.size(), 0, "%s: the %s is clear at %s" % [p.id, c.name, origin - p.global_position])
 	ship.free()

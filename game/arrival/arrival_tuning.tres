@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1_tuning")
 top_speed = 400.0
+speed_up = 1.25
+least_speed = 40.0
 travel_accel = 40.0
 curve_share = 0.5
 final_accel = 6.0
@@ -17,8 +19,15 @@ turn_time = 0.8
 lined_up_angle = 1.5
 on_line = 1.0
 hold_short = 60.0
+settle_accel = 2.0
+settle_speed = 4.0
+settle_drift = 0.2
 quarter_tolerance = 10.0
 arrive_distance = 0.05
 look_ahead = 20.0
 reach = 8.5
 bump_limit = 3.0
+warn_speed = 6.0
+warn_share = 0.5
+warn_lead = 1.0
+warn_reach = 3.0

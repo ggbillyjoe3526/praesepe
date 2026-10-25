@@ -4,7 +4,8 @@ extends Control
 ## knows what they can do here and what to do first: "G  Dock at Halfway Station", "Slow below 100 m/s to land at
 ## Tollgate", "O  Enter orbit round Calder", "Docking at Halfway Station  ·  G to cancel", "G  Undock", and "F  Cruise
 ## to Mote" while the nose is aimed at a place the cruise drive would lock onto (not while docking or landing is
-## offered). Up to three lines on a dark plate a little under the middle of the view, hidden when there is nothing to
+## offered), with "SLOW DOWN  ·  Halfway Station in 4 s" above them while the ship is coming at something faster than
+## it could comfortably stop (Arrivals.warning). Up to four lines on a dark plate a little under the middle of the view, hidden when there is nothing to
 ## say. Each line is rebuilt only when what it says changes (a distance, as shown, counts). Placeholder look until the
 ## art style is chosen.
 
@@ -14,6 +15,7 @@ const KEY_COLOUR := Color(0.92, 0.95, 1.0)
 const HINT_COLOUR := Color(1.0, 0.86, 0.5)
 const ORBIT_COLOUR := Color(0.78, 0.72, 1.0)
 const CRUISE_COLOUR := FlightHud.CRUISE_COLOUR
+const WARNING_COLOUR := Color(1.0, 0.45, 0.38)
 ## Where the plate sits: its bottom this far (px at 1080p) above the screen's bottom, above the cockpit's dashboard
 ## and the chase view's plate, a little under the middle of the view. It stays there at any interface size
 ## (Settings.ui_scale), so a bigger plate never covers the nose mark or the cockpit's dashboard.
@@ -27,12 +29,14 @@ const DISTANCE_KEYS := 1000003
 @export var arrivals: Arrivals
 
 var _plate: PanelContainer
+var _warning_line: Label
 var _port_line: Label
 var _orbit_line: Label
 var _cruise_line: Label
 var _port_key: int = -1
 var _orbit_key: int = -1
 var _cruise_key: int = -1
+var _warning_key: int = -1
 
 
 func _ready() -> void:
@@ -43,7 +47,13 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if ship == null or arrivals == null:
 		return
-	var key := _port_state()
+	var key := _warning_state()
+	if key != _warning_key:
+		_warning_key = key
+		_warning_line.text = ActionPrompts.warning_text(arrivals.warning_place, arrivals.warning_time) \
+				if arrivals.warning else ""
+		_warning_line.visible = arrivals.warning
+	key = _port_state()
 	if key != _port_key:
 		_port_key = key
 		_port_line.text = ActionPrompts.port_text(arrivals.stage, arrivals.nearest if arrivals.stage ==
@@ -67,7 +77,14 @@ func _process(_delta: float) -> void:
 		_cruise_key = key
 		_cruise_line.text = ActionPrompts.cruise_text(aimed)
 		_cruise_line.visible = not _cruise_line.text.is_empty()
-	_plate.visible = _port_line.visible or _orbit_line.visible or _cruise_line.visible
+	_plate.visible = _warning_line.visible or _port_line.visible or _orbit_line.visible or _cruise_line.visible
+
+
+## The speed warning: coming at `place` (or something that is no place's) faster than it could comfortably stop,
+## getting there in `seconds` at this speed.
+static func warning_text(place: Landmark, seconds: float) -> String:
+	var what := place.display_name if place != null else "Obstacle"
+	return "SLOW DOWN   ·   %s in %d s" % [what, ceili(seconds)]
 
 
 ## The docking or landing line: at `stage`, about port `p` (the nearest one while flying, the berth once there),
@@ -89,11 +106,8 @@ static func port_text(stage: Arrivals.Stage, p: Port, why: Arrivals.Refusal, dis
 				Arrivals.Refusal.TOO_FAST:
 					return "Slow below %d m/s to %s %s" % [roundi(p.max_speed), verb, p.place_name()]
 				Arrivals.Refusal.TOO_FAR:
-					if dock:
-						return "Fly within %s of %s to dock (%s)" % [LandmarkMarkers.distance_text(p.offer_range),
-								p.place_name(), LandmarkMarkers.distance_text(distance)]
-					return "Descend below %s to land at %s (%s up)" % [LandmarkMarkers.distance_text(p.offer_range),
-							p.place_name(), LandmarkMarkers.distance_text(distance)]
+					return "Fly within %s of %s to %s (%s)" % [LandmarkMarkers.distance_text(p.offer_range),
+							p.place_name(), "dock" if dock else "land", LandmarkMarkers.distance_text(distance)]
 	return ""
 
 
@@ -132,6 +146,14 @@ func _port_state() -> int:
 	if arrivals.refusal == Arrivals.Refusal.TOO_FAR and arrivals.nearest_distance < INF:
 		shown = LandmarkMarkers.distance_key(arrivals.nearest_distance)
 	return ((id * MIX + arrivals.stage) * MIX + arrivals.refusal) * DISTANCE_KEYS + shown
+
+
+## A number that changes exactly when the speed warning's words do.
+func _warning_state() -> int:
+	if not arrivals.warning:
+		return 0
+	var id := arrivals.warning_place.get_instance_id() if arrivals.warning_place != null else 0
+	return (id * MIX + ceili(arrivals.warning_time)) * MIX + 1
 
 
 ## A number that changes exactly when the orbit line's words do.
@@ -174,6 +196,7 @@ func _build() -> void:
 	list.add_theme_constant_override("separation", GAP)
 	list.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_plate.add_child(list)
+	_warning_line = _line(list, WARNING_COLOUR)
 	_port_line = _line(list, KEY_COLOUR)
 	_orbit_line = _line(list, ORBIT_COLOUR)
 	_cruise_line = _line(list, CRUISE_COLOUR)

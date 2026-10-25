@@ -93,11 +93,13 @@ func test_the_prompts_say_what_to_do_next() -> void:
 	dock.kind = Port.Kind.PAD
 	dock.offer_range = 4000.0
 	assert_eq(ActionPrompts.port_text(flying, dock, Arrivals.Refusal.TOO_FAR, 5240.0),
-			"Descend below 4.0 km to land at Halfway Station (5.2 km up)")
+			"Fly within 4.0 km of Halfway Station to land (5.2 km)")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.DOCKED, dock, Arrivals.Refusal.NONE, 0.0), "G   Take off")
 	assert_eq(ActionPrompts.port_text(Arrivals.Stage.APPROACHING, dock, Arrivals.Refusal.NONE, 0.0),
 			"Landing at Halfway Station   ·   G to cancel")
 	assert_eq(ActionPrompts.port_text(flying, null, Arrivals.Refusal.TOO_FAR, INF), "", "no port, no words")
+	assert_eq(ActionPrompts.warning_text(station, 3.2), "SLOW DOWN   ·   Halfway Station in 4 s")
+	assert_eq(ActionPrompts.warning_text(null, 0.4), "SLOW DOWN   ·   Obstacle in 1 s", "something that is no place")
 	var calder := CelestialBody.new()
 	calder.display_name = "Calder"
 	autofree(calder)
