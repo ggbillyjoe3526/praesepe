@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Project Praesepe"
 config/description="A casual first-person space game: fly contracts around one solar system and pay off your ship."
-config/version="0.1 Dev 1"
+config/version="0.1 Dev 2"
 run/main_scene="res://game/ui/title_screen.tscn"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="ProjectPraesepe"

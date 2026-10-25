@@ -1,6 +1,7 @@
 # Releasing
 
-How a version of Project Praesepe reaches players. Only the owner releases; Claude never creates a tag.
+How a version of Project Praesepe reaches players. Only the owner decides to release: Claude never creates a tag or
+starts a release without the owner's explicit yes for that version.
 
 ## What a release gives players
 Each release on the [Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases) has:
@@ -33,17 +34,18 @@ version number.
    `tools/changelog.sh release "0.1 Dev 1"`: it moves the notes in `changelog.d/` into a `## 0.1 Dev 1 (date)`
    section of `CHANGELOG.md`. Set `config/version` in `project.godot` to the same name, check the player wiki is
    current, and open the pull request. The owner merges it.
-2. **Release (the owner).** Either:
+2. **Release (the owner, or Claude on the owner's yes).** Either:
    - **Button:** on GitHub, *Actions → Release → Run workflow*, leave "Use workflow from" on `main` and the version
      empty, tick **Publish**, and *Run workflow*. It releases the version in `project.godot` and creates the tag for
      you.
    - **Tag:** push the version's tag (like `v0.1-dev.1`) on a commit on `main`.
 
    Don't make the release by hand on the Releases page: the workflow makes it, with the downloads attached.
-3. **Wait about 20 minutes.** The workflow runs the smoke test, exports the Windows game, checks the exported game
-   flies the same smoke run, builds the installer, installs it on a Windows machine, plays the smoke run with the
-   installed game, uninstalls it, and only then publishes. If any step fails nothing is published; the run's page says
-   which step and why.
+   Claude uses the button (the Actions API); a tag pushed from a cloud session was refused for 0.1 Dev 1.
+3. **Wait a few minutes** (0.1 Dev 1 took about 3). The workflow runs the smoke test, exports the Windows game,
+   checks the exported game flies the same smoke run, builds the installer, installs it on a Windows machine, plays
+   the smoke run with the installed game, uninstalls it, and only then publishes. If any step fails nothing is
+   published; the run's page says which step and why.
 
 Before building anything, publishing stops with a message if: the tag isn't in the form above or isn't on `main`;
 `project.godot` on that commit names another version; `CHANGELOG.md` has no section for it (step 1 wasn't merged);
