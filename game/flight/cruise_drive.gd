@@ -13,8 +13,8 @@ extends RefCounted
 ##
 ## Pressing F with the nose aimed at a place (`aimed`, from aim()) locks the drive onto it (`target`): once charged it
 ## flies there by itself, turning the ship's nose to follow (turn_for()), going round any planet, moon or station in the
-## way (course()), and drops out only on arriving there. Moving the mouse hands the steering back (it cruises on where
-## the nose points, as without a lock); F or X drop out as usual. With nothing aimed at, F cruises where the nose points.
+## way (course()), and drops out only on arriving there. Moving the mouse, while it charges or cruises, hands the
+## steering back (it cruises where the nose points, as without a lock); F or X cancel or drop out as usual. With nothing aimed at, F cruises where the nose points.
 ##
 ## Vectors are in world space. Each step() fills `velocity` (the ship's velocity this tick while cruising, and the
 ## velocity to leave it with on the tick it drops out) and `event` (what happened, for messages).
@@ -39,8 +39,9 @@ enum Event {
 const PROBE_TIME := 0.25
 ## How far (m) beyond its drop distance the ship must go before a place it left counts for arrival again.
 const REARM_MARGIN := 250.0
-## Locked on, a stick pushed further than this (of a full push, pitch and yaw) hands the steering back to the pilot.
-const STICK_TAKES_OVER := 0.15
+## Locked on (or charging to), a stick pushed further than this (of a full push, pitch and yaw) hands the steering back
+## to the pilot, the same as taking over from the orbit's turn.
+const STICK_TAKES_OVER := Orbit.STICK_TAKES_OVER
 
 var tuning: CruiseTuning
 ## Every place in the solar system (SolarSystem.landmarks).
@@ -110,6 +111,11 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, stop
 				target = null
 				event = Event.CANCELLED
 				return
+			if target != null and steering:
+				# Turning away while it charges: the pilot is choosing somewhere else.
+				event = Event.UNLOCKED
+				place = target
+				target = null
 			_charge_left -= delta
 			if _charge_left <= 0.0:
 				_engage(at, ship_velocity, nose)
@@ -124,9 +130,7 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, stop
 				exit_speed = 0.0
 			else:
 				if target != null and steering:
-					event = Event.UNLOCKED
-					place = target
-					target = null
+					_unlock(at)
 				_cruise(at, nose, delta)
 
 
@@ -144,8 +148,11 @@ func stop() -> void:
 func _engage(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> void:
 	phase = Phase.OFF
 	if target != null and target.surface_distance(at) <= target.drop_distance:
-		# It drifted there while charging: nothing left to fly to, so it cruises where the nose points.
+		# The ship got there while charging: it has arrived, with nothing left to cruise to.
+		event = Event.ARRIVED
+		place = target
 		target = null
+		return
 	var heading := nose if target == null else course(at, nose)
 	var forward := maxf(ship_velocity.dot(heading), 0.0)
 	var probe := heading * maxf(forward, tuning.min_speed)
@@ -202,9 +209,20 @@ func _cruise(at: Vector3, nose: Vector3, delta: float) -> void:
 		if time_to_reach(l, at, velocity) < tuning.safety_time:
 			_drop(Event.SAFETY, l, tuning.safety_exit_speed)
 			return
-	var target := clampf(nearest_distance / tuning.approach_time, tuning.min_speed, tuning.max_speed)
-	speed = move_toward(speed, target, maxf(speed, tuning.min_speed) * delta / tuning.ramp_time)
+	var want_speed := clampf(nearest_distance / tuning.approach_time, tuning.min_speed, tuning.max_speed)
+	speed = move_toward(speed, want_speed, maxf(speed, tuning.min_speed) * delta / tuning.ramp_time)
 	velocity = direction * speed
+
+
+## The pilot took the steering back. Places whose zones the ship is flying through on its way count as left behind,
+## so taking over there never drops it straight out; they count again once it has left them.
+func _unlock(at: Vector3) -> void:
+	event = Event.UNLOCKED
+	place = target
+	target = null
+	for i in landmarks.size():
+		if landmarks[i].surface_distance(at) < landmarks[i].drop_distance:
+			_armed[i] = 0
 
 
 func _drop(why: Event, at_place: Landmark, keep: float) -> void:

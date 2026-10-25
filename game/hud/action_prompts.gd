@@ -3,7 +3,7 @@ extends Control
 ## The HUD's prompts for docking, landing and orbit (design doc, "Docking and landing", "Orbit"), so the player always
 ## knows what they can do here and what to do first: "G  Dock at Halfway Station", "Slow below 100 m/s to land at
 ## Tollgate", "O  Enter orbit round Calder", "G  Undock", and "F  Cruise to Mote" while the nose is aimed at a place
-## the cruise drive would lock onto. Up to three lines on a dark plate a little under the middle of the view, hidden
+## the cruise drive would lock onto (not while docking or landing is offered). Up to three lines on a dark plate a little under the middle of the view, hidden
 ## when there is nothing to say. Each line is rebuilt only when what it says changes (a distance, as
 ## shown, counts). Placeholder look until the art style is chosen.
 
@@ -57,7 +57,9 @@ func _process(_delta: float) -> void:
 		_orbit_line.text = ActionPrompts.orbit_text(o.phase, o.body if o.active() else o.offered, o.refusal,
 				o.tuning.max_entry_speed) if flying else ""
 		_orbit_line.visible = not _orbit_line.text.is_empty()
-	var aimed := ship.cruise.aimed if arrivals.stage == Arrivals.Stage.FLYING else null
+	# Close enough to dock or land, G is what matters: no cruise offer beside it.
+	var docking := arrivals.nearest != null and arrivals.refusal == Arrivals.Refusal.NONE
+	var aimed := ship.cruise.aimed if arrivals.stage == Arrivals.Stage.FLYING and not docking else null
 	key = aimed.get_instance_id() if aimed != null else 0
 	if key != _cruise_key:
 		_cruise_key = key

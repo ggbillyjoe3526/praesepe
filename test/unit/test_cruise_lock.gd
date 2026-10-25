@@ -233,3 +233,48 @@ func test_the_greybox_lock_tuning_is_the_design_docs() -> void:
 	var table := design.substr(design.find("**Cruise drive tuning**"), 2500)
 	for row: String in ["| Lock cone | 4° |", "| Lock turning | 0.6 s |", "| Clearance |", "| Approach angle | 15° |"]:
 		assert_string_contains(table, row, false)
+
+
+func test_taking_the_steering_inside_another_place_zone_flies_on() -> void:
+	# Off to the side of the nose, so the moon is the one aimed at.
+	var buoy := _place("Buoy", Vector3(1500, 0, -20000), 50.0, 2500.0, false)
+	var moon := _place("Moon", Vector3(0, 0, -90000), 1500.0, 1500.0)
+	_engage()
+	assert_eq(_drive.target, moon)
+	for i in 60 * 60:
+		_tick()
+		if buoy.surface_distance(_at) < 2000.0:
+			break
+	assert_lt(buoy.surface_distance(_at), buoy.drop_distance, "inside the buoy's zone")
+	_tick(false, true)
+	assert_eq(_events.back(), CruiseDrive.Event.UNLOCKED)
+	assert_true(_drive.active(), "still cruising, not arrived at the buoy")
+	_ticks(1.0)
+	assert_true(_drive.active())
+
+
+func test_getting_there_while_charging_counts_as_arriving() -> void:
+	var moon := _place("Moon", Vector3(0, 0, -5000), 1500.0, 1500.0)
+	_tick(true)
+	assert_eq(_drive.target, moon)
+	_at = Vector3(0, 0, -3000)
+	_ticks(_tuning.charge_time + DT)
+	assert_false(_drive.active(), "nothing to cruise to")
+	assert_eq(_events.back(), CruiseDrive.Event.ARRIVED)
+	assert_eq(_drive.place, moon)
+	assert_null(_drive.target)
+
+
+func test_turning_away_while_charging_releases_the_lock() -> void:
+	var moon := _place("Moon", Vector3(0, 0, -40000), 1500.0, 1500.0)
+	_tick(true)
+	assert_eq(_drive.target, moon)
+	_tick(false, true)
+	assert_eq(_events.back(), CruiseDrive.Event.UNLOCKED)
+	assert_null(_drive.target)
+	assert_eq(_drive.phase, CruiseDrive.Phase.CHARGING, "still charging")
+	_nose = Vector3.UP
+	_ticks(_tuning.charge_time)
+	assert_true(_drive.active() and not _drive.locked(), "cruises where the nose points")
+	_ticks(2.0)
+	assert_lt(_drive.direction.angle_to(Vector3.UP), deg_to_rad(0.5))

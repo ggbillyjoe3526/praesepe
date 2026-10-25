@@ -74,3 +74,20 @@ func test_locked_on_the_drive_turns_the_nose_until_the_stick_moves() -> void:
 	await wait_physics_frames(1)
 	assert_true(_ship.cruise.active(), "still cruising")
 	assert_false(_ship.cruise.locked(), "the stick took it back")
+
+
+func test_docking_or_landing_ends_the_lock() -> void:
+	var place := Landmark.new()
+	place.display_name = "Far beacon"
+	place.drop_distance = 1000.0
+	add_child_autofree(place)
+	place.global_position = _ship.global_position - _ship.global_basis.z * 200000.0
+	_ship.cruise.landmarks.append(place)
+	await _engage()
+	assert_true(_ship.cruise.locked())
+	var port := Port.new()
+	add_child_autofree(port)
+	_ship.hold_at(port)
+	assert_false(_ship.cruise.active())
+	assert_null(_ship.cruise.target, "no lock left over")
+	assert_null(_ship.cruise.aimed, "nothing aimed at while docked")

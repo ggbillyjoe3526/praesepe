@@ -53,19 +53,19 @@ var _set_shown: int = -1
 var _mode_shown: int = -1
 var _toast_left: float = 0.0
 var _target_shown: int = -1
-var _target: Label
 
 @onready var _speed: Label = %Speed
 @onready var _assist: Label = %Assist
 @onready var _toast: Label = %Toast
 @onready var _toast_plate: Control = %ToastPlate
 @onready var _readout: Control = %Readout
+@onready var _target: Label = %Target
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toast_plate.visible = false
-	_build_target_line()
+	_target.visible = false
 	if ship != null:
 		ship.assist_changed.connect(_on_assist_changed)
 		ship.cruise_changed.connect(_on_cruise_changed)
@@ -218,7 +218,7 @@ static func cruise_message(event: CruiseDrive.Event, place: String) -> String:
 		CruiseDrive.Event.BUMPED:
 			return "Bump! Dropped out of cruise"
 		CruiseDrive.Event.UNLOCKED:
-			return "Lock released  ·  steering yourself, F to drop out"
+			return "Lock released  ·  steering yourself"
 	return ""
 
 
@@ -289,17 +289,6 @@ func _update_text() -> void:
 		_target.visible = t != null
 		if t != null:
 			_target.text = FlightHud.target_text(t.display_name, t.marker_distance(ship.global_position))
-
-
-## The target line goes under the chase view's readout lines, shown only while the cruise drive is locked onto a place.
-func _build_target_line() -> void:
-	_target = Label.new()
-	_target.add_theme_font_size_override("font_size", 24)
-	_target.add_theme_color_override("font_color", CRUISE_COLOUR)
-	_target.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_target.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_target.visible = false
-	_assist.get_parent().add_child(_target)
 
 
 func _on_assist_changed(on: bool) -> void:

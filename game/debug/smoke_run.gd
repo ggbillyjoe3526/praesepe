@@ -446,6 +446,9 @@ func _visit(input: ShipInput, place: Landmark, unlock: bool = false) -> bool:
 				_stage = 0
 				return true
 		1: # Charging, then cruising, until the drive drops out.
+			if ship.cruise.target != null:
+				# Hands off while it charges too: moving the stick would release the lock.
+				input.turn = Vector3.ZERO
 			_cruise_top = maxf(_cruise_top, ship.speed())
 			var charge_ticks := roundi(ship.cruise_tuning.charge_time * Engine.physics_ticks_per_second)
 			if _phase_ticks == charge_ticks + 2:
