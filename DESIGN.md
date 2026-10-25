@@ -273,14 +273,17 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
 - The way in has two legs. First the ship flies to the port's gate: 180 m out in front of the bay's mouth, or 250 m
   above the pad. It goes round the station or the planet rather than through them, never nearer their centre than
   the gate is, so it clears the station's ring and panels and Tollgate's tower, and climbs first if it starts low.
-  It faces where it is going, then, from 600 m before the gate, turns to the berth's attitude. At the gate it eases
-  round the corner onto the final leg: backing straight into the bay, or settling straight down onto the pad, slowing
-  all the way to a soft touch that the camera feels as a gentle bump. If it isn't lined up yet, it waits 60 m short
-  until it is, so it never goes in crooked.
+  It faces where it is going, then, from 600 m before the gate, turns to face along the final leg. At the gate it
+  eases round the corner onto the final leg: into the bay nose first, so the pilot watches the bay come up round
+  them, or straight down onto the pad already facing the hangar, slowing all the way. If it isn't lined up yet, it
+  waits 60 m short until it is, so it never goes in crooked. In the bay it stops 15 m short of the berth, turns round
+  in two quarter turns (a yaw, never a flip), and eases back onto the berth, so the docked view looks out of the
+  mouth. It touches down softly, which the camera feels as a gentle bump.
 - Its pushes are the ship's own (the main engine's 40 m/s², the ship's turn rates), so the pilot's head sways and the
   engines rumble as in normal flight. It goes faster the farther it has to go, up to 400 m/s, slower the closer it
-  goes round a planet or station, and gently (4 m/s²) on the final leg. From the edge of the docking offer it takes
-  about 20 to 30 s; landing from orbit about 30 to 45 s; from the far side of Calder about 80 s.
+  goes round a planet or station, and gently (6 m/s²) on the final leg. From the edge of the docking offer it takes
+  about 30 to 40 s (the turn round in the bay is about 8 s of that); landing from orbit about 30 to 45 s; from the
+  far side of Calder about 80 s. Flying closer by hand before pressing G makes it shorter.
 - G (cancelled) or X (cancelled, then a full stop) hands the ship straight back, as it is moving; so does a bump on
   the way ("Bump! Docking stopped. G to try again"), and the ship then comes to rest.
 - Once there, the ship is held still in the bay, looking out of its mouth (or on the pad, facing the hangar), and the
@@ -305,8 +308,9 @@ the station's and base's scenes (`game/system/greybox_station.tscn`, `game/syste
 | Gate | 220 m out from the berth in the bay (180 m in front of its mouth); 250 m above the pad | Outside everything at the station, above Tollgate's tower (83 m) |
 | Speed on the way | Up to 400 m/s, slowing at 20 m/s²; going round, no faster than half of 40 m/s² can curve it | Long ways in stay short; never runs wide round the planet |
 | Corner onto the final leg | Starts 80 m from the gate, at 40 m/s | Comes onto the line well before the berth |
-| Final leg | Slows at 4 m/s² to touch at 1.5 m/s; waits 60 m short until within 1.5° and 1 m of the line | Never goes in crooked; the touch is a soft bump |
-| Turning to the berth | From 600 m before the gate, closing the angle over 0.8 s within the ship's turn rates | Lined up before the final leg |
+| Final leg | Slows at 6 m/s² to touch at 1.5 m/s; waits 60 m short until within 1.5° and 1 m of the line | Never goes in crooked; the touch is a soft bump |
+| Turning to face along the final leg | From 600 m before the gate, closing the angle over 0.8 s within the ship's turn rates | Lined up before the final leg |
+| Turning round in the bay | 15 m short of the berth, two quarter turns (the second from within 10° of the first) | Faces out of the mouth, never flips over |
 | Pushes | 40 m/s² (the main engine's) | The head sway and engine rumble feel like flight |
 | Bump limit | 3 m/s | A harder knock stops the way in |
 | Leaving the bay | 60 m, speeding up to 25 m/s (about 5 s) | Clear of the bay's mouth before the pilot has it |
@@ -394,7 +398,7 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
-- 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, backing into the bay (so the docked view still looks out of its mouth) or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).
+- 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, nose first into the bay and turning round inside it (so the pilot sees where they are going and the docked view still looks out of its mouth), or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).
 - 2026-10-25: Seamless docking and landing join the first playable, moved up from the future roadmap: after playing PR #5 William said "I want to remove the transitions. The player should be able to enter/land at any station/planet seamlessly. No loading screens." The transition screen is gone (owner).
 
 - 2026-10-24: Docking, landing and orbit until the owner tunes them: values as in "How docking and landing work" and "How orbit works"; G docks, lands, undocks and takes off, O enters and leaves orbit; landing at a planet's base is offered anywhere close to the planet; the docked ship sits in an open bay on the station (the station's dock is no longer a solid block); the autosave writes the game on every docking and landing (seed, clock, random streams and where the ship is), and loading it comes with save and load (build step 7), so a new launch still starts in flight; the event bus is an autoload, `Events` (default, Claude).

@@ -1,7 +1,8 @@
 ### Docking, landing and parking in orbit
 - Halfway Station has an open docking bay and Tollgate a landing pad. Fly near, slow down, and press G when the
   prompt says so. Your ship's docking computer flies you in while you watch, with no loading screen: round the
-  station or the planet, lined up at the bay's mouth or high over the pad, then gently in and down to a soft touch.
+  station or the planet, lined up at the bay's mouth or high over the pad, then gently in (turning round inside the
+  bay so you look out of it) or down to a soft touch.
   G or X takes the controls back on the way. G again undocks or takes off.
 - You can land at Tollgate from anywhere close to Calder, including from orbit.
 - Press O near Calder or Mote to park in orbit and stay there as long as you like, with the planet below and the ground

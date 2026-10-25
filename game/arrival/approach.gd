@@ -7,9 +7,11 @@ extends RefCounted
 ## The way in has two legs. First the ship flies to the port's gate (Port.gate): out in front of the bay's mouth, or
 ## high above the pad. On the way it goes round the station or planet (Port.centre) rather than through it, never
 ## nearer than the gate is, so it misses the station's ring and panels and the base's tower. Near the gate it cuts the
-## corner onto the final leg: straight in along the port's way out, backing into the bay or settling onto the pad,
-## slowing all the way to a soft touch. It faces where it is going until it is close, then turns to the berth's
-## attitude, and it holds short of the berth until it has lined up.
+## corner onto the final leg: straight in along the port's way out, slowing all the way to a soft touch. It faces where
+## it is going until it is close, then turns to face along the final leg, and it holds short until it has lined up.
+## Into a bay it goes nose first, so the pilot sees the bay coming, stops short of the berth to turn round (yawing, in
+## two quarter turns, so it never flips over) and eases back onto it, looking out of the mouth; onto a pad it settles
+## straight down, already facing the berth's way.
 ##
 ## Its speed follows how far it still has to go: a firm push (travel_accel, the main engine's) everywhere but the
 ## corner and the final leg, where it eases down gently (final_accel). The whole thing is worked out afresh from where the ship is
@@ -19,10 +21,14 @@ var port: Port
 var tuning: ArrivalTuning
 ## On the final leg (once on, it stays on).
 var final: bool = false
-## Facing the berth's attitude (from line_up_lead before the gate on), and lined up: on the final leg's line and
-## turned to the berth's attitude (once on the final leg, it stays lined up unless knocked well off).
+## Facing along the final leg (from line_up_lead before the gate on), and lined up: on the final leg's line and
+## turned the way it wants to face (once on the final leg, it stays lined up unless knocked well off).
 var lining_up: bool = false
 var lined_up: bool = false
+## In a bay: at the point where it turns round, halfway round, and all the way round (facing out of the mouth).
+var turning_round: bool = false
+var half_turned: bool = false
+var turned_round: bool = false
 ## How far (m) the ship still has to go: to the gate and then along the final leg.
 var left: float = INF
 ## What it asks of the ship this tick (world space): velocity (m/s) and spin (rad/s).
@@ -65,19 +71,28 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 		left = Approach.round_length(at - port.centre(), gate - port.centre()) + port.approach_distance
 		heading = Approach.round_heading(at - port.centre(), gate - port.centre(), tuning.climb)
 	lining_up = final or left - port.approach_distance < tuning.line_up_lead
-	var facing := port.global_basis.orthonormalized() if lining_up else Approach.facing_along(heading,
+	var facing := _leg_facing(along, ship_basis.orthonormalized()) if lining_up else Approach.facing_along(heading,
 			at - port.centre(), port.global_basis.orthonormalized())
 	# Within the tolerances it is lined up; once lined up on the final leg, three times as much still counts, so it
 	# never stops and starts on the edge of them.
 	var slack := 3.0 if final and lined_up else 1.0
 	lined_up = lining_up and side.length() <= tuning.on_line * slack \
 			and Orbit.lined_up(ship_basis.orthonormalized(), facing, deg_to_rad(tuning.lined_up_angle * slack))
+	if half_turned and lined_up:
+		turned_round = true
 	if final:
-		# Hold short of the berth until lined up, then all the way in, never past it this tick.
-		var to_go := along if lined_up else maxf(along - tuning.hold_short, 0.0)
+		# Where it must stop next: short of the berth until lined up, at the turning point until turned round, then
+		# the berth. It never goes past that this tick.
+		var stop := 0.0
+		if not lined_up and not turning_round:
+			stop = tuning.hold_short
+		if port.turn_round_at > 0.0 and not turned_round:
+			stop = maxf(stop, port.turn_round_at)
+		var to_go := maxf(along - stop, 0.0)
 		var speed := minf(Approach.speed_for(to_go, port.approach_distance, tuning), to_go / delta)
 		target = -out * speed - (side / tuning.side_time).limit_length(tuning.cornering_speed())
-		done = along <= tuning.arrive_distance and side.length() <= tuning.on_line
+		done = along <= tuning.arrive_distance and side.length() <= tuning.on_line \
+				and (port.turn_round_at <= 0.0 or turned_round)
 	else:
 		# Slowing as gently for the corner onto the final leg, and the stretch before it, as for the final leg itself.
 		var speed := Approach.speed_for(left, port.approach_distance + 2.0 * tuning.corner, tuning)
@@ -94,6 +109,22 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 		target = heading * speed
 	velocity = moving.move_toward(target, tuning.travel_accel * delta)
 	spin = Approach.turn(ship_basis.orthonormalized(), facing, spinning, rates, accels, tuning.turn_time, delta)
+
+
+## The attitude it wants on the final leg, `along` metres out from the berth with attitude `ship_basis`: nose first
+## along the leg into a bay, then (once at the turning point) a quarter turn, then the berth's own; or the berth's own
+## all the way onto a pad.
+func _leg_facing(along: float, ship_basis: Basis) -> Basis:
+	var berth := port.global_basis.orthonormalized()
+	if port.turn_round_at <= 0.0 or turned_round:
+		return berth
+	turning_round = turning_round or (final and along <= port.turn_round_at + tuning.arrive_distance * 10.0)
+	if not turning_round:
+		return Basis(berth.y, PI) * berth
+	var quarter := Basis(berth.y, PI / 2.0) * berth
+	if not half_turned and Orbit.lined_up(ship_basis, quarter, deg_to_rad(tuning.quarter_tolerance)):
+		half_turned = true
+	return berth if half_turned else quarter
 
 
 ## How fast (m/s) to go with `left` metres to go, of which the last `final_leg` are the final leg: easing down at

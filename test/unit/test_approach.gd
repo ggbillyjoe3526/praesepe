@@ -193,21 +193,32 @@ func test_lands_from_low_beside_the_base_climbing_clear_first() -> void:
 	_check_final(pad, f)
 
 
-## The final leg: lined up before it is within the hold-short distance, close to the line in, and touching softly at
-## the berth.
+## The final leg: lined up before it is within the hold-short distance (nose first into a bay), close to the line in,
+## turning round in a bay by yawing in place (never flipping over), and touching softly at the berth, facing its way.
 func _check_final(port: Port, f: Flight) -> void:
 	assert_false(f.final_at.is_empty(), "takes a final leg")
 	assert_lt(f.touch, _tuning.touch_speed + 0.5, "touches softly (%.2f m/s)" % f.touch)
 	assert_true(f.turn_rates.x <= _rates.x + 0.01 and f.turn_rates.y <= _rates.y + 0.01
 			and f.turn_rates.z <= _rates.z + 0.01, "turns within the ship's own rates (%s)" % f.turn_rates)
 	var out := port.exit_direction()
+	var berth := port.global_basis.orthonormalized()
+	var nose_in := Basis(berth.y, PI) * berth if port.turn_round_at > 0.0 else berth
 	var worst_side := 0.0
 	var worst_angle := 0.0
+	var worst_tilt := 0.0
+	var deepest := INF
 	for i in f.final_at.size():
 		var rel := f.final_at[i] - port.global_position
 		var along := rel.dot(out)
 		if along < _tuning.hold_short - 1.0:
 			worst_side = maxf(worst_side, (rel - out * along).length())
-			worst_angle = maxf(worst_angle, rad_to_deg(f.final_basis[i].z.angle_to(port.global_basis.z)))
+			worst_tilt = maxf(worst_tilt, rad_to_deg(f.final_basis[i].y.angle_to(berth.y)))
+			if along > port.turn_round_at + 1.0:
+				worst_angle = maxf(worst_angle, rad_to_deg(f.final_basis[i].z.angle_to(nose_in.z)))
+		deepest = minf(deepest, along)
 	assert_lt(worst_side, 3.0, "keeps to the line in near the berth (%.2f m off)" % worst_side)
-	assert_lt(worst_angle, _tuning.lined_up_angle + 0.5, "lined up near the berth (%.2f degrees off)" % worst_angle)
+	assert_lt(worst_angle, _tuning.lined_up_angle * 3.0 + 0.5, "lined up on the way in (%.2f degrees off)" % worst_angle)
+	assert_lt(worst_tilt, 5.0, "stays level with the berth, never flipping over (%.2f degrees)" % worst_tilt)
+	assert_gt(deepest, -0.5, "never goes past the berth (%.2f m)" % deepest)
+	var last := f.final_basis[f.final_basis.size() - 1]
+	assert_lt(rad_to_deg(last.z.angle_to(berth.z)), _tuning.lined_up_angle * 3.0 + 0.5, "ends facing the berth's way")

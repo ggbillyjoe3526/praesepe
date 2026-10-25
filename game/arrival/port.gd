@@ -8,7 +8,8 @@ extends Marker3D
 ## is `offer_range` metres from the marker; for a pad on a planet or moon, it is `offer_range` metres above that
 ## body's surface, anywhere round it, so approaching the planet is enough to see the prompt to land at its base.
 ## Docking or landing, the ship flies itself in (Approach): round the station or planet to the port's gate, out along
-## the way out where nothing is in the way, then straight in along it. Leaving, it is eased out along the way out
+## the way out where nothing is in the way, then straight in along it: nose first into a bay, turning round inside it
+## (`turn_round_at`) so it ends up looking out of the mouth, or settling straight down onto a pad. Leaving, it is eased out along the way out
 ## (forward out of a bay, straight up off a pad) for `exit_distance` metres, speeding up to `exit_speed`, before the
 ## pilot has it back.
 
@@ -30,6 +31,9 @@ enum Kind { DOCK, PAD }
 ## the station or base, and so must everything as far from the station's or planet's centre as it is (Port.centre):
 ## the way to it keeps at least that far out.
 @export var approach_distance: float = 220.0
+## For a bay the ship flies into nose first: how far (m) from the berth it stops and turns round to face out, before
+## easing back the rest of the way. 0 for a pad: it comes down already facing the berth's way.
+@export var turn_round_at: float = 0.0
 
 ## The station or base it belongs to (its nearest Landmark ancestor), and the planet or moon it stands on (its nearest
 ## CelestialBody ancestor), or null for a station in space.

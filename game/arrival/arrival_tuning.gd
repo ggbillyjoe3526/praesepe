@@ -13,7 +13,7 @@ extends Resource
 ## how fast it can go round close in; the rest slows it down on the way.
 @export var curve_share: float = 0.5
 ## How gently (m/s²) it slows on the final leg, into the bay or down onto the pad.
-@export var final_accel: float = 4.0
+@export var final_accel: float = 6.0
 ## The speed (m/s) it touches its berth at, as a soft bump in the camera.
 @export var touch_speed: float = 1.5
 ## From this far (m) before the gate, it turns to the berth's attitude instead of facing where it is going.
@@ -31,6 +31,8 @@ extends Resource
 @export var lined_up_angle: float = 1.5
 @export var on_line: float = 1.0
 @export var hold_short: float = 60.0
+## Turning round in a bay, it starts the second quarter turn once within this angle (degrees) of the first.
+@export var quarter_tolerance: float = 10.0
 ## At the berth: within this (m) of it.
 @export var arrive_distance: float = 0.05
 ## A knock harder than this (m/s) on the way stops the approach and hands the ship back.

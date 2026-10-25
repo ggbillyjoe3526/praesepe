@@ -450,3 +450,4 @@ max_speed = 100.0
 exit_distance = 60.0
 exit_speed = 25.0
 approach_distance = 220.0
+turn_round_at = 15.0
