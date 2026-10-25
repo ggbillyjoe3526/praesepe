@@ -4,7 +4,7 @@ extends Camera3D
 ## looks down at it a little, but turns a moment behind the ship (CameraTuning.chase_lag), so a turn shows as the ship
 ## swinging ahead of the camera. With flight assist off it leans toward where the ship is really moving, so a drift
 ## stays readable; the lean eases in and out when assist changes, and fades away as the ship moves backwards, so a spin
-## never flips it from side to side. Something between the camera and the ship (a buoy, a station wall) pulls the
+## never flips it from side to side. Something between the camera and the ship (an asteroid, a station wall) pulls the
 ## camera in at once, never through it; it eases back out once the way is clear. ShipCameras sets it up and calls
 ## place() every frame while it is the view.
 
