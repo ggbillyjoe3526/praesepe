@@ -35,8 +35,8 @@ Services: none yet. Jobs, trading and loan payments will be here (see the [Roadm
 ## Halfway Station
 
 A space station of a long spine, a ring and solar panels, with an open docking bay on top framed in green, and a faint
-green guide light shining out of the bay. It hangs 10 km above Calder, and it is where you start: 2 km away, with three
-buoys marking the way in. Press **G** nearby to dock ([Docking and Landing](Docking-and-Landing#docking-at-halfway-station)). Docking saves the game.
+green guide light shining out of the bay. It hangs 10 km above Calder, and it is where you start, 2 km away. Press
+**G** nearby to dock ([Docking and Landing](Docking-and-Landing#docking-at-halfway-station)). Docking saves the game.
 
 Services: none yet.
 

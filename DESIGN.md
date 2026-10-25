@@ -325,7 +325,7 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
 | Mote | The moon: grey, airless | 1.5 km radius, 31 km from Calder, above the belt's plane | 1.5 km above the surface |
 | The Shingle | The asteroid belt: a ring of rocks round Calder | 50 km radius, 6 km wide, 800 m thick | 1.5 km from the band |
 
-- The player starts 2 km from Halfway Station with Calder ahead, next to three buoys marking the way to the station.
+- The player starts 2 km from Halfway Station with Calder ahead.
 - The Shingle's rocks come from the world seed: 3000 scattered round the ring and 10 dense pockets of 220, each rock 15 to 110 m in radius (small ones commonest). The first pocket is authored: on the band's inner edge, the one its HUD marker points to. Values in `game/system/shingle_belt.tres`.
 - Only the rocks within 2.5 km of the ship are solid (a pool of 48 spheres, picked again every 10 ticks; a sphere stays on its rock while that rock stays near); all are drawn, in 64 pieces round the ring, as lumpy rocks within 9 km and simple shapes out to 70 km, with a faint haze along the band beyond that.
 - Calder and Mote are drawn as fine spheres close up and coarse ones from far away (past 40 km and 15 km). The station and base lose their detail at 12 km and 20 km. Everything is visible to 150 km.
@@ -539,6 +539,7 @@ Newest first. Each line: date, the decision, who made it.
   in the pilot's view, and a slim dashboard low across the bottom (William's references and notes; he turned down a
   curved bubble canopy and approved v002) (owner). The collision shapes follow the new shape; mass, centre of mass,
   inertia, the eye, the chase camera and the underside stay where they were (default, Claude).
+- 2026-10-25: The three buoys (grey posts with an orange lamp) between the start and Halfway Station are gone: they were left over from the first flight test, when the sky was empty and they showed movement; the planets, station, belt and space dust do that now. William asked for them to be removed (owner).
 - 2026-10-25: Four conveniences join the first playable: the time to arrival next to the distance while the cruise
   drive is locked on, an F12 screenshot key, holding the right mouse button to look round the cockpit without steering,
   and a key that rolls the ship upright against the nearest planet or moon. William approved them from a list of

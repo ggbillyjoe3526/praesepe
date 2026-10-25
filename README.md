@@ -82,7 +82,7 @@ CI runs all five on every pull request (the wiki check in the Wiki workflow, whi
 | `game/ship/` | The test ship, its cockpit and its tuning; `models/` holds their glTF models (made from `tools/blender/`). |
 | `game/camera/` | The cockpit and chase cameras, camera shake and their tuning. |
 | `game/system/` | The solar system scene: the planet, its base and landing pad, the moon, the station and its docking bay, the seeded asteroid belt and their tuning. |
-| `game/world/` | The floating origin, space dust, the starfield sky, buoys and the orbit line round a planet. |
+| `game/world/` | The floating origin, space dust, the starfield sky and the orbit line round a planet. |
 | `game/hud/` | The flight HUD, velocity marker, the markers on each place (with the settings for when their names and diamonds show), the orbit insertion marker, the docking, landing and orbit prompts and the cockpit's dashboard screen. |
 | `game/ui/` | The pause screen and its tow home, the fullscreen keys and focus (`WindowWatch`), the screenshot key (`Screenshots`) and, in `settings/`, the settings menu and its pages. |
 | `game/save/` | Crash-safe save files, the saved game and its autosave, the player's settings (the `Settings` autoload) and how the display settings reach the window (`DisplayApply`). |

@@ -1,7 +1,7 @@
 extends GutTest
 ## The test ship's model (game/ship/models/, built by tools/blender/hauler_model.py) only changes how the ship looks:
-## every point sits within 0.1 m of a collision box, never below the underside the bay floor berth uses, and every surface is
-## single sided, so the windows are clear from the cockpit and nothing inside shows through the hull.
+## every point sits within 0.1 m of a collision box and never below the underside the bay floor berth uses, and every
+## surface is single sided, so the windows are clear from the cockpit and nothing inside shows through the hull.
 
 ## How far the model may reach past the collision shapes (m): the nose and the engine glow by a few centimetres.
 const OUTSIDE_SHAPES := 0.1
