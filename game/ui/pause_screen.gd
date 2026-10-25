@@ -99,7 +99,8 @@ func _process(_delta: float) -> void:
 	if controls == null or visible:
 		return
 	var captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-	if _was_captured and not captured:
+	# Letting the mouse go on purpose (the nav computer's screen) isn't losing it.
+	if _was_captured and not captured and not controls.mouse_free:
 		open()
 		return
 	_was_captured = captured

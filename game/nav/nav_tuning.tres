@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="NavTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/nav/nav_tuning.gd" id="1_nav"]
+
+[resource]
+script = ExtResource("1_nav")
+turn_time = 0.8
+aim_tolerance = 5.0
+turning_cone = 20.0
+speed_band = 10.0
+clearance = 150.0
+close_in_time = 8.0
+arrive_speed_share = 0.8
+orbit_speed_share = 0.8
+give_up_time = 90.0
+max_steps = 8

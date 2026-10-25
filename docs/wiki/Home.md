@@ -17,6 +17,7 @@ The game is in **early development** and there is **no download yet**. What you 
 - Dock at Halfway Station and land at Tollgate, with the ship flying itself in, no loading screens
   ([Docking and Landing](Docking-and-Landing)).
 - Climb to the orbit line round the planet Calder or its moon Mote and park there ([Orbit](Orbit)).
+- Let the nav computer fly a trip for you, or a few in a row ([Nav Computer](Nav-Computer)).
 - Visit five places: Calder, Tollgate, Mote, Halfway Station and the asteroid belt The Shingle ([Locations](Locations)).
 
 The game saves itself as you play, **Continue** puts you back exactly where you saved, and a tow takes you home if you

@@ -7,6 +7,7 @@
 - [Cruise Drive](Cruise-Drive)
 - [Docking and Landing](Docking-and-Landing)
 - [Orbit](Orbit)
+- [Nav Computer](Nav-Computer)
 
 **The game**
 - [Ships](Ships)

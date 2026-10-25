@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_ship.tscn" id="2_ship"]
@@ -24,6 +24,10 @@
 [ext_resource type="Script" path="res://game/world/orbit_line.gd" id="23_orbit_line"]
 [ext_resource type="Script" path="res://game/hud/orbit_marker.gd" id="24_orbit_marker"]
 [ext_resource type="Script" path="res://game/ui/screenshots.gd" id="25_screenshots"]
+[ext_resource type="Script" path="res://game/nav/nav_computer.gd" id="26_nav"]
+[ext_resource type="Resource" path="res://game/nav/nav_tuning.tres" id="27_nav_tuning"]
+[ext_resource type="Script" path="res://game/nav/nav_panel.gd" id="28_nav_panel"]
+[ext_resource type="Script" path="res://game/nav/nav_strip.gd" id="29_nav_strip"]
 
 [sub_resource type="ShaderMaterial" id="Mat_sky"]
 shader = ExtResource("3_sky")
@@ -131,6 +135,14 @@ script = ExtResource("22_autosave")
 ship = NodePath("../World/Ship")
 arrivals = NodePath("../Arrivals")
 origin = NodePath("../FloatingOrigin")
+
+[node name="NavComputer" type="Node" parent="." node_paths=PackedStringArray("ship", "arrivals", "cameras", "controls")]
+script = ExtResource("26_nav")
+ship = NodePath("../World/Ship")
+arrivals = NodePath("../Arrivals")
+cameras = NodePath("../ShipCameras")
+controls = NodePath("../PilotControls")
+tuning = ExtResource("27_nav_tuning")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
@@ -247,6 +259,25 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
+
+[node name="NavStrip" type="PanelContainer" parent="Hud"]
+layout_mode = 3
+script = ExtResource("29_nav_strip")
+
+[node name="NavCard" type="PanelContainer" parent="Hud"]
+visible = false
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -24.0
+offset_right = 604.0
+offset_bottom = -24.0
+grow_vertical = 0
+script = ExtResource("28_nav_panel")
+compact = true
+font_size = 22
 
 [node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls", "arrivals", "autosave")]
 script = ExtResource("11_pause")

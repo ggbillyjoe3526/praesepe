@@ -3,7 +3,8 @@
 # (game/debug/smoke_run.gd) and fails on any script error, any engine or
 # push_error() ERROR line (the known exit-time leak lines aside), or if the run
 # never reports, then runs it again and fails unless both runs end the same.
-# It flies, cruises, orbits, lands and docks on autopilot.
+# It flies, cruises, orbits, lands and docks on autopilot, then runs the nav
+# computer's own run (`-- --smoke --nav`), where it flies orders from its screen.
 # Usage: tools/smoke_test.sh            (GODOT=/path/to/godot to override)
 set -uo pipefail
 GODOT="${GODOT:-godot}"
@@ -40,3 +41,24 @@ if [ "$(grep "^SMOKE: ok" "$LOG")" != "$(grep "^SMOKE: ok" "$LOG.again")" ]; the
   echo "FAIL: a second run on the same seed ended differently (see $LOG.again)"; exit 1
 fi
 echo "PASS: smoke run with zero errors, the same on a second run"
+
+# The nav computer flies a run of its own: docking, landing and orbit from orders on its screen.
+timeout 180 "$GODOT" --headless --fixed-fps 60 --path . -- --smoke --nav --seed 1234 > "$LOG.nav" 2>&1
+status=$?
+if errors_in "$LOG.nav"; then
+  echo "FAIL: errors during the nav computer's smoke run (see $LOG.nav)"; exit 1
+fi
+if ! grep -q "^SMOKE NAV: ok" "$LOG.nav"; then
+  tail -20 "$LOG.nav"
+  echo "FAIL: the nav computer's smoke run never reported (exit $status, see $LOG.nav)"; exit 1
+fi
+grep "^SMOKE NAV: ok" "$LOG.nav"
+timeout 180 "$GODOT" --headless --fixed-fps 60 --path . -- --smoke --nav --seed 1234 > "$LOG.nav.again" 2>&1
+if errors_in "$LOG.nav.again"; then
+  echo "FAIL: errors during the nav computer's second smoke run (see $LOG.nav.again)"; exit 1
+fi
+if [ "$(grep "^SMOKE NAV: ok" "$LOG.nav")" != "$(grep "^SMOKE NAV: ok" "$LOG.nav.again")" ]; then
+  grep "^SMOKE" "$LOG.nav.again"
+  echo "FAIL: the nav computer's second run on the same seed ended differently (see $LOG.nav.again)"; exit 1
+fi
+echo "PASS: nav computer smoke run with zero errors, the same on a second run"

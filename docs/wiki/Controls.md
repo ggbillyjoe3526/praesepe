@@ -24,6 +24,20 @@ yet.
 | O | Enter orbit once you're close to a planet's or moon's orbit line. O again, or any thrust key, leaves ([Orbit](Orbit)) |
 | G | Dock at the station or land at the base when the HUD offers it. G on the way takes the controls back; G again undocks or takes off ([Docking and Landing](Docking-and-Landing)) |
 
+## Nav computer
+
+| Key | What it does |
+| --- | --- |
+| Tab | Open or close the nav computer ([Nav Computer](Nav-Computer)) |
+| Up / Down | Pick a place |
+| Left / Right | Pick how to arrive: dock, land, orbit or stop nearby |
+| Enter | Go now |
+| Shift+Enter | Add to the plan |
+| P | Pause or resume the plan |
+| Backspace | Clear the plan |
+
+While it is open you can also click it with the mouse.
+
 ## Camera and game
 
 | Key | What it does |
@@ -32,7 +46,7 @@ yet.
 | Hold right mouse | Look round the cockpit without steering (in the chase camera, swing the camera round the ship). Let go to look ahead again ([Flying](Flying#looking-round)) |
 | Esc | Pause. The pause screen has **Settings** ([Settings and Accessibility](Settings-and-Accessibility)), the tow home ([FAQ](FAQ#im-lost-or-stuck-far-from-anywhere)), **Quit to title** and **Quit to desktop** (both save first). On the start menu, Esc goes back a page |
 | F11 or Alt+Enter | Fullscreen or a window |
-| Click | Capture the mouse again after it was let go |
+| Click | Capture the mouse again after it was let go (not while the nav computer is open) |
 | F12 | Screenshot, saved as a picture in your screenshots folder ([FAQ](FAQ#where-are-my-saves-settings-and-screenshots)) |
 | F3 | Debug overlay: frame rate, world seed, speed and position |
 

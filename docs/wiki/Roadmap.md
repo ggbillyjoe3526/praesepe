@@ -5,10 +5,7 @@ change. What you can already play is on the other pages; what changed recently i
 
 ## Being built now
 
-Work already under way, which should arrive soon:
-
-- **A nav computer:** Tab turns the cockpit's middle screen into a nav computer to pick a place and how to arrive
-  (dock, land or orbit), queue up steps and start the trip with Enter.
+Nothing is under way right now. Next up is the first playable, below.
 
 ## Next: the first playable
 
