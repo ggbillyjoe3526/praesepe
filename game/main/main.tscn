@@ -108,13 +108,13 @@ tuning = ExtResource("14_camera_tuning")
 
 [node name="CockpitCamera" type="Camera3D" parent="ShipCameras"]
 current = true
-fov = 75.0
+fov = 60.0
 near = 0.05
 far = 150000.0
 script = ExtResource("15_cockpit_camera")
 
 [node name="ChaseCamera" type="Camera3D" parent="ShipCameras"]
-fov = 75.0
+fov = 60.0
 near = 0.2
 far = 150000.0
 script = ExtResource("16_chase_camera")
@@ -206,6 +206,14 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "FLIGHT ASSIST ON"
+horizontal_alignment = 1
+
+[node name="Target" type="Label" parent="Hud/FlightHud/Readout/Lines"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 
 [node name="KeysPlate" type="PanelContainer" parent="Hud/FlightHud"]

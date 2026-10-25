@@ -6,7 +6,8 @@ extends RigidBody3D
 ## The ship also says where its cameras sit (the pilot's eye in the cockpit, the chase camera behind it) and how hard it
 ## was last bumped, for camera shake.
 ## While its cruise drive (CruiseDrive) runs, the drive sets the ship's speed and direction and flight assist only
-## turns it; the thrust keys and Z do nothing until it drops out. In orbit (Orbit) the orbit sets its velocity the same
+## turns it; the thrust keys and Z do nothing until it drops out. Locked onto a place, the drive also turns the ship's
+## nose to follow its course, until the pilot moves the mouse. In orbit (Orbit) the orbit sets its velocity the same
 ## way and the ship's attitude turns with the orbit; O or a thrust key leaves orbit once the nose has come up level, X
 ## or Z at once, and then they work as usual.
 ## Docking or landing (Arrivals), it flies itself in: Arrivals guides it at a set velocity and spin each tick while it
@@ -68,7 +69,9 @@ func _physics_process(delta: float) -> void:
 	jolt = linear_velocity.distance_to(_expected_velocity)
 	var was_on := model.assist
 	var was_cruising := cruise.active()
-	cruise.step(global_position, linear_velocity, -global_basis.z, input.toggle_cruise, input.full_stop, jolt, delta)
+	var steering := Vector2(input.turn.x, input.turn.y).length() > CruiseDrive.STICK_TAKES_OVER
+	cruise.step(global_position, linear_velocity, -global_basis.z, input.toggle_cruise, input.full_stop, jolt, delta,
+			steering)
 	input.toggle_cruise = false
 	var stopping := input.full_stop
 	if was_cruising or cruise.active():
@@ -77,10 +80,12 @@ func _physics_process(delta: float) -> void:
 		input.toggle_assist = false
 	var pilot_turn := input.turn
 	_step_orbit(delta)
+	if cruise.locked():
+		input.turn = cruise.turn_for(global_basis, input.turn.z, tuning.max_rates())
 	if cruise.event == CruiseDrive.Event.ENGAGED or orbit.event == Orbit.Event.ENTERING:
 		model.set_assist(true, 0.0)
 	model.step(pilot_velocity(), pilot_spin(), input, delta)
-	# The orbit may have steered this tick; the input keeps what the pilot asked for.
+	# The orbit or the cruise drive's lock may have steered this tick; the input keeps what the pilot asked for.
 	input.turn = pilot_turn
 	if model.assist != was_on:
 		assist_changed.emit(model.assist)

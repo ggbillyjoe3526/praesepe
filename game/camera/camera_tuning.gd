@@ -32,7 +32,7 @@ extends Resource
 ## Reduce motion multiplies the lag by this, so the camera swings less.
 @export var chase_lag_reduced: float = 0.5
 ## How far the camera looks down at the ship (degrees).
-@export var chase_look_down: float = 8.0
+@export var chase_look_down: float = 9.0
 ## With flight assist off, the share of the angle between the nose and the ship's motion the camera turns toward the
 ## motion, up to `lean_max` degrees.
 @export var lean_share: float = 0.5

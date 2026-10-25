@@ -14,9 +14,11 @@ extends Node
 ## speed the ship flies under a bar that crosses the line out to the chase camera, which must never end up inside it.
 ##
 ## Then it tours the solar system on the cruise drive: it points the nose at each place in turn (the asteroid belt,
-## the station, the moon and the planet's base, an order whose straight lines miss everything), engages the drive,
-## steers for the place and checks the drive drops out there by itself, on arrival, at the speed flight assist then
-## holds, with no bump on the way. Last it cruises up into open space and drops out with F, then again with X, which
+## the station, the moon and the planet's base, an order whose straight lines miss everything), checks the HUD offers
+## to cruise there, engages the drive and lets go of the controls: the drive is locked onto the place, turns the nose
+## along its course and shows the place on the dashboard, and drops out there by itself, on arrival, at the speed
+## flight assist then holds, with no bump on the way. On the way to the station the autopilot moves the stick, which
+## releases the lock, and steers there by hand. Last it cruises up into open space and drops out with F, then again with X, which
 ## also brings the ship to a stop.
 ##
 ## Then it parks in orbit, lands, takes off, docks and undocks: it cruises to Calder, presses O and checks the ship
@@ -62,6 +64,11 @@ const AIM_LIMIT := 900
 const CRUISE_LIMIT := 7200
 ## Pointed within this (degrees) of a place counts as aimed.
 const AIM_TOLERANCE := 1.5
+## The place of the tour where the autopilot breaks the lock and steers by hand.
+const UNLOCK_AT := "Halfway Station"
+## How long (ticks) after engaging the lock is checked, and how far (degrees) the nose may then be off the course.
+const LOCK_CHECK := 120
+const LOCK_NOSE := 2.0
 ## The autopilot asks for a turn rate that would close the angle in this long (s).
 const STEER_TIME := 0.6
 ## How long (ticks) to cruise into open space before dropping out by hand.
@@ -413,13 +420,14 @@ func _tour_step(input: ShipInput) -> void:
 		_expect(false, "finds %s in the solar system" % TOUR[_tour])
 		_next_place()
 		return
-	if _visit(input, place):
+	if _visit(input, place, TOUR[_tour] == UNLOCK_AT):
 		_next_place()
 
 
-## Points at `place`, engages the cruise drive, cruises there and checks it dropped out on arrival and that flight
-## assist then holds the exit speed. True once done (or given up on).
-func _visit(input: ShipInput, place: Landmark) -> bool:
+## Points at `place`, engages the cruise drive locked onto it, cruises there and checks it dropped out on arrival and
+## that flight assist then holds the exit speed. With `unlock`, it moves the stick a while after engaging, which
+## releases the lock, and steers there itself. True once done (or given up on).
+func _visit(input: ShipInput, place: Landmark, unlock: bool = false) -> bool:
 	if place == null:
 		_expect(false, "finds a place to cruise to")
 		return true
@@ -427,6 +435,9 @@ func _visit(input: ShipInput, place: Landmark) -> bool:
 	match _stage:
 		0: # Point at it, then press F.
 			if _aimed_at(place.marker_position()):
+				_expect(ship.cruise.aimed == place and ActionPrompts.cruise_text(ship.cruise.aimed)
+						== "F   Cruise to %s" % place.display_name, "is offered to cruise to %s (aimed at %s)"
+						% [place.display_name, ship.cruise.aimed.display_name if ship.cruise.aimed != null else "nothing"])
 				input.toggle_cruise = true
 				_event = CruiseDrive.Event.NONE
 				_cruise_top = 0.0
@@ -437,10 +448,24 @@ func _visit(input: ShipInput, place: Landmark) -> bool:
 				_stage = 0
 				return true
 		1: # Charging, then cruising, until the drive drops out.
+			if ship.cruise.target != null:
+				# Hands off while it charges too: moving the stick would release the lock.
+				input.turn = Vector3.ZERO
 			_cruise_top = maxf(_cruise_top, ship.speed())
 			var charge_ticks := roundi(ship.cruise_tuning.charge_time * Engine.physics_ticks_per_second)
 			if _phase_ticks == charge_ticks + 2:
 				_expect(ship.cruise.active(), "engages the cruise drive after charging, for %s" % place.display_name)
+				_expect(ship.cruise.locked() and ship.cruise.target == place, "locks onto %s" % place.display_name)
+			if ship.cruise.locked():
+				# Hands off: the lock flies it.
+				input.turn = Vector3.ZERO
+				if _phase_ticks == charge_ticks + LOCK_CHECK:
+					_check_lock(place)
+					if unlock:
+						input.turn.y = 0.5
+			if unlock and _phase_ticks == charge_ticks + LOCK_CHECK + 1 and ship.cruise.active():
+				_expect(_event == CruiseDrive.Event.UNLOCKED and not ship.cruise.locked(),
+						"releases the lock when the stick moves (event %s)" % CruiseDrive.Event.keys()[_event])
 			if ship.cruise.active():
 				_expect(ship.jolt < 0.5, "cruises without a bump (%.2f m/s)" % ship.jolt)
 			if _event in [CruiseDrive.Event.ARRIVED, CruiseDrive.Event.DROPPED, CruiseDrive.Event.SAFETY,
@@ -460,6 +485,17 @@ func _visit(input: ShipInput, place: Landmark) -> bool:
 				_stage = 0
 				return true
 	return false
+
+
+## Locked onto `place`: the nose has turned along the course and the dashboard says where the ship is going.
+func _check_lock(place: Landmark) -> void:
+	var off := rad_to_deg(_forward().angle_to(ship.linear_velocity))
+	_expect(off < LOCK_NOSE, "turns its nose along the course to %s (%.2f degrees off)" % [place.display_name, off])
+	var shown := (ship.get_node(^"Cockpit") as CockpitDisplay).shown()
+	# The distance is checked by the unit tests; the screen redraws in frames, so here only the name.
+	var line := FlightHud.target_text(place.display_name, 0.0).get_slice("  ·  ", 0)
+	_expect(shown[1] == FlightHud.mode_text(FlightHud.Mode.CRUISE_LOCKED, 0) and shown[2].begins_with(line),
+			"shows the lock on the dashboard (%s / %s)" % [shown[1], shown[2]])
 
 
 func _check_arrival(place: Landmark) -> void:
