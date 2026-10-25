@@ -80,7 +80,7 @@ CI runs all five on every pull request (the wiki check in the Wiki workflow, whi
 | `game/core/` | The `Game` autoload (world seed, random streams, in-game clock), the `Events` autoload (the event bus: docking, landing, saving) and launch options. |
 | `game/flight/` | The flight model, the cruise drive, orbit, the ship's input, the pilot's controls and their tuning. |
 | `game/arrival/` | Docking and landing: ports, the way in (the ship flying itself to its berth), the one arrival function and their tuning. |
-| `game/ship/` | The greybox ship, its cockpit and its tuning. |
+| `game/ship/` | The test ship, its cockpit and its tuning; `models/` holds their glTF models (made from `tools/blender/`). |
 | `game/camera/` | The cockpit and chase cameras, camera shake and their tuning. |
 | `game/system/` | The solar system scene: the planet, its base and landing pad, the moon, the station and its docking bay, the seeded asteroid belt and their tuning. |
 | `game/world/` | The floating origin, space dust, the starfield sky, buoys and the orbit line round a planet. |
@@ -90,7 +90,7 @@ CI runs all five on every pull request (the wiki check in the Wiki workflow, whi
 | `game/main/` | The first scene. |
 | `game/debug/` | The smoke test autopilot and the F3 overlay. |
 | `test/unit/` | Unit tests. |
-| `tools/` | Test, changelog and wiki scripts. |
+| `tools/` | Test, changelog and wiki scripts; `blender/` builds and exports the ship models in Blender (its `README.md` says how). |
 | `addons/gut/` | The Gut test framework (tests only, never shipped). |
 | `docs/wiki/` | The player wiki, one page per file, published to the [GitHub wiki](https://github.com/ggbillyjoe3526/project-praesepe/wiki) on every merge to `main`. Its `README.md` has the conventions. |
 | `changelog.d/` | One changelog note per pull request, gathered into `CHANGELOG.md` at release. |

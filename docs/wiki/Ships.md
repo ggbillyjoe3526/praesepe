@@ -2,8 +2,10 @@
 
 ## The test ship
 
-For now you fly one simple test ship (a stand-in model, with no name yet) while the flying is tuned. It has a
-cockpit with a dashboard screen, two engines and short wings. It can't carry cargo or take damage yet.
+For now you fly one small test ship while the flying is tuned: light grey with orange panels, a flat windscreen
+sloping down to its nose, two engine pods and short swept wings. Its model is a simple placeholder. Inside, a slim
+dashboard runs across the bottom of the view and the windows have no frame bars in the way. It can't carry cargo or
+take damage yet.
 
 ![The test ship, docked at Halfway Station](images/docked-chase.jpg)
 
@@ -17,7 +19,7 @@ cockpit with a dashboard screen, two engines and short wings. It can't carry car
 | Braking thrusters | 25 m/s² |
 | Side and up/down thrusters | 30 m/s² |
 | Turn rate, full stick | nose up/down 50°/s, left/right 35°/s, roll 100°/s |
-| Wingspan | about 17 m |
+| Size | about 14 m long and 14 m across the wings |
 
 ### Cruise drive
 

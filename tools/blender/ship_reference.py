@@ -2,7 +2,7 @@
 
 Run it inside Blender (Scripting tab, or `blender --python tools/blender/ship_reference.py`). It adds a collection
 called "Reference" that is never exported: the ship's collision shapes (what the physics, docking and the bay floor
-use), the greybox ship and cockpit it replaces, the pilot's eye, the dashboard screen and the nav computer screen, and
+use), the greybox ship and cockpit the first model replaced (kept for its proportions), the pilot's eye, the dashboard screen and the nav computer screen, and
 two cameras that see exactly what the game's cockpit and chase cameras see. Running it again replaces the collection.
 It also makes the two collections the export takes, "Exterior" and "Cockpit", if they are missing.
 
@@ -17,9 +17,10 @@ import bpy
 from mathutils import Matrix, Vector
 
 # Godot positions (x right, y up, z back) of what the model must fit round.
-HULL_SHAPE = ((0.0, 0.0, 0.0), (4.0, 2.4, 12.0))
-CANOPY_SHAPE = ((0.0, 1.575, -3.95), (3.2, 0.75, 2.9))
+HULL_SHAPE = ((0.0, 0.0, -0.6), (4.0, 2.4, 13.2))
+UPPER_SHAPE = ((0.0, 1.55, 0.8), (3.4, 0.7, 10.6))
 WING_SHAPE = ((0.0, -0.4, 2.5), (14.0, 0.4, 4.0))
+POD_SHAPES = (((-2.25, -0.05, 3.85), (1.44, 1.44, 6.5)), ((2.25, -0.05, 3.85), (1.44, 1.44, 6.5)))
 EYE = (0.0, 1.15, -3.54)
 CHASE_ANCHOR = (0.0, 5.3, 24.0)
 CHASE_LOOK_DOWN = 9.0
@@ -167,8 +168,10 @@ def build():
 
 	shapes = collection("Ref_CollisionShapes", ref)
 	box("Ref_HullShape", shapes, *HULL_SHAPE)
-	box("Ref_CanopyShape", shapes, *CANOPY_SHAPE)
+	box("Ref_UpperShape", shapes, *UPPER_SHAPE)
 	box("Ref_WingShape", shapes, *WING_SHAPE)
+	for i, shape in enumerate(POD_SHAPES):
+		box("Ref_PodShape%d" % i, shapes, *shape)
 
 	grey = collection("Ref_Greybox", ref)
 	for name, centre, size in GREYBOX_SHIP:

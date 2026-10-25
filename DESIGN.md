@@ -48,6 +48,16 @@ Three starter ships share a price and tier. Each leans toward a play style, but 
 
 Upgrades (cargo, engines, scanners, shields, mining laser) let any ship cover its weak spots. Names and exact stats are placeholders.
 
+**The test ship's model** (placeholder, 2026-10-25): the Hauler's look from the owner's reference pictures, made in
+Blender by `tools/blender/hauler_model.py` and kept in the owner's `hauler_v002.blend`. Small and simple: light grey
+with orange panels and a few glowing strips, a flat windscreen sloping down to the nose in front of a taller back half,
+flat side windows and a flat roof window, two engine pods with glowing nozzles, short swept wings; about 14 m long and
+14 m across. Inside, a slim dark dashboard low across the bottom of the view (the dashboard screen where it always
+was) and side consoles low in the corners, with no frame bars in the pilot's view. About 700 triangles outside and
+1,100 in the cockpit, one mesh per material. The model only changes the look: the collision shapes follow it (a box
+for the taller back half and one per engine pod), but mass, centre of mass and inertia stay as approved and the
+underside stays at 1.2 m below the centre, so flying, docking and the floor berth are unchanged.
+
 ## Flight and camera
 
 Flight uses one Newtonian physics model with a flight assist toggle. It should never feel arcade-like.
@@ -132,11 +142,11 @@ The values live in `game/camera/camera_tuning.tres` (shared by every ship). Wher
 | Value | First value | What it does |
 | --- | --- | --- |
 | Field of view | 60° (50° to 90°), vertical; 60° is about 90° across on a 16:9 screen | Player setting, both cameras. Wider views stretch round things near the screen's edges, so planets look oval there |
-| Pilot's eye | 1.15 m up, 3.54 m forward of the greybox's centre | Greybox ship scene; set so the cockpit window frames the view at 60° as it did at 75° |
+| Pilot's eye | 1.15 m up, 3.54 m forward of the ship's centre | Ship scene; set with the 60° view (PR #6), and the cockpit model is built round it |
 | Head sway | 1.2 mm per m/s² of push, at most 6 cm, eased over 0.15 s | 4.8 cm back at full main engine |
 | Engine rumble | 0.12° at full thrust | Times the shake setting |
 | Bump wobble | Up to 2° for a 6 m/s knock, gone in about 0.6 s; knocks under 0.3 m/s ignored | Times the shake setting |
-| Chase camera place | 5.3 m up, 24 m behind, looking 9° down | Greybox ship scene |
+| Chase camera place | 5.3 m up, 24 m behind, looking 9° down | Ship scene |
 | Chase lag | 0.18 s (half with reduce motion) | 35°/s yaw shows as about 6° of swing |
 | Chase lean (assist off) | Half the drift angle, at most 25°, from 5 m/s, full by 40 m/s, eased over 0.6 s; fades out as the drift goes from sideways to straight backwards | Keeps drift readable, never flips side to side in a spin |
 | Chase clearance | 0.5 m from anything in the way, eases back out over 0.5 s | No clipping |
@@ -523,6 +533,11 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-25: The test ship gets a placeholder model in place of the greybox: small, light grey with orange panels, a
+  flat windscreen sloping down to the nose in front of a taller back half, flat side and roof windows with no frame bars
+  in the pilot's view, and a slim dashboard low across the bottom (William's references and notes; he turned down a
+  curved bubble canopy and approved v002) (owner). The collision shapes follow the new shape; mass, centre of mass,
+  inertia, the eye, the chase camera and the underside stay where they were (default, Claude).
 - 2026-10-25: Four conveniences join the first playable: the time to arrival next to the distance while the cruise
   drive is locked on, an F12 screenshot key, holding the right mouse button to look round the cockpit without steering,
   and a key that rolls the ship upright against the nearest planet or moon. William approved them from a list of

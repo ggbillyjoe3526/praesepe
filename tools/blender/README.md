@@ -4,10 +4,17 @@ The ship and cockpit models are made in Blender and loaded by the game as glTF (
 These scripts keep a new model lined up with what the game already uses, so it drops in without changing how the ship
 flies, docks or looks through the cameras.
 
-- `ship_reference.py` adds a "Reference" collection (never exported) with the ship's collision shapes, the greybox it
-  replaces, the pilot's eye, the dashboard and nav computer screens, and cameras that see what the game's cockpit and
+- `ship_reference.py` adds a "Reference" collection (never exported) with the ship's collision shapes, the greybox the
+  first model replaced, the pilot's eye, the dashboard and nav computer screens, and cameras that see what the game's cockpit and
   chase cameras see (60° tall, 1920×1080). It also makes the "Exterior" and "Cockpit" collections the export takes.
-- `export_ship.py` writes `<ship>_exterior.glb` and `<ship>_cockpit.glb` from those two collections.
+- `hauler_model.py` builds the Hauler's placeholder model into those collections, and checks that nothing in the
+  cockpit pokes through its walls, floor or glass (it prints a `COCKPIT CLIPS` line for each part that does).
+- `export_ship.py` writes `<ship>_exterior.glb` and `<ship>_cockpit.glb` from those two collections, joining the parts
+  into one mesh per material (named like `Exterior_Glass`) so the game draws few of them.
+
+In Blender's Python console, with this folder on `sys.path`: `ship_reference.build()`, `hauler_model.build()`, then
+`export_ship.export("<repo>/game/ship/models", "hauler")`. Blender's `bpy` module from PyPI runs the same scripts
+headless, which is how they are checked without a Blender window.
 
 The owner's `.blend` files are never overwritten: each change is saved as a new numbered version
 (`hauler_v001.blend`, `hauler_v002.blend`, ...).
@@ -19,14 +26,15 @@ y forward, z up), in metres, from the ship's centre.
 
 | What | Where / how big | Why |
 | --- | --- | --- |
-| Collision: hull | Centre (0, 0, 0), 4 wide, 12 long, 2.4 tall | Flight, bumps and the bay floor berth use these shapes, not the model; the ship's underside is z = -1.2 |
-| Collision: canopy | Centre (0, 3.95, 1.575), 3.2 wide, 2.9 long, 0.75 tall | |
+| Collision: hull | Centre (0, 0.6, 0), 4 wide, 13.2 long, 2.4 tall | Bumps and the bay floor berth use these shapes, not the model; the ship's underside is z = -1.2. Mass, centre of mass and inertia are set by hand, so the shapes can follow a new model without changing how it flies |
+| Collision: back half | Centre (0, -0.8, 1.55), 3.4 wide, 10.6 long, 0.7 tall | |
 | Collision: wings | Centre (0, -2.5, -0.4), 14 wide, 4 long, 0.4 tall | |
+| Collision: engine pods | Centres (±2.25, -3.85, -0.05), 1.44 wide and tall, 6.5 long | |
 | Pilot's eye | (0, 3.54, 1.15) | Approved framing at 60° (PR #6) |
 | Chase camera | (0, -24, 5.3), looking along +Y and 9° down | Approved framing (PR #6) |
 | Dashboard screen | Centre (0, 5.146, 0.665), 1.0 × 0.34, tilted back 22.9° | Speed, assist and target text sit on it |
 | Nav computer screen | Centre (0, 5.141, 0.667), 1.6 × 0.34, same tilt | Tab turns the middle screen into the nav computer, so the dash needs a flat face at least this big, just behind it |
-| Cockpit window | The greybox pillars at x = ±1.6 and roof at z = 1.95 frame the view | Keep the frame lines near these so the cockpit view stays as approved |
+| Cockpit window | No frame bars in the pilot's view (owner, 2026-10-25); flat panes only, never a curved bubble | The owner's call on v001 |
 
 The visible model should stay close to the collision shapes (a little inside is fine, nothing big sticking out), so
 what the player sees matches what bumps. Faces are single sided: the exterior hull is never seen from the cockpit
