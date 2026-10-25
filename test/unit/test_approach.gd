@@ -308,8 +308,8 @@ func test_lands_from_the_far_side_of_the_planet_going_round_it() -> void:
 
 func test_lands_from_orbit_over_the_base() -> void:
 	var pad := _planet_pad()
-	# 1.5 km up, 2 km along the orbit from the base, going round at Calder's orbit speed.
-	var f := _fly(pad, pad.global_position + Vector3(2000, 1200, 0), Vector3(0, 0, 90))
+	# On Calder's orbit line, about 3 km up and 2 km along the orbit from the base, going round at its orbit speed.
+	var f := _fly(pad, pad.global_position + Vector3(2000, 2700, 0), Vector3(0, 0, 45))
 	assert_true(f.done, "arrives within %.0f s" % LIMIT)
 	gut.p("landed from orbit over the base in %.1f s, top %.0f m/s" % [f.time, f.top])
 	assert_lt(f.time, 60.0, "takes under a minute")

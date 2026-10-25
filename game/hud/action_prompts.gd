@@ -98,7 +98,8 @@ static func port_text(stage: Arrivals.Stage, p: Port, why: Arrivals.Refusal, dis
 
 
 ## The orbit line: in `phase`, about `body` (orbited, or offered), offered or not (`why`, with the top entry speed
-## `max_speed`). Empty when there is nothing to say.
+## `max_speed`). Empty when there is nothing to say, as when the ship is still below or above the orbit line (the
+## insertion marker, OrbitMarker, shows the way there).
 static func orbit_text(phase: Orbit.Phase, body: CelestialBody, why: Orbit.Refusal, max_speed: float) -> String:
 	if body == null:
 		return ""

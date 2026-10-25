@@ -73,9 +73,9 @@ lod_distance = 40000.0
 display_name = "Calder"
 radius = 6000.0
 drop_distance = 2000.0
-orbit_min_altitude = 500.0
-orbit_max_altitude = 4000.0
-orbit_speed = 90.0
+orbit_altitude = 3000.0
+orbit_window = 600.0
+orbit_speed = 45.0
 
 [node name="Tollgate" parent="Calder" instance=ExtResource("8_base")]
 transform = Transform3D(-0.316542, 0.904352, -0.286266, 0, 0.301784, 0.953376, 0.948578, 0.301784, -0.0955273, 5424.3, 1810.1, 1810.1)
@@ -88,9 +88,9 @@ lod_distance = 15000.0
 display_name = "Mote"
 radius = 1500.0
 drop_distance = 1500.0
-orbit_min_altitude = 300.0
-orbit_max_altitude = 2500.0
-orbit_speed = 45.0
+orbit_altitude = 1200.0
+orbit_window = 300.0
+orbit_speed = 20.0
 
 [node name="HalfwayStation" parent="." instance=ExtResource("7_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16000, 1200, 0)
