@@ -97,7 +97,7 @@ func test_the_default_view_is_not_too_wide() -> void:
 	assert_almost_eq(across, 91.5, 0.5)
 
 
-func test_an_old_file_on_the_old_default_view_moves_to_the_new_one() -> void:
+func test_an_old_file_on_the_old_default_view_drops_it() -> void:
 	Settings.set_fov(80.0)
 	Settings.from_dict({"v": 1, "fov": 75.0, "shake": 0.5, "head_bob": false, "reduce_motion": false})
 	assert_eq(Settings.fov, 80.0, "an untouched old default leaves the current value (the new default after a load)")
@@ -110,6 +110,32 @@ func test_an_old_file_keeps_a_view_the_player_chose() -> void:
 	assert_eq(Settings.fov, 70.0)
 	Settings.from_dict({"v": 1, "fov": 100.0})
 	assert_eq(Settings.fov, Settings.FOV_MAX, "a view wider than the new range comes in to its edge")
+
+
+func test_an_old_view_that_rounds_to_75_counts_as_the_old_default() -> void:
+	Settings.set_fov(80.0)
+	Settings.from_dict({"v": 1, "fov": 75.4})
+	assert_eq(Settings.fov, 80.0)
+
+
+func test_an_old_file_without_a_version_in_it_goes_by_its_header() -> void:
+	var f := FileAccess.open(Settings.path, FileAccess.WRITE)
+	f.store_string(SaveFile.encode(Settings.KIND, 1, {"fov": 75.0}))
+	f.close()
+	assert_true(Settings.load_saved())
+	assert_eq(Settings.fov, Settings.DEFAULT_FOV)
+
+
+func test_the_cameras_in_the_main_scene_start_at_the_default_view() -> void:
+	var main: PackedScene = load("res://game/main/main.tscn")
+	var state := main.get_state()
+	var found := 0
+	for i in state.get_node_count():
+		for p in state.get_node_property_count(i):
+			if state.get_node_property_name(i, p) == &"fov":
+				assert_eq(state.get_node_property_value(i, p), Settings.DEFAULT_FOV, str(state.get_node_name(i)))
+				found += 1
+	assert_eq(found, 2, "both ship cameras")
 
 
 func test_a_new_file_keeps_75() -> void:

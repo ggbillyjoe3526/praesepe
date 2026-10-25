@@ -103,7 +103,11 @@ func load_saved() -> bool:
 	from_dict(_defaults())
 	var r := SaveFile.read(path, KIND)
 	if r.ok:
-		from_dict(r.data)
+		var d: Dictionary = r.data
+		# The file's header holds its version too; it counts when the payload lacks a usable one.
+		if not _is_num(d.get("v")):
+			d["v"] = r.version
+		from_dict(d)
 	_dirty = false
 	changed.emit()
 	return r.ok
@@ -130,10 +134,11 @@ func from_dict(d: Dictionary) -> void:
 
 
 ## Version 1 saved the field of view whenever any setting changed, so the old default (75°) almost always means the
-## player never moved the slider: it moves to the new default. Any other choice is kept, within the new range.
+## player never moved the slider: it moves to the new default. Any other choice is kept, within the new range. The
+## file itself stays version 1 until the next change is written, so this runs again on each load until then (harmless).
 static func _migrate_v1(d: Dictionary) -> Dictionary:
 	var out := d.duplicate()
-	if _is_num(out.get("fov")) and is_equal_approx(float(out.fov), OLD_DEFAULT_FOV):
+	if _is_num(out.get("fov")) and is_equal_approx(roundf(float(out.fov)), OLD_DEFAULT_FOV):
 		out.erase("fov")
 	out["v"] = 2
 	return out

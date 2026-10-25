@@ -17,7 +17,8 @@ float hash13(vec3 p) {
 }
 
 // One layer of stars: the view direction picks a cell on a 3D grid, and each cell may hold one star. `radius` is the
-// star's size in radians: about 1.5 px at 1080p and a 75 degree view, so stars never shimmer below a pixel.
+// star's size in radians: about 2 px at 1080p and the default 60 degree view, and still over a pixel at the widest
+// (90 degrees), so stars never shimmer below a pixel.
 float stars(vec3 dir, float cells, float threshold, float radius) {
 	vec3 p = dir * cells;
 	vec3 cell = floor(p);
