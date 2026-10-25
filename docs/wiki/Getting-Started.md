@@ -5,8 +5,8 @@ There is no download yet (see the [FAQ](FAQ#is-there-a-download)). Once there is
 ## Your first flight
 
 1. **The start.** The game opens fullscreen with you in the cockpit of a test ship, 2 km from Halfway Station, with
-   the planet Calder ahead and three buoys marking the way to the station. A short message says where to find the
-   controls: Esc, then **Settings**, then **Controls**.
+   the planet Calder ahead. A short message says where to find the controls: Esc, then **Settings**, then
+   **Controls**.
 2. **Get moving.** Hold **W** to speed up and let go: flight assist holds your speed. **S** slows down. Move the mouse
    to steer and **Q** / **E** to roll. The small marker on screen (the velocity marker) shows where the ship is really
    going. More on the [Flying](Flying) page.
