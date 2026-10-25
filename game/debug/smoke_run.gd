@@ -27,6 +27,9 @@ extends Node
 ## and down onto the pad with no fade and no bump, is held still there, the HUD says so and the game is autosaved (to
 ## the smoke test's own file, read back to check). G takes off, the ship climbs clear of the base and cruises to
 ## Halfway Station, slows down, docks the same way, flying itself into the bay (saved again), and undocks out of it.
+## Stopped clear of the station, it makes the autosave due and checks the game is saved in flight (on a worker
+## thread) with the ship where it is, then pauses and is towed home with "Tow me to base" (pressed twice), landing back
+## in the bay with the world re-centred on it and the game saved there; docked, the tow is no longer offered.
 ## The result line names the belt's fingerprint and when each arrival, the orbit, the landing and the docking came
 ## (and how long flying in took), so a second run on the same seed must match it exactly.
 ##
@@ -90,6 +93,8 @@ const CLEAR_OF_BASE := 320.0
 ## The approach to the station's dock: the speed (m/s) the autopilot slows to, and how long (ticks) it may take.
 const APPROACH_SPEED := 80.0
 const APPROACH_LIMIT := 2400
+## How long (ticks) a save in flight may take to be written.
+const SAVE_LIMIT := 120
 
 var ship: Ship
 var origin: FloatingOrigin
@@ -132,6 +137,11 @@ var _orbit_start: Vector3 = Vector3.ZERO
 var _arrived_at: Port = null
 ## Checked the ship at its berth, and now watching it sit there.
 var _at_berth: bool = false
+## Saving in flight: how many saves in flight there had been, and the ship's true position, when it was made due.
+var _flight_saves: int = 0
+var _saved_at: PackedFloat64Array = PackedFloat64Array()
+## Where the tow took the ship (Events.towed).
+var _towed: Port = null
 
 
 func _ready() -> void:
@@ -141,6 +151,7 @@ func _ready() -> void:
 	ship.cruise_changed.connect(_on_cruise_changed)
 	ship.orbit_changed.connect(_on_orbit_changed)
 	Events.arrived.connect(_on_arrived)
+	Events.towed.connect(_on_towed)
 	SaveFile.remove(SAVE_PATH)
 
 
@@ -151,6 +162,12 @@ func _exit_tree() -> void:
 		ship.orbit_changed.disconnect(_on_orbit_changed)
 	if Events.arrived.is_connected(_on_arrived):
 		Events.arrived.disconnect(_on_arrived)
+	if Events.towed.is_connected(_on_towed):
+		Events.towed.disconnect(_on_towed)
+
+
+func _on_towed(port: Port) -> void:
+	_towed = port
 
 
 func _on_orbit_changed(event: Orbit.Event, _body: CelestialBody) -> void:
@@ -315,6 +332,10 @@ func _physics_process(_delta: float) -> void:
 			_dock_at_station(input)
 		19:
 			_undock(input)
+		20:
+			_save_in_flight(input)
+		21:
+			_tow_home()
 
 
 func _while_paused() -> void:
@@ -736,6 +757,82 @@ func _undock(input: ShipInput) -> void:
 			if _phase_ticks >= 60:
 				_expect(absf(ship.held_speed() - dock.exit_speed) < 0.5 and absf(ship.speed() - dock.exit_speed) < 0.5,
 						"flies on at %.0f m/s (%.2f, set %.2f)" % [dock.exit_speed, ship.speed(), ship.held_speed()])
+				_stage = 0
+				_next()
+
+
+## Stops clear of the station and makes the autosave due: the game is written on a worker thread, with the ship
+## flying where it is and the station as home.
+func _save_in_flight(input: ShipInput) -> void:
+	match _stage:
+		0:
+			input.full_stop = _phase_ticks == 1
+			if _phase_ticks > 1 and ship.speed() < 0.05:
+				_expect(autosave.can_save_in_flight(), "can be saved in flight")
+				_flight_saves = autosave.flight_saves
+				_saved_at = origin.true_position(ship.global_position)
+				autosave.due = Game.clock
+				_stage = 1
+				_phase_ticks = 0
+			elif _phase_ticks >= STOP_LIMIT:
+				_expect(false, "stops clear of the station (%.2f m/s)" % ship.speed())
+				_finish()
+		1:
+			if autosave.flight_saves > _flight_saves:
+				_check_flight_save()
+				_stage = 0
+				_next()
+			elif _phase_ticks >= SAVE_LIMIT:
+				_expect(false, "saves in flight within %d ticks" % SAVE_LIMIT)
+				_finish()
+
+
+## The save in flight reads back: no berth, the station as home, and the ship where it was.
+func _check_flight_save() -> void:
+	_expect(autosave.last_ok and autosave.last_berth == &"", "saves in flight")
+	var r := SaveGame.read(SAVE_PATH)
+	_expect(r.ok, "reads the save in flight back")
+	if not r.ok:
+		return
+	var saved_ship: Dictionary = r.data.get("ship", {})
+	var at: Array = saved_ship.get("at", [])
+	var off := INF
+	if at.size() == 3:
+		off = Vector3(at[0] - _saved_at[0], at[1] - _saved_at[1], at[2] - _saved_at[2]).length()
+	_expect(r.data.get("berth") == "" and r.data.get("home") == "halfway_station"
+			and saved_ship.get("model") == String(ship.model_id) and off < 0.05,
+			"saved in flight where it was (berth '%s', home '%s', %.3f m off)" % [r.data.get("berth"),
+			r.data.get("home"), off])
+
+
+## Pauses and is towed home: the first press asks again, the second tows the ship into the station's bay at once,
+## the world is centred on it and the game saved there. Docked, the tow is no longer offered.
+func _tow_home() -> void:
+	var dock := system.port(&"halfway_station")
+	match _stage:
+		0:
+			_towed = null
+			pause.open()
+			_expect(pause.tow_button.visible and not pause.tow_button.disabled
+					and pause.tow_button.text.contains("Halfway Station"),
+					"is offered a tow to Halfway Station (%s)" % pause.tow_button.text)
+			pause.tow_button.pressed.emit()
+			_expect(get_tree().paused and arrivals.stage == Arrivals.Stage.FLYING, "asks again before towing")
+			pause.tow_button.pressed.emit()
+			_expect(not get_tree().paused, "carries on once towed")
+			_expect(arrivals.stage == Arrivals.Stage.DOCKED and ship.berth == dock and _towed == dock,
+					"is towed into the station's bay")
+			_expect(ship.global_position.length() < 1.0,
+					"re-centres the world on the towed ship (%.2f m out)" % ship.global_position.length())
+			_check_save(dock)
+			_stage = 1
+			_phase_ticks = 0
+		1:
+			if _phase_ticks >= BERTH_WATCH:
+				_expect(ship.berth == dock and ship.speed() < 0.01, "sits still in the bay after the tow")
+				pause.open()
+				_expect(pause.tow_button.disabled, "isn't offered a tow while docked")
+				pause.close()
 				_finish()
 
 

@@ -331,6 +331,20 @@ the station's and base's scenes (`game/system/greybox_station.tscn`, `game/syste
 | Leaving the bay | 60 m, speeding up to 25 m/s (about 5 s) | Clear of the bay's mouth before the pilot has it |
 | Taking off | 30 m straight up, speeding up to 15 m/s (about 4 s) | Then flight assist brings it to a hover |
 
+**Saving and the tow home**
+
+- The game saves itself on every docking and landing, and every 3 minutes of play in flight (paused time doesn't
+  count), so quitting or a crash never loses more than that. A save in flight waits until the ship is flying freely
+  or settled in orbit: not while the cruise drive charges or runs, the ship swings into orbit or levels out of it, or
+  it flies itself in to a berth or out of one. Its file is written in the background, so it never holds up a frame.
+- The save holds the world (seed, clock, random streams), the berth ("" in flight), home (the last port the ship
+  arrived at), and the ship: which one, where it is in the solar system's own coordinates, which way it faces, how it
+  moves, flight assist and the planet or moon it orbits. Loading puts the ship back exactly there, in space too.
+- "Tow me to base" on the pause screen puts the ship straight back at home (the nearest port if it has never docked
+  or landed), whatever it was doing, through the one arrival function, so it is docked or landed there and the game
+  saves. It asks for a second press first. It isn't offered while docked or landed. It is free until money exists;
+  then it costs the towing fee, a small amount set with the economy.
+
 **Authored vs. seeded**
 
 | Authored (same every game) | Seeded (varies by seed) |
@@ -413,6 +427,7 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-25: Autosave every few minutes in flight as well as on docking and landing, and a "Tow me to base" button on the pause screen, free until money exists and then the towing fee (owner approved both, 2026-10-25). Until the owner tunes them: every 3 minutes of in-game time; the tow goes to the last port the ship arrived at, or the nearest if none, asks for a second press, and is not offered while docked; the save file goes to version 2 (old saves are brought up to date when read) (default, Claude).
 - 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, nose first into the bay and turning round inside it (so the pilot sees where they are going and the docked view still looks out of its mouth), or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).
 - 2026-10-25: Seamless docking and landing join the first playable, moved up from the future roadmap: after playing PR #5 William said "I want to remove the transitions. The player should be able to enter/land at any station/planet seamlessly. No loading screens." The transition screen is gone (owner).
 - 2026-10-25: No lens effect over the picture: William chose the narrower 60° view only. Planets may stretch a little near the screen's edges, in exchange for a sharp picture, straight cockpit lines and no frame-rate cost (owner).

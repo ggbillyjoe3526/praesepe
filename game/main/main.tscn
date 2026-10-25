@@ -129,8 +129,11 @@ script = ExtResource("18_arrivals")
 ship = NodePath("../World/Ship")
 tuning = ExtResource("19_arrival_tuning")
 
-[node name="Autosave" type="Node" parent="."]
+[node name="Autosave" type="Node" parent="." node_paths=PackedStringArray("ship", "arrivals", "origin")]
 script = ExtResource("22_autosave")
+ship = NodePath("../World/Ship")
+arrivals = NodePath("../Arrivals")
+origin = NodePath("../FloatingOrigin")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
@@ -256,9 +259,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
 
-[node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls")]
+[node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls", "arrivals")]
 script = ExtResource("11_pause")
 controls = NodePath("../PilotControls")
+arrivals = NodePath("../Arrivals")
 
 [node name="DebugPerf" type="CanvasLayer" parent="." node_paths=PackedStringArray("ship", "origin")]
 script = ExtResource("12_perf")

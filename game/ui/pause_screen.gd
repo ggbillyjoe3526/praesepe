@@ -7,6 +7,9 @@ extends CanvasLayer
 ## It also holds the comfort settings until the settings menu exists: field of view, camera shake, head bob and reduce
 ## motion. Each takes effect at once (the paused frame behind shows the new field of view) and is saved on resume or
 ## quit (Settings.commit()).
+## "Tow me to base" puts the ship straight back at the last base it docked or landed at (Arrivals.tow), for a player
+## who is lost or stuck. It asks for a second press first, so a slip of the mouse never throws away a trip. It is free
+## until money exists; then it costs the towing fee.
 
 const LAYER := 50
 const PLATE_COLOUR := Color(0.03, 0.04, 0.08, 0.96)
@@ -30,18 +33,24 @@ const SLIDER_HEIGHT := 36.0
 ## Who to hand the mouse back to on resume, and whether losing the mouse pauses (off when nobody is flying by hand,
 ## as in the smoke test).
 @export var controls: PilotControls
+## What tows the ship home; without it there is no tow button.
+@export var arrivals: Arrivals
 
 ## The comfort settings' controls (public for the tests).
 var fov_slider: HSlider
 var shake_slider: HSlider
 var head_bob_check: CheckButton
 var reduce_motion_check: CheckButton
+## "Tow me to base" (public for the tests).
+var tow_button: Button
 
 var _resume: Button
 var _seed: Label
 var _fov_value: Label
 var _shake_value: Label
 var _was_captured: bool = false
+## The tow button was pressed once and waits for the second press.
+var _tow_armed: bool = false
 
 
 func _ready() -> void:
@@ -50,6 +59,7 @@ func _ready() -> void:
 	_build()
 	Settings.changed.connect(_sync_settings)
 	_sync_settings()
+	_show_tow()
 	visible = false
 
 
@@ -66,6 +76,7 @@ func open() -> void:
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_was_captured = false
+	_show_tow()
 	_resume.grab_focus()
 
 
@@ -135,9 +146,39 @@ func _build() -> void:
 	list.add_child(_seed)
 	_resume = _button(list, "Resume (Esc)")
 	_resume.pressed.connect(close)
+	tow_button = _button(list, "Tow me to base")
+	tow_button.pressed.connect(_on_tow_pressed)
 	var quit := _button(list, "Quit to desktop")
 	quit.pressed.connect(_quit)
 	_build_comfort(list)
+
+
+## The tow button as it stands: where it would go, or why it can't, never armed.
+func _show_tow() -> void:
+	_tow_armed = false
+	tow_button.visible = arrivals != null
+	if arrivals == null:
+		return
+	var to := arrivals.tow_to()
+	tow_button.disabled = not arrivals.can_tow()
+	if to == null:
+		tow_button.text = "Tow me to base"
+	elif tow_button.disabled:
+		tow_button.text = "Tow me to base  ·  you're at %s" % to.place_name()
+	else:
+		tow_button.text = "Tow me to %s  ·  free" % to.place_name()
+
+
+## The first press asks to be sure; the second tows the ship and carries on from there.
+func _on_tow_pressed() -> void:
+	if arrivals == null or not arrivals.can_tow():
+		return
+	if not _tow_armed:
+		_tow_armed = true
+		tow_button.text = "Press again to be towed to %s" % arrivals.tow_to().place_name()
+		return
+	close()
+	arrivals.tow()
 
 
 func _quit() -> void:
