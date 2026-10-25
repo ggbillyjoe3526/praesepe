@@ -158,6 +158,7 @@ func test_g_flies_the_ship_in_and_arrives_with_a_soft_touch() -> void:
 	assert_eq(_ship.berth, _dock)
 	assert_null(_ship.bound_for)
 	await wait_physics_frames(2)
+	# The touch the camera feels is the ship's real speed at the berth, never less than touch_speed.
 	assert_almost_eq(watch.hardest, _arrivals.tuning.touch_speed, 0.5, "touches the berth softly, felt in the camera")
 	assert_almost_eq(_ship.global_position, _dock.global_position, Vector3.ONE * 0.001, "held at the berth")
 
@@ -177,6 +178,23 @@ func test_g_on_the_way_in_hands_the_ship_back() -> void:
 	assert_null(_ship.bound_for)
 	assert_true(_ship.assist_on())
 	assert_eq(stopped, [[_dock, false]])
+	assert_true(_arrived.is_empty(), "never arrived")
+
+
+func test_g_on_the_final_leg_stops_the_ship_short_of_the_berth() -> void:
+	# On the dock's line, 40 m out, coming in.
+	_ship.global_basis = _dock.global_basis
+	await _place_ship(_dock.global_position + _dock.exit_direction() * 40.0, -_dock.exit_direction() * 5.0)
+	_ship.input.dock = true
+	await wait_physics_frames(10)
+	assert_true(_arrivals.approach.final, "on the final leg")
+	_ship.input.dock = true
+	await wait_physics_frames(1)
+	assert_eq(_arrivals.stage, Arrivals.Stage.FLYING, "G cancels")
+	await wait_physics_frames(300)
+	assert_lt(_ship.speed(), 0.1, "and brings the ship to rest rather than carrying on in")
+	var along := (_ship.global_position - _dock.global_position).dot(_dock.exit_direction())
+	assert_gt(along, 10.0, "short of the berth")
 	assert_true(_arrived.is_empty(), "never arrived")
 
 
@@ -211,6 +229,25 @@ func test_a_bump_on_the_way_in_stops_it() -> void:
 	assert_eq(_arrivals.stage, Arrivals.Stage.FLYING, "stops at the wall")
 	assert_eq(stopped, [[_dock, true]], "says it was blocked")
 	assert_true(_arrived.is_empty())
+
+
+func test_feels_ahead_for_what_is_in_the_way() -> void:
+	await _place_ship(_dock.global_position + Vector3(50, 0, 0))
+	var wall := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2, 200, 200)
+	shape.shape = box
+	wall.add_child(shape)
+	add_child_autofree(wall)
+	wall.global_position = _dock.global_position + Vector3(100, 0, 0)
+	await wait_physics_frames(2)
+	var at := _ship.global_position
+	var away := _arrivals._in_the_way(at, Vector3(80, 0, 0))
+	assert_almost_eq(away, Vector3(-1, 0, 0), Vector3.ONE * 0.01, "the wall ahead, as the way back out of it")
+	assert_eq(_arrivals._in_the_way(at, Vector3(0, 0, 80)), Vector3.ZERO, "nothing along the wall")
+	assert_eq(_arrivals._in_the_way(at, Vector3(30, 0, 0)), Vector3.ZERO, "nothing short of the wall (less its reach)")
+	assert_eq(_arrivals._in_the_way(at, Vector3.ZERO), Vector3.ZERO, "never the ship itself")
 
 
 func test_arriving_holds_the_ship_still_at_the_berth() -> void:

@@ -37,6 +37,10 @@ extends Resource
 @export var arrive_distance: float = 0.05
 ## A ship up to this far (m) past its berth (sitting on the pad under the berth's marker) still takes the final leg.
 @export var below_berth: float = 10.0
+## Climbing out from nearer the centre than the gate, it looks this far (m) past its stopping distance for anything
+## in its way, with a ship reaching this far (m) from its middle (wingtips and nose), and goes along it.
+@export var look_ahead: float = 20.0
+@export var reach: float = 7.0
 ## A knock harder than this (m/s) on the way stops the approach and hands the ship back.
 @export var bump_limit: float = 3.0
 

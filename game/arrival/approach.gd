@@ -38,6 +38,10 @@ var velocity: Vector3 = Vector3.ZERO
 var spin: Vector3 = Vector3.ZERO
 ## True once the ship is at its berth: Arrivals then calls the arrival function.
 var done: bool = false
+## Asked on the way to the gate while nearer the centre than the gate is: what is in the way of a ship going from a
+## point along a motion (world space), as the way back out of it (the surface's normal), or Vector3.ZERO when the way
+## is clear. Arrivals asks the physics. Unset, nothing is ever in the way.
+var obstacle: Callable
 
 
 func _init(to: Port, approach_tuning: ArrivalTuning) -> void:
@@ -74,9 +78,11 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 		heading = Approach.round_heading(at - port.centre(), gate - port.centre(), tuning.climb)
 		if (at - port.centre()).length() < (gate - port.centre()).length():
 			# Climbing out from close in: away from the bay or pad as well as from the centre, so it never climbs
-			# into what the port is built into (a bay's floor from underneath).
+			# into what the port is built into (a bay's floor from underneath); the less, the farther it is from it.
 			var lane_point := berth + out * clampf(along, 0.0, port.approach_distance)
-			heading = (heading + (at - lane_point).normalized()).normalized()
+			var off_lane := at - lane_point
+			var near_lane := clampf(1.0 - off_lane.length() / (2.0 * tuning.corner), 0.0, 1.0)
+			heading = (heading + off_lane.normalized() * near_lane).normalized()
 	lining_up = final or left - port.approach_distance < tuning.line_up_lead
 	var facing := _leg_facing(along, ship_basis.orthonormalized()) if lining_up else Approach.facing_along(heading,
 			at - port.centre(), port.global_basis.orthonormalized())
@@ -120,14 +126,41 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 		if round > 0.1:
 			speed = minf(speed, sqrt(tuning.curve_share * tuning.travel_accel * (at - port.centre()).length()) / round)
 		target = heading * speed
-		# Heading in faster than it could stop before the gate's distance from the centre: brake that first.
 		var clear := (at - port.centre()).length() - (gate - port.centre()).length()
+		if clear < 0.0:
+			target = _around(at, moving, target)
+		# Heading in faster than it could stop before the gate's distance from the centre: brake that first.
 		var inward := -moving.dot(up)
 		var allowed := sqrt(2.0 * tuning.travel_accel * maxf(clear, 0.0))
 		if inward > allowed:
 			target = moving + up * (inward - allowed)
 	velocity = moving.move_toward(target, tuning.travel_accel * delta)
 	spin = Approach.turn(ship_basis.orthonormalized(), facing, spinning, rates, accels, tuning.turn_time, delta)
+
+
+## `target` turned along whatever is in its way (obstacle) within its stopping distance and look_ahead more, the way
+## it is going now and the way it wants to go: along the surface, or along a second one it then meets; head on, along
+## the surface away from the centre. Climbing out of the middle of a station, that takes it up the inside of the ring
+## and over it rather than through.
+func _around(at: Vector3, moving: Vector3, target: Vector3) -> Vector3:
+	var speed := target.length()
+	if not obstacle.is_valid() or speed < 0.01:
+		return target
+	var look := moving.length_squared() / (2.0 * tuning.travel_accel) + tuning.look_ahead
+	var way := target / speed
+	var outward := (at - port.centre()).normalized()
+	var going := moving.length() > 0.5
+	for i in 3:
+		var away: Vector3 = obstacle.call(at, (moving.normalized() if i == 0 and going else way) * look)
+		if away == Vector3.ZERO:
+			if i == 0:
+				continue
+			break
+		way -= away * minf(way.dot(away), 0.0)
+		if way.length() < 0.3:
+			way = outward - away * outward.dot(away)
+		way = way.normalized() if way.length() > 0.01 else away
+	return way * speed
 
 
 ## The attitude it wants on the final leg, `along` metres out from the berth with attitude `ship_basis`: nose first

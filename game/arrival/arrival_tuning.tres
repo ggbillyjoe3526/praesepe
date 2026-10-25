@@ -20,4 +20,6 @@ hold_short = 60.0
 quarter_tolerance = 10.0
 arrive_distance = 0.05
 below_berth = 10.0
+look_ahead = 20.0
+reach = 7.0
 bump_limit = 3.0

@@ -273,8 +273,9 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
 - The way in has two legs. First the ship flies to the port's gate: 180 m out in front of the bay's mouth, or 250 m
   above the pad. It goes round the station or the planet rather than through them, keeping at least as far from
   their centre as the gate is, so it clears the station's ring and panels and Tollgate's tower. Starting nearer than
-  that (low by the base, or tucked in by the station), it first climbs out, away from the bay or pad as well; coming
-  in fast, it brakes before it gets that near. Only a ship already in line with the bay's mouth or over the pad
+  that (low by the base, or tucked in by the station), it first climbs out, away from the bay or pad as well, feeling
+  ahead for anything in its way and sliding along it (up the inside of the station's ring and over it, never through
+  a spoke); coming in fast, it brakes before it gets that near. Only a ship already in line with the bay's mouth or over the pad
   (within 8 m and 40 m of the line in) goes straight in from where it is.
   It faces where it is going, then, from 600 m before the gate, turns to face along the final leg. At the gate it
   eases round the corner onto the final leg: into the bay nose first, so the pilot watches the bay come up round
@@ -317,6 +318,7 @@ the station's and base's scenes (`game/system/greybox_station.tscn`, `game/syste
 | Lane | 8 m round the line into the bay's mouth; 40 m over the pad | A ship within it goes straight in; elsewhere it goes to the gate first |
 | Turning round in the bay | 15 m short of the berth, two quarter turns (the second from within 10° of the first) | Faces out of the mouth, never flips over |
 | Pushes | 40 m/s² (the main engine's) | The head sway and engine rumble feel like flight |
+| Feeling ahead | Climbing out from inside the gate's distance: its stopping distance and 20 m more, for a ship reaching 7 m from its middle | Slides along whatever is in the way instead of into it |
 | Bump limit | 3 m/s | A harder knock stops the way in |
 | Leaving the bay | 60 m, speeding up to 25 m/s (about 5 s) | Clear of the bay's mouth before the pilot has it |
 | Taking off | 30 m straight up, speeding up to 15 m/s (about 4 s) | Then flight assist brings it to a hover |

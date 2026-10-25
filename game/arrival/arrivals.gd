@@ -48,6 +48,8 @@ var refusal: Refusal = Refusal.TOO_FAR
 var nearest_distance: float = INF
 
 var _left: float = 0.0
+## The ball swept ahead of the ship to find what is in its way (_in_the_way).
+var _feeler: PhysicsShapeQueryParameters3D = null
 
 
 func _ready() -> void:
@@ -78,9 +80,9 @@ func _physics_process(delta: float) -> void:
 ## The one arrival function: the ship docks or lands at `to`. It is placed at the berth and held still there (the
 ## cruise drive and any orbit stopped), and everyone listening hears of it (Events.arrived): the autosave writes the
 ## game and the HUD says so. Done in one tick; coming in from the way in, the ship is already there, and touches
-## down with a soft bump (touch_speed).
+## down with a bump as hard as its speed then (never softer than touch_speed).
 func arrive(to: Port) -> void:
-	var touch := tuning.touch_speed if stage == Stage.APPROACHING else 0.0
+	var touch := maxf(tuning.touch_speed, ship.linear_velocity.length()) if stage == Stage.APPROACHING else 0.0
 	port = to
 	nearest = null
 	approach = null
@@ -130,6 +132,7 @@ func _begin(to: Port) -> void:
 	port = to
 	stage = Stage.APPROACHING
 	approach = Approach.new(to, tuning)
+	approach.obstacle = _in_the_way
 	ship.approach(to)
 
 
@@ -156,6 +159,28 @@ func _fly_in(asked: bool, delta: float) -> void:
 		arrive(port)
 	else:
 		ship.guide(approach.velocity, approach.spin)
+
+
+## What is in the ship's way going from `from` along `motion` (Approach.obstacle): a ball as wide as the ship's reach,
+## swept along it, and the normal of the first thing it meets.
+func _in_the_way(from: Vector3, motion: Vector3) -> Vector3:
+	if _feeler == null:
+		_feeler = PhysicsShapeQueryParameters3D.new()
+		var ball := SphereShape3D.new()
+		ball.radius = tuning.reach
+		_feeler.shape = ball
+		_feeler.exclude = [ship.get_rid()]
+		_feeler.collision_mask = ship.collision_mask
+	var space := ship.get_world_3d().direct_space_state
+	_feeler.transform = Transform3D(Basis.IDENTITY, from)
+	_feeler.motion = motion
+	var fractions := space.cast_motion(_feeler)
+	if fractions.is_empty() or fractions[1] >= 1.0:
+		return Vector3.ZERO
+	_feeler.transform = Transform3D(Basis.IDENTITY, from + motion * fractions[1])
+	_feeler.motion = Vector3.ZERO
+	var rest := space.get_rest_info(_feeler)
+	return rest.get("normal", Vector3.ZERO)
 
 
 ## Speeding up evenly from rest to the port's exit speed over its exit distance, then the pilot has the ship.
