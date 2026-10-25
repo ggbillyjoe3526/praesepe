@@ -4,10 +4,12 @@ this; running it again rebuilds both collections from scratch. export_ship.py th
 
 Everything is placed in Godot's coordinates (x right, y up, z back, metres from the ship's centre) through
 ship_reference.to_blender, so the numbers read the same as the game's scenes. The model follows the owner's
-references (2026-10-25): a small, simple ship, light grey with orange panels and a few glowing strips, cockpit up front,
-two engines on the sides at the back, short swept wings; inside, a slim dashboard low across the bottom of the view and
-one canopy with no frame bars in the way. Kept round the game's fixed points: the pilot's eye, the dashboard and nav
-computer screens, the collision shapes and the bay floor berth (the underside at y = -1.2).
+references and notes (2026-10-25): a small, simple ship, light grey with orange panels and a few glowing strips, two
+engines on the sides at the back, short swept wings; a flat windscreen sloping down to the nose in front of a taller
+back half, with flat side windows and no frame bars in the pilot's view; inside, a slim dashboard low across the bottom
+of the view. Kept round the game's fixed points: the pilot's eye, the dashboard and nav computer screens, the
+collision shapes and the bay floor berth (the underside at y = -1.2). check_cockpit() proves nothing in the cockpit
+pokes through its walls, floor or glass.
 """
 
 import math
@@ -18,27 +20,38 @@ from mathutils import Vector
 
 import ship_reference as ref
 
-# The canopy: part of an ellipsoid (centre, semi-axes, Godot) cut by a plane that rises toward the back, so the glass
-# comes down low in front (below the dashboard's top edge, out of sight) and sits higher at the back.
-CANOPY_CENTRE = Vector((0.0, 0.85, -3.6))
-CANOPY_AXES = Vector((1.6, 1.35, 2.45))
-CANOPY_RIM_RISE = 0.0816  # m up per m back
-CANOPY_SEGMENTS = 20
-CANOPY_RINGS = (0.0, 0.18, 0.36, 0.55, 0.75)
-# How far inside the canopy's edge the cockpit's well is cut, and its floor.
-WELL_INSET = 0.97
-WELL_FLOOR = 0.0
+# The glass sits on the sill, the top edge of the cockpit's walls, which runs straight from beside the nose to the
+# front of the taller back half: (z, half width, height).
+SILL_FRONT = (-6.1, 1.16, 0.62)
+SILL_BACK = (-2.5, 1.68, 0.92)
+# The windscreen's top edge, ahead of the pilot's head (z, half width, height), and the back of the flat roof window
+# behind it, where the taller back half begins.
+WINDSCREEN_TOP = (-3.2, 1.3, 1.85)
+ROOF_BACK = (-2.5, 1.3, 1.9)
+# The cockpit's walls stand this far inside the sill; its floor and how far forward and back it reaches.
+WALL = 0.06
+CABIN_FLOOR = 0.0
+CABIN_FRONT = -6.04
+CABIN_BACK = -2.52
 
-# The hull from nose to tail: (z, half width, top, bottom, chamfer), Godot. Its top under the canopy follows the rim.
+# The lower hull from nose to tail: (z, half width, top, bottom, chamfer), Godot. Where the cockpit is, the top's flat
+# part ends at the sill (half width minus chamfer).
 HULL_SECTIONS = (
 	(-7.25, 0.22, 0.22, -0.32, 0.08),
-	(-6.6, 0.8, 0.5, -0.62, 0.15),
-	(-5.95, 1.3, 0.65, -0.82, 0.18),
-	(-4.0, 1.78, 0.82, -1.05, 0.22),
-	(-1.0, 1.85, 1.07, -1.12, 0.3),
-	(2.5, 1.7, 1.12, -1.12, 0.3),
-	(5.6, 1.25, 0.9, -0.85, 0.25),
-	(6.2, 0.9, 0.62, -0.6, 0.18),
+	(-6.6, 0.9, 0.45, -0.6, 0.15),
+	(SILL_FRONT[0], SILL_FRONT[1] + 0.18, SILL_FRONT[2], -0.8, 0.18),
+	(SILL_BACK[0], SILL_BACK[1] + 0.22, SILL_BACK[2], -1.1, 0.22),
+	(1.0, 1.9, 0.95, -1.12, 0.25),
+	(5.6, 1.35, 0.9, -0.85, 0.25),
+	(6.2, 0.95, 0.62, -0.6, 0.18),
+)
+# The taller back half, sitting on the lower hull: (z, roof half width, roof height). Its sides run down to the edge
+# of the lower hull's top.
+UPPER_SECTIONS = (
+	(ROOF_BACK[0], ROOF_BACK[1], ROOF_BACK[2]),
+	(1.5, 1.3, 1.9),
+	(4.6, 0.95, 1.55),
+	(6.0, 0.55, 1.1),
 )
 # Engine pods either side at the back: centre x and y, front and back z, radius.
 POD_X = 2.25
@@ -184,64 +197,52 @@ def both_sides(name, coll, verts, faces, mat, **kw):
 	return right, left
 
 
-# --- The canopy -----------------------------------------------------------------------------------------------------
+# --- The glass ------------------------------------------------------------------------------------------------------
 
-def rim_y(z):
-	return CANOPY_CENTRE.y + (z - CANOPY_CENTRE.z) * CANOPY_RIM_RISE
-
-
-def rim_point(theta, scale=1.0):
-	"""Where the canopy's edge is at angle `theta` round from straight ahead (radians), as a Godot Vector."""
-	s, c = math.sin(theta), math.cos(theta)
-	ax, ay, az = CANOPY_AXES
-	r = 1.0 / math.sqrt((s / ax) ** 2 + (CANOPY_RIM_RISE * c / ay) ** 2 + (c / az) ** 2)
-	x = r * s * scale
-	z = CANOPY_CENTRE.z - r * c * scale
-	return Vector((x, rim_y(z), z))
+def lerp(a, b, t):
+	return a + (b - a) * t
 
 
-def on_canopy(v):
-	"""`v` (a direction from the canopy's centre) pushed out onto the ellipsoid."""
-	d = Vector((v.x / CANOPY_AXES.x, v.y / CANOPY_AXES.y, v.z / CANOPY_AXES.z)).normalized()
-	return CANOPY_CENTRE + Vector((d.x * CANOPY_AXES.x, d.y * CANOPY_AXES.y, d.z * CANOPY_AXES.z))
+def sill(z):
+	"""The sill's half width and height at z, along the cockpit."""
+	t = (z - SILL_FRONT[0]) / (SILL_BACK[0] - SILL_FRONT[0])
+	return lerp(SILL_FRONT[1], SILL_BACK[1], t), lerp(SILL_FRONT[2], SILL_BACK[2], t)
 
 
-def canopy(coll):
-	"""The glass: rings from the rim up to the top, faceted like the hull, with a short skirt sunk into the hull."""
-	n = CANOPY_SEGMENTS
-	top = Vector((0.0, CANOPY_AXES.y, 0.0))
-	rims = [rim_point(math.tau * i / n) for i in range(n)]
-	verts = [r - Vector((0.0, 0.06, 0.0)) for r in rims]  # skirt
-	for t in CANOPY_RINGS:
-		verts += [on_canopy((r - CANOPY_CENTRE).lerp(top, t)) for r in rims]
-	verts.append(CANOPY_CENTRE + top)
-	rings = len(CANOPY_RINGS) + 1
-	faces = []
-	for ring in range(rings - 1):
-		a, b = ring * n, (ring + 1) * n
-		faces += [(a + i, a + (i + 1) % n, b + (i + 1) % n, b + i) for i in range(n)]
-	apex = len(verts) - 1
-	last = (rings - 1) * n
-	faces += [(last + i, last + (i + 1) % n, apex) for i in range(n)]
-	obj = make("Canopy_Glass", coll, [tuple(v) for v in verts], faces, "Glass", smooth=True, fix_normals=False)
-	# Faces must point out of the canopy so it is see-through from the cockpit.
-	mesh = obj.data
-	centre = ref.to_blender(CANOPY_CENTRE)
-	outward = sum((p.center - centre).dot(p.normal) for p in mesh.polygons)
-	if outward < 0.0:
-		mesh.flip_normals()
-	obj.visible_shadow = False
-	return obj
+def cabin_half_width(z):
+	return sill(z)[0] - WALL
+
+
+GLASS_INSIDE = (0.0, 1.0, -4.3)
+
+
+def glass(coll):
+	"""Flat panes, no frames: the windscreen sloping down to the nose, a roof window over the pilot's head, and a
+	side window each side from the sill up to them. Their faces point outward, so from inside they are clear."""
+	b = (SILL_FRONT[1], SILL_FRONT[2], SILL_FRONT[0])
+	c = (WINDSCREEN_TOP[1], WINDSCREEN_TOP[2], WINDSCREEN_TOP[0])
+	e = (ROOF_BACK[1], ROOF_BACK[2], ROOF_BACK[0])
+	f = (SILL_BACK[1], SILL_BACK[2], SILL_BACK[0])
+	panes = []
+	ws = [(-b[0], b[1], b[2]), (b[0], b[1], b[2]), (c[0], c[1], c[2]), (-c[0], c[1], c[2])]
+	panes.append(make("Windscreen", coll, ws, [(0, 1, 2, 3)], "Glass"))
+	roof = [(-c[0], c[1], c[2]), (c[0], c[1], c[2]), (e[0], e[1], e[2]), (-e[0], e[1], e[2])]
+	panes.append(make("RoofWindow", coll, roof, [(0, 1, 2, 3)], "Glass"))
+	side = [(b[0], b[1], b[2]), (c[0], c[1], c[2]), (e[0], e[1], e[2]), (f[0], f[1], f[2])]
+	panes += both_sides("SideWindow", coll, side, [(0, 1, 3), (1, 2, 3)], "Glass")
+	for pane in panes:
+		face_away(pane, GLASS_INSIDE)
+		pane.visible_shadow = False
+	return panes
 
 
 def well_cutter(coll):
-	"""The shape cut out of the hull for the cockpit: the canopy's edge (a little inside it) straight down to the
-	floor. Not exported; the hull's Boolean uses it, and the cut walls take its material."""
-	n = CANOPY_SEGMENTS
-	rims = [rim_point(math.tau * i / n, WELL_INSET) for i in range(n)]
-	verts = [(r.x, WELL_FLOOR, r.z) for r in rims] + [(r.x, 3.0, r.z) for r in rims]
-	faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))]
-	faces += [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
+	"""The shape cut out of the lower hull for the cockpit: inside the sill, from the floor up. Not exported; the
+	hull's Boolean uses it, and the cut walls and floor take its material."""
+	plan = [(cabin_half_width(z), z) for z in (CABIN_FRONT, CABIN_BACK)]
+	outline = [(-plan[0][0], plan[0][1]), (plan[0][0], plan[0][1]), (plan[1][0], plan[1][1]), (-plan[1][0], plan[1][1])]
+	verts = [(x, CABIN_FLOOR, z) for x, z in outline] + [(x, 3.0, z) for x, z in outline]
+	faces = [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
 	obj = make("Cutter_CockpitWell", coll, verts, faces, "Cabin")
 	obj.display_type = "WIRE"
 	obj.hide_render = True
@@ -274,6 +275,30 @@ def hull(coll, cutters):
 	return obj
 
 
+def lower_top(z):
+	"""The lower hull's top at z: the half width of its flat part and its height."""
+	for (z0, w0, t0, _b0, c0), (z1, w1, t1, _b1, c1) in zip(HULL_SECTIONS, HULL_SECTIONS[1:]):
+		if z0 <= z <= z1:
+			k = (z - z0) / (z1 - z0)
+			return lerp(w0 - c0, w1 - c1, k), lerp(t0, t1, k)
+	raise ValueError("z %.2f is off the hull" % z)
+
+
+def upper_body(coll):
+	"""The taller back half: its roof meets the roof window, its front is the cockpit's back wall, and its sides run
+	down to the lower hull's top (sunk 2 cm into it)."""
+	verts = []
+	for z, roof_w, roof_y in UPPER_SECTIONS:
+		side_w, side_y = lower_top(z)
+		verts += [(roof_w, roof_y, z), (side_w, side_y - 0.02, z), (-side_w, side_y - 0.02, z), (-roof_w, roof_y, z)]
+	n, count = 4, len(UPPER_SECTIONS)
+	faces = [(0, 1, 2, 3), tuple(range(count * n - 1, (count - 1) * n - 1, -1))]
+	for s_ in range(count - 1):
+		a, b = s_ * n, (s_ + 1) * n
+		faces += [(a + i, a + (i + 1) % n, b + (i + 1) % n, b + i) for i in range(n)]
+	return make("UpperBody", coll, verts, faces, "Hull")
+
+
 def pods(coll):
 	for side, name in ((1.0, "R"), (-1.0, "L")):
 		x = POD_X * side
@@ -291,12 +316,12 @@ def pods(coll):
 		# An orange band round the pod, and a fin on top.
 		v, f = octagon_tube(x, POD_Y, 3.3, 4.1, POD_RADIUS * 0.97 + 0.012, POD_RADIUS * 0.99 + 0.012)
 		make("PodBand_" + name, coll, v, f, "Accent")
-		fin = [(x - 0.06, POD_Y + 0.6, 4.6), (x - 0.06, POD_Y + 0.6, 6.9), (x - 0.06, 1.45, 6.85), (x - 0.06, 1.45, 6.2),
-			(x + 0.06, POD_Y + 0.6, 4.6), (x + 0.06, POD_Y + 0.6, 6.9), (x + 0.06, 1.45, 6.85), (x + 0.06, 1.45, 6.2)]
+		fin = [(x - 0.06, POD_Y + 0.6, 4.6), (x - 0.06, POD_Y + 0.6, 6.9), (x - 0.06, 1.75, 6.85), (x - 0.06, 1.75, 6.25),
+			(x + 0.06, POD_Y + 0.6, 4.6), (x + 0.06, POD_Y + 0.6, 6.9), (x + 0.06, 1.75, 6.85), (x + 0.06, 1.75, 6.25)]
 		make("Fin_" + name, coll, fin, [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)],
 			"Hull")
-		tip = [(x - 0.065, 1.2, 6.27), (x - 0.065, 1.2, 6.87), (x - 0.065, 1.45, 6.85), (x - 0.065, 1.45, 6.2),
-			(x + 0.065, 1.2, 6.27), (x + 0.065, 1.2, 6.87), (x + 0.065, 1.45, 6.85), (x + 0.065, 1.45, 6.2)]
+		tip = [(x - 0.065, 1.5, 6.29), (x - 0.065, 1.5, 6.87), (x - 0.065, 1.75, 6.85), (x - 0.065, 1.75, 6.25),
+			(x + 0.065, 1.5, 6.29), (x + 0.065, 1.5, 6.87), (x + 0.065, 1.75, 6.85), (x + 0.065, 1.75, 6.25)]
 		make("FinTip_" + name, coll, tip, [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3),
 			(3, 7, 4, 0)], "Accent")
 
@@ -329,7 +354,7 @@ def wings(coll):
 
 def details(coll):
 	"""Orange panels along the nose, glowing strips on the flanks, a dark belly and the landing feet."""
-	# Orange stripes along the top of the nose either side of the canopy, lying on the hull's chamfer.
+	# Orange stripes along the top of the nose either side of the cockpit, lying on the hull's chamfer.
 	for name, side in (("R", 1.0), ("L", -1.0)):
 		stripe = []
 		for z, w, top, _bottom, c in HULL_SECTIONS[1:4]:
@@ -337,7 +362,7 @@ def details(coll):
 			stripe.append((side * (w + 0.012), top - c - 0.02, z))
 		face_away(make("NoseStripe_" + name, coll, stripe, [(0, 1, 3, 2), (2, 3, 5, 4)], "Accent"), (0.0, -0.5, -4.0))
 	# Glow strips along each flank.
-	v, f = box((1.885, 0.1, 0.5), (0.03, 0.06, 3.2))
+	v, f = box((1.915, 0.1, 0.5), (0.03, 0.06, 3.2))
 	both_sides("FlankGlow", coll, v, f, "Glow")
 	# A dark keel under the hull.
 	v, f = box((0.0, -1.14, 0.0), (1.6, 0.06, 9.0))
@@ -346,74 +371,77 @@ def details(coll):
 	for i, (x, z) in enumerate(((0.0, -4.3), (-1.2, 3.4), (1.2, 3.4))):
 		v, f = box((x, -1.18, z), (0.7, 0.04, 0.5))
 		make("Foot_%d" % i, coll, v, f, "Trim")
-	# Glowing nose light and a dorsal light behind the canopy.
+	# A glowing light on the nose.
 	v, f = box((0.0, -0.05, -7.26), (0.25, 0.06, 0.03))
 	make("NoseLight", coll, v, f, "Glow")
-	# An orange panel on the back of the hull's top, and a raised spine down its middle.
-	v, f = box((0.0, 1.125, 2.2), (2.2, 0.02, 3.4))
-	make("DorsalPanel", coll, v, f, "Accent")
-	v, f = box((0.0, 1.17, 0.6), (0.5, 0.12, 3.0))
-	make("Spine", coll, v, f, "Hull")
-	v, f = box((0.0, 1.235, 0.4), (0.3, 0.02, 0.6))
-	make("SpineGlow", coll, v, f, "Glow")
+	# An orange panel on the roof of the back half, and a light bar just behind the roof window.
+	v, f = box((0.0, ROOF_BACK[2] + 0.012, -0.2), (2.0, 0.02, 3.2))
+	make("RoofPanel", coll, v, f, "Accent")
+	v, f = box((0.0, ROOF_BACK[2] + 0.012, -2.2), (0.6, 0.02, 0.08))
+	make("RoofGlow", coll, v, f, "Glow")
 
 
 # --- The cockpit ----------------------------------------------------------------------------------------------------
 
 # The dashboard's face is the plane of the old greybox panel's front face, so the game's dashboard and nav screens sit
-# 5 mm and 10 mm in front of it exactly as before. Profiles are (y, z).
+# 5 mm and 10 mm in front of it exactly as before. Profiles are (y, z); the dash stands on the cockpit floor.
 DASH_CENTRE = ((0.0, -5.92), (0.0, -5.55), (0.30, -5.15), (0.406, -5.042), (0.866, -5.237), (0.60, -5.75))
-DASH_HALF_WIDTH = 0.95
-WING_PROFILE = ((0.0, -5.55), (0.0, -5.3), (0.25, -5.05), (0.33, -4.98), (0.70, -5.13), (0.55, -5.45))
-WING_LENGTH = 0.42
+DASH_HALF_WIDTH = 0.86
+WING_PROFILE = ((0.0, -5.38), (0.0, -5.25), (0.25, -5.05), (0.33, -4.98), (0.66, -5.115), (0.52, -5.33))
+WING_LENGTH = 0.27
 WING_TURN = -25.0
-CONSOLE_PROFILE = ((0.0, -4.85), (0.0, -2.9), (0.6, -2.9), (0.66, -4.5), (0.52, -4.85))
+WING_PIVOT = (DASH_HALF_WIDTH, 0.0, -5.1)
+# The side consoles beside the seat: from just outside the pilot's knees to near the wall, front and back z, height.
+CONSOLE_INNER = 0.95
+CONSOLE_GAP = 0.04
+CONSOLE_FRONT = -4.7
+CONSOLE_BACK = -2.75
+CONSOLE_TOP = 0.6
 
 
 def dashboard(coll):
 	v, f = prism_x(DASH_CENTRE, -DASH_HALF_WIDTH, DASH_HALF_WIDTH)
 	bevel(make("Dash", coll, v, f, "Trim"))
-	# A dark top so the glass reflects nothing bright, sitting just on the dash's upper surface.
-	top = [(-DASH_HALF_WIDTH + 0.02, 0.866 + 0.004, -5.237), (DASH_HALF_WIDTH - 0.02, 0.866 + 0.004, -5.237),
-		(DASH_HALF_WIDTH - 0.02, 0.60 + 0.004, -5.75), (-DASH_HALF_WIDTH + 0.02, 0.60 + 0.004, -5.75)]
-	face_toward(make("Dash_Top", coll, top, [(0, 1, 2, 3)], "Cabin"), (0.0, 5.0, -5.4))
-	# An orange edge along the bottom of the screen face.
+	# A thin orange edge along the bottom of the screen face.
 	v, f = box((0.0, 0.405, -5.035), (DASH_HALF_WIDTH * 2.0 - 0.1, 0.012, 0.02))
 	make("Dash_Edge", coll, v, f, "Accent")
 	# Side sections, turned toward the pilot, each with a small screen.
-	pivot = (DASH_HALF_WIDTH, 0.0, -5.1)
 	v, f = prism_x(WING_PROFILE, DASH_HALF_WIDTH - 0.02, DASH_HALF_WIDTH + WING_LENGTH)
-	wv = transformed(v, pivot, WING_TURN)
-	right = bevel(make("DashWing_R", coll, wv, f, "Panel"))
-	left = bevel(make("DashWing_L", coll, transformed(v, pivot, WING_TURN, mirror=True), f, "Panel"))
-	up = Vector((0.0, 0.70 - 0.33, -5.13 + 4.98)).normalized()
+	bevel(make("DashWing_R", coll, transformed(v, WING_PIVOT, WING_TURN), f, "Panel"))
+	bevel(make("DashWing_L", coll, transformed(v, WING_PIVOT, WING_TURN, mirror=True), f, "Panel"))
+	lo, hi = Vector((0.0, 0.33, -4.98)), Vector((0.0, 0.66, -5.115))
+	up = (hi - lo).normalized()
 	normal = Vector((0.0, -up.z, up.y))
-	mid = Vector((DASH_HALF_WIDTH + WING_LENGTH * 0.5, 0.515, -5.055)) + normal * 0.005
-	corners = [mid + Vector((dx, 0.0, 0.0)) + up * dy for dx, dy in ((-0.15, -0.1), (0.15, -0.1), (0.15, 0.1), (-0.15, 0.1))]
+	mid = (lo + hi) * 0.5 + Vector((DASH_HALF_WIDTH + WING_LENGTH * 0.5, 0.0, 0.0)) + normal * 0.005
+	corners = [mid + Vector((dx, 0.0, 0.0)) + up * dy for dx, dy in ((-0.11, -0.1), (0.11, -0.1), (0.11, 0.1), (-0.11, 0.1))]
 	screen = [tuple(c) for c in corners]
-	for obj in (make("SideScreen_R", coll, transformed(screen, pivot, WING_TURN), [(0, 1, 2, 3)], "Screen"),
-			make("SideScreen_L", coll, transformed(screen, pivot, WING_TURN, mirror=True), [(0, 1, 2, 3)], "Screen")):
+	for obj in (make("SideScreen_R", coll, transformed(screen, WING_PIVOT, WING_TURN), [(0, 1, 2, 3)], "Screen"),
+			make("SideScreen_L", coll, transformed(screen, WING_PIVOT, WING_TURN, mirror=True), [(0, 1, 2, 3)], "Screen")):
 		face_toward(obj, ref.EYE)
-	return right, left
 
 
 def consoles(coll):
-	v, f = prism_x(CONSOLE_PROFILE, 1.0, 1.45)
+	"""A console each side, its outer edge following the wall, with a row of lit buttons; stick right, throttle left."""
+	outer_front = cabin_half_width(CONSOLE_FRONT) - CONSOLE_GAP
+	outer_back = cabin_half_width(CONSOLE_BACK) - CONSOLE_GAP
+	plan = ((CONSOLE_INNER, CONSOLE_FRONT), (outer_front, CONSOLE_FRONT), (outer_back, CONSOLE_BACK),
+		(CONSOLE_INNER, CONSOLE_BACK))
+	v = [(x, CABIN_FLOOR, z) for x, z in plan] + [(x, CONSOLE_TOP, z) for x, z in plan]
+	f = [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
 	for obj in both_sides("Console", coll, v, f, "Panel"):
 		bevel(obj)
-	# A strip of glowing buttons on each, and an orange edge.
+	middle = (CONSOLE_INNER + outer_front) * 0.5
 	for i in range(4):
-		v, f = box((1.18, 0.655 - 0.01 * i, -4.3 + 0.18 * i), (0.14, 0.02, 0.06))
+		v, f = box((middle, CONSOLE_TOP + 0.008, -4.45 + 0.16 * i), (0.14, 0.016, 0.06))
 		both_sides("ConsoleButton%d" % i, coll, v, f, "Glow")
-	# Flight stick on the right, throttle on the left.
-	v, f = octagon_tube(1.22, 0.0, 0.0, 1.0, 0.025, 0.025)
-	stick = [(x, z * 0.24 + 0.64, -4.0 + (y - 0.0)) for x, y, z in v]  # stand it upright
+	v, f = octagon_tube(0.0, 0.0, 0.0, 1.0, 0.025, 0.025)
+	stick = [(middle + x, CONSOLE_TOP + z * 0.24, -3.75 + y) for x, y, z in v]  # stood upright
 	make("Stick", coll, stick, f, "Trim")
-	v, f = box((1.22, 0.92, -4.0), (0.07, 0.1, 0.09))
+	v, f = box((middle, CONSOLE_TOP + 0.29, -3.75), (0.07, 0.1, 0.09))
 	make("Stick_Grip", coll, v, f, "Trim")
-	v, f = box((-1.22, 0.7, -4.0), (0.1, 0.08, 0.3))
+	v, f = box((-middle, CONSOLE_TOP + 0.04, -3.75), (0.1, 0.08, 0.3))
 	make("Throttle", coll, v, f, "Trim")
-	v, f = box((-1.22, 0.78, -3.95), (0.14, 0.06, 0.08))
+	v, f = box((-middle, CONSOLE_TOP + 0.11, -3.7), (0.14, 0.06, 0.08))
 	make("Throttle_Grip", coll, v, f, "Accent")
 
 
@@ -425,14 +453,56 @@ def seat(coll):
 	back = ((0.45, -2.98), (0.45, -2.86), (1.42, -2.68), (1.42, -2.8))
 	v, f = prism_x(back, -0.29, 0.29)
 	bevel(make("Seat_Back", coll, v, f, "Cabin"), 0.03)
-	v, f = box((0.0, 1.33, -2.7), (0.4, 0.16, 0.1))
+	v, f = box((0.0, 1.33, -2.76), (0.4, 0.16, 0.1))
 	make("Seat_Headrest", coll, v, f, "Accent")
 
 
+def back_wall(coll):
+	"""A dark panel over the cockpit's back wall (the front of the back half), inside the side windows."""
+	half = cabin_half_width(CABIN_BACK) - 0.02
+	z = CABIN_BACK - 0.01
+	outline = [(-half, CABIN_FLOOR + 0.02), (half, CABIN_FLOOR + 0.02), (half, SILL_BACK[2]),
+		(ROOF_BACK[1] - 0.06, ROOF_BACK[2] - 0.05), (-(ROOF_BACK[1] - 0.06), ROOF_BACK[2] - 0.05), (-half, SILL_BACK[2])]
+	obj = make("BackWall", coll, [(x, y, z) for x, y in outline], [tuple(range(len(outline)))], "Panel")
+	face_toward(obj, ref.EYE)
+
+
 def floor_details(coll):
-	"""A raised footrest plate in the cockpit well."""
+	"""A raised footrest plate on the cockpit floor."""
 	v, f = box((0.0, 0.03, -4.6), (0.9, 0.06, 0.9))
 	make("Footrest", coll, v, f, "Panel")
+
+
+def check_cockpit(cockpit, panes, margin=0.003):
+	"""What in the cockpit pokes out of it: [(part, how far, where)] for every part with a corner below the floor, in
+	front of or behind the cockpit, through a wall below the sill, or through the glass. Empty when it all fits."""
+	depsgraph = bpy.context.evaluated_depsgraph_get()
+	planes = []
+	for pane in panes:
+		mesh = pane.data
+		for poly in mesh.polygons:
+			planes.append((pane.matrix_world @ poly.center, (pane.matrix_world.to_3x3() @ poly.normal).normalized()))
+	problems = []
+	for obj in cockpit.all_objects:
+		if obj.type != "MESH":
+			continue
+		mesh = obj.evaluated_get(depsgraph).to_mesh()
+		worst, where = 0.0, None
+		for vert in mesh.vertices:
+			b = obj.matrix_world @ vert.co
+			x, y, z = b.x, b.z, -b.y  # Godot
+			out = max(CABIN_FLOOR - y, CABIN_FRONT - z, z - CABIN_BACK)
+			sill_w, sill_y = sill(min(max(z, SILL_FRONT[0]), SILL_BACK[0]))
+			if y < sill_y:
+				out = max(out, abs(x) - (sill_w - WALL))
+			for point, normal in planes:
+				out = max(out, (b - point).dot(normal))
+			if out > worst + margin:
+				worst, where = out, (round(x, 3), round(y, 3), round(z, 3))
+		obj.evaluated_get(depsgraph).to_mesh_clear()
+		if where is not None:
+			problems.append((obj.name, round(worst, 3), where))
+	return problems
 
 
 # --- Building -------------------------------------------------------------------------------------------------------
@@ -446,22 +516,25 @@ def clear(coll):
 
 
 def build():
-	scene = bpy.context.scene
 	exterior = bpy.data.collections["Exterior"]
 	cockpit = bpy.data.collections["Cockpit"]
 	cutters = ref.collection("Cutters", bpy.data.collections[ref.REFERENCE])
 	for coll in (exterior, cockpit, cutters):
 		clear(coll)
 	hull(exterior, cutters)
-	canopy(exterior)
+	upper_body(exterior)
+	panes = glass(exterior)
 	pods(exterior)
 	wings(exterior)
 	details(exterior)
 	dashboard(cockpit)
 	consoles(cockpit)
 	seat(cockpit)
+	back_wall(cockpit)
 	floor_details(cockpit)
-	scene.render.engine = scene.render.engine  # unchanged; renders are the caller's choice
+	problems = check_cockpit(cockpit, panes)
+	for name, depth, where in problems:
+		print("COCKPIT CLIPS: %s pokes %.3f m out at %s" % (name, depth, where))
 	return exterior, cockpit
 
 

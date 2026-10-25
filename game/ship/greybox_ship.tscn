@@ -10,8 +10,8 @@
 [sub_resource type="BoxShape3D" id="Shape_hull"]
 size = Vector3(4, 2.4, 13.2)
 
-[sub_resource type="BoxShape3D" id="Shape_canopy"]
-size = Vector3(3.2, 1.0, 4.0)
+[sub_resource type="BoxShape3D" id="Shape_upper"]
+size = Vector3(3.4, 0.7, 10.6)
 
 [sub_resource type="BoxShape3D" id="Shape_pod"]
 size = Vector3(1.44, 1.44, 6.5)
@@ -39,9 +39,9 @@ chase_anchor = NodePath("ChaseAnchor")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.6)
 shape = SubResource("Shape_hull")
 
-[node name="CanopyShape" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -3.6)
-shape = SubResource("Shape_canopy")
+[node name="UpperShape" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0.8)
+shape = SubResource("Shape_upper")
 
 [node name="WingShape" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 2.5)
