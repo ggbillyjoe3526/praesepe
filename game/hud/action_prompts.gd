@@ -15,7 +15,9 @@ const HINT_COLOUR := Color(1.0, 0.86, 0.5)
 const ORBIT_COLOUR := Color(0.78, 0.72, 1.0)
 const CRUISE_COLOUR := FlightHud.CRUISE_COLOUR
 ## Where the plate sits: its bottom this far (px at 1080p) above the screen's bottom, above the cockpit's dashboard
-## and the chase view's plate, a little under the middle of the view.
+## and the chase view's plate, a little under the middle of the view. The bottom stays at the same height on the screen
+## at any interface size (Settings.ui_scale), so a bigger plate never slides down over the cockpit's dashboard; it
+## grows upward, which UI_SCALES' 125% cap keeps clear of the nose mark for two lines.
 const BOTTOM := 400.0
 ## The state keys below fold their parts together like a hash: each part times MIX, and the distance's own key
 ## (LandmarkMarkers.distance_key, always far under DISTANCE_KEYS) added last, so different states give different keys.
@@ -97,7 +99,8 @@ static func port_text(stage: Arrivals.Stage, p: Port, why: Arrivals.Refusal, dis
 
 
 ## The orbit line: in `phase`, about `body` (orbited, or offered), offered or not (`why`, with the top entry speed
-## `max_speed`). Empty when there is nothing to say.
+## `max_speed`). Empty when there is nothing to say, as when the ship is still below or above the orbit line (the
+## insertion marker, OrbitMarker, shows the way there).
 static func orbit_text(phase: Orbit.Phase, body: CelestialBody, why: Orbit.Refusal, max_speed: float) -> String:
 	if body == null:
 		return ""
@@ -141,6 +144,17 @@ func _orbit_state() -> int:
 	return ((id * MIX + arrivals.stage) * MIX + o.phase) * MIX + o.refusal
 
 
+func _exit_tree() -> void:
+	if Settings.changed.is_connected(_place):
+		Settings.changed.disconnect(_place)
+
+
+## The plate's bottom BOTTOM px (at 1080p, on the screen) above the screen's bottom, whatever the interface size.
+func _place() -> void:
+	_plate.offset_top = -BOTTOM / Settings.ui_scale
+	_plate.offset_bottom = _plate.offset_top
+
+
 func _build() -> void:
 	_plate = PanelContainer.new()
 	var box := StyleBoxFlat.new()
@@ -155,9 +169,9 @@ func _build() -> void:
 	_plate.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_plate.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_plate.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_plate.offset_top = -BOTTOM
-	_plate.offset_bottom = -BOTTOM
 	add_child(_plate)
+	_place()
+	Settings.changed.connect(_place)
 	var list := VBoxContainer.new()
 	list.add_theme_constant_override("separation", GAP)
 	list.mouse_filter = Control.MOUSE_FILTER_IGNORE

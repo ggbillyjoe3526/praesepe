@@ -1,0 +1,11 @@
+### A settings menu, and fullscreen from the start
+- The game now opens fullscreen on your main display.
+- The pause screen has a new **Settings** button. The settings menu has four pages:
+  - **Display:** fullscreen, exclusive fullscreen or a window, which display to use, V-Sync and a frame-rate limit.
+  - **Interface:** the size (90% to 125%) of the HUD, its text and the menus, for big or high-resolution screens.
+  - **Comfort:** field of view, camera shake, head bob and reduce motion (moved here from the pause screen).
+  - **Controls:** mouse sensitivity, invert mouse, and every key the game uses.
+- Each page has a button to put its own settings back to their defaults. Changes show at once and are kept for next time.
+- F11 or Alt+Enter switches between fullscreen and a window at any time. A window opens at a comfortable size in the middle of the screen.
+- The row of key hints along the top of the screen is gone; the keys are on the Controls page, and a short message at the start says where to find them.
+- While the game is in the background it draws fewer frames, so your PC stays cooler.

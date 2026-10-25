@@ -3,7 +3,8 @@ extends Node3D
 ## cockpit or the chase camera (ShipCameras), with HUD markers on every place. The ship starts at the system's start
 ## point next to the station, and the floating origin is centred on it from the first tick, so true positions are the
 ## system's own (the planet's centre is 0, 0, 0). Docking and landing (Arrivals) and the autosave (Autosave) are
-## nodes of their own beside it. Launched with `-- --smoke`, the autopilot flies it instead of the player
+## nodes of their own beside it. When the ship is towed home it jumps there in one tick, so the floating origin is
+## centred on it at once and the camera is put in place with no swing across the system. Launched with `-- --smoke`, the autopilot flies it instead of the player
 ## (game/debug/smoke_run.gd).
 
 @onready var _ship: Ship = $World/Ship
@@ -26,6 +27,7 @@ func _ready() -> void:
 	_arrivals.ports = _system.ports
 	_system.track(_ship)
 	_markers.show_places(_system.landmarks)
+	Events.towed.connect(_on_towed)
 	if not Game.launch_args.smoke:
 		return
 	# Nobody at the controls: the autopilot fills the ship's input, and losing the mouse never pauses. Its saves go to
@@ -45,3 +47,13 @@ func _ready() -> void:
 	smoke.autosave = _autosave
 	smoke.hud = _hud
 	add_child(smoke)
+
+
+func _exit_tree() -> void:
+	if Events.towed.is_connected(_on_towed):
+		Events.towed.disconnect(_on_towed)
+
+
+func _on_towed(_port: Port) -> void:
+	_origin.shift(_ship.global_position)
+	_cameras.snap()
