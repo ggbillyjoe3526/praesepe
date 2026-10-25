@@ -1,9 +1,10 @@
 extends Node
 ## The Settings autoload: the player's own choices, kept apart from any saved game. For now the view and comfort
 ## settings (project instructions, "Comfort"): field of view, camera shake, head bob and reduce motion, changed on the
-## pause screen, and when the places' HUD markers show (LandmarkMarkers). The settings menu adds audio, video and keys here later. The shape (to_dict and from_dict with a
-## version and one-step migrations, damaged values ignored) follows the owner's katanashotgun project
-## (scripts/settings.gd); the file is written by SaveFile, crash-safe with one backup.
+## pause screen, and when the places' HUD markers show (LandmarkMarkers). The settings menu adds audio, video and
+## keys here later. The shape (to_dict and from_dict with a version and one-step migrations, damaged values ignored)
+## follows the owner's katanashotgun project (scripts/settings.gd); the file is written by SaveFile, crash-safe with
+## one backup.
 ##
 ## A change takes effect at once (`changed`), and is written when the pause screen closes or the game quits, so
 ## dragging a slider writes once. The smoke test never reads or writes the file: it flies on the defaults.
