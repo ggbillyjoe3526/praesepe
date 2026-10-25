@@ -1,50 +1,20 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://game/ship/ship.gd" id="1_ship"]
 [ext_resource type="Resource" path="res://game/ship/greybox_ship_tuning.tres" id="2_tuning"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_cockpit.tscn" id="3_cockpit"]
 [ext_resource type="Resource" path="res://game/ship/greybox_cruise_tuning.tres" id="4_cruise"]
 [ext_resource type="Resource" path="res://game/ship/greybox_orbit_tuning.tres" id="5_orbit"]
-
-[sub_resource type="StandardMaterial3D" id="Mat_hull"]
-albedo_color = Color(0.55, 0.57, 0.6, 1)
-roughness = 0.7
-
-[sub_resource type="StandardMaterial3D" id="Mat_glow"]
-albedo_color = Color(0.4, 0.7, 1, 1)
-emission_enabled = true
-emission = Color(0.35, 0.65, 1, 1)
-emission_energy_multiplier = 3.0
-
-[sub_resource type="BoxMesh" id="Mesh_body"]
-material = SubResource("Mat_hull")
-size = Vector3(4, 2.4, 8.5)
-
-[sub_resource type="BoxMesh" id="Mesh_nose"]
-material = SubResource("Mat_hull")
-size = Vector3(3.6, 1.7, 3.5)
-
-[sub_resource type="BoxMesh" id="Mesh_wing"]
-material = SubResource("Mat_hull")
-size = Vector3(5, 0.4, 4)
-
-[sub_resource type="CylinderMesh" id="Mesh_engine"]
-material = SubResource("Mat_hull")
-top_radius = 0.8
-bottom_radius = 0.9
-height = 3.0
-
-[sub_resource type="CylinderMesh" id="Mesh_nozzle"]
-material = SubResource("Mat_glow")
-top_radius = 0.6
-bottom_radius = 0.6
-height = 0.2
+[ext_resource type="PackedScene" path="res://game/ship/models/hauler_exterior.glb" id="6_model"]
 
 [sub_resource type="BoxShape3D" id="Shape_hull"]
-size = Vector3(4, 2.4, 12)
+size = Vector3(4, 2.4, 13.2)
 
 [sub_resource type="BoxShape3D" id="Shape_canopy"]
-size = Vector3(3.2, 0.75, 2.9)
+size = Vector3(3.2, 1.0, 4.0)
+
+[sub_resource type="BoxShape3D" id="Shape_pod"]
+size = Vector3(1.44, 1.44, 6.5)
 
 [sub_resource type="BoxShape3D" id="Shape_wings"]
 size = Vector3(14, 0.4, 4)
@@ -66,52 +36,34 @@ eye = NodePath("Eye")
 chase_anchor = NodePath("ChaseAnchor")
 
 [node name="HullShape" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.6)
 shape = SubResource("Shape_hull")
 
 [node name="CanopyShape" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.575, -3.95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -3.6)
 shape = SubResource("Shape_canopy")
 
 [node name="WingShape" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 2.5)
 shape = SubResource("Shape_wings")
 
-[node name="Body" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.75)
-mesh = SubResource("Mesh_body")
+[node name="PodShapeLeft" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, -0.05, 3.85)
+shape = SubResource("Shape_pod")
 
-[node name="Nose" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.35, -4.25)
-mesh = SubResource("Mesh_nose")
+[node name="PodShapeRight" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, -0.05, 3.85)
+shape = SubResource("Shape_pod")
+
+[node name="Model" parent="." instance=ExtResource("6_model")]
 
 [node name="Cockpit" parent="." instance=ExtResource("3_cockpit")]
-
-[node name="WingLeft" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, -0.4, 2.5)
-mesh = SubResource("Mesh_wing")
-
-[node name="WingRight" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, -0.4, 2.5)
-mesh = SubResource("Mesh_wing")
-
-[node name="EngineLeft" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -1.3, 0, 6.5)
-mesh = SubResource("Mesh_engine")
-
-[node name="EngineRight" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 1.3, 0, 6.5)
-mesh = SubResource("Mesh_engine")
-
-[node name="NozzleLeft" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -1.3, 0, 8.05)
-mesh = SubResource("Mesh_nozzle")
-
-[node name="NozzleRight" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 1.3, 0, 8.05)
-mesh = SubResource("Mesh_nozzle")
 
 [node name="Eye" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, -3.54)
 
 [node name="ChaseAnchor" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.3, 24)
+
+[node name="Exterior_Glass" parent="Model" index="3"]
+cast_shadow = 0
