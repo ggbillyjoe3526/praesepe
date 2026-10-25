@@ -312,7 +312,7 @@ func test_taking_off_rises_and_settles_to_a_hover() -> void:
 
 func test_the_one_arrival_function_ends_any_orbit() -> void:
 	_ship.orbit.bodies.append(_planet)
-	await _place_ship(_planet.global_position + Vector3(0, 0, -7500), Vector3(60, 0, 0))
+	await _place_ship(_planet.global_position + Vector3(0, 0, -_planet.orbit_radius()), Vector3(60, 0, 0))
 	_ship.input.toggle_orbit = true
 	await wait_physics_frames(2)
 	assert_true(_ship.orbit.active())

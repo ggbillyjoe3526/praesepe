@@ -6,7 +6,9 @@
 script = ExtResource("1_tuning")
 max_entry_speed = 250.0
 entry_accel = 25.0
-entry_clearance = 100.0
+guide_reach = 2.0
+insertion_climb = 30.0
+insertion_lead = 400.0
 settle_time = 4.0
 max_climb = 30.0
 settle_tolerance = 5.0

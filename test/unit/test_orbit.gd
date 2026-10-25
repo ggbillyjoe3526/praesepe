@@ -1,8 +1,9 @@
 extends GutTest
 ## Parking in orbit (design doc, "Orbit"), run directly at the game's 60 Hz tick with the ship moved by the orbit's
-## velocity: what is offered where, entering the way the ship heads, settling at the height it levels out at, holding
-## that height and speed round and round, the attitude turning with the orbit, and every way of leaving. The planet is
-## a plain sphere with the greybox ship's orbit tuning.
+## velocity: what is offered where (only near the orbit line, up in space), the guide to the line and its insertion
+## point, entering the way the ship heads, settling onto the line, holding its height and speed round and round, the
+## attitude turning with the orbit, and every way of leaving. The planet is a plain sphere, its orbit line 1.5 km up,
+## with the greybox ship's orbit tuning.
 
 const DT := 1.0 / 60.0
 
@@ -17,18 +18,19 @@ var _events: Array[Orbit.Event] = []
 func before_each() -> void:
 	_tuning = load("res://game/ship/greybox_orbit_tuning.tres")
 	_orbit = Orbit.new(_tuning)
-	_planet = _body("Test planet", Vector3.ZERO, 6000.0, 500.0, 4000.0, 90.0)
+	_planet = _body("Test planet", Vector3.ZERO, 6000.0, 1500.0, 600.0, 90.0)
 	_at = Vector3(0, 0, 6000.0 + 1500.0)
 	_velocity = Vector3.ZERO
 	_events.clear()
 
 
-func _body(display_name: String, at: Vector3, radius: float, low: float, high: float, speed: float) -> CelestialBody:
+func _body(display_name: String, at: Vector3, radius: float, altitude: float, window: float,
+		speed: float) -> CelestialBody:
 	var b := CelestialBody.new()
 	b.display_name = display_name
 	b.radius = radius
-	b.orbit_min_altitude = low
-	b.orbit_max_altitude = high
+	b.orbit_altitude = altitude
+	b.orbit_window = window
 	b.orbit_speed = speed
 	add_child_autofree(b)
 	b.global_position = at
@@ -67,18 +69,62 @@ func _height() -> float:
 	return _planet.surface_distance(_at)
 
 
-func test_offers_the_nearest_body_below_its_highest_orbit() -> void:
-	var moon := _body("Test moon", Vector3(30000, 0, 0), 1500.0, 300.0, 2500.0, 45.0)
+func test_offers_entering_only_near_the_orbit_line() -> void:
+	var moon := _body("Test moon", Vector3(30000, 0, 0), 1500.0, 1200.0, 300.0, 20.0)
 	_tick()
 	assert_eq(_orbit.offered, _planet, "1.5 km up: the planet")
-	assert_eq(_orbit.refusal, Orbit.Refusal.NONE)
+	assert_eq(_orbit.refusal, Orbit.Refusal.NONE, "on its line")
+	_at = Vector3(0, 0, 6000.0 + 2050.0)
+	_tick()
+	assert_eq(_orbit.refusal, Orbit.Refusal.NONE, "550 m above the line: still close enough")
 	_at = Vector3(30000, 0, 1500.0 + 2000.0)
 	_tick()
 	assert_eq(_orbit.offered, moon, "2 km above the moon")
-	_at = Vector3(0, 0, 6000.0 + 4100.0)
+	assert_eq(_orbit.refusal, Orbit.Refusal.TOO_HIGH, "800 m above its line")
+	assert_almost_eq(_orbit.to_climb, -800.0, 0.01)
+	_at = Vector3(0, 0, 6000.0 + 3100.0)
 	_tick()
-	assert_null(_orbit.offered, "above the planet's highest orbit: nothing")
+	assert_null(_orbit.offered, "over twice the line's height above the planet: nothing")
 	assert_eq(_orbit.refusal, Orbit.Refusal.FAR)
+
+
+func test_near_the_surface_it_shows_the_way_up_but_wont_enter() -> void:
+	_at = Vector3(0, 0, 6000.0 + 200.0)
+	_velocity = Vector3(50, 0, 0)
+	_tick(true)
+	assert_eq(_orbit.offered, _planet, "the planet's orbit line shows")
+	assert_eq(_orbit.refusal, Orbit.Refusal.TOO_LOW)
+	assert_almost_eq(_orbit.to_climb, 1300.0, 0.01, "1.3 km below the line")
+	assert_false(_orbit.active(), "O doesn't enter it from down here")
+	assert_eq(_events, [Orbit.Event.REFUSED] as Array[Orbit.Event])
+
+
+func test_the_insertion_point_is_on_the_line_ahead_a_gentle_climb_away() -> void:
+	_at = Vector3(0, 0, 6000.0 + 200.0)
+	_velocity = Vector3(50, 0, 0)
+	var at := _at
+	_tick()
+	var line := _planet.orbit_radius()
+	assert_almost_eq(_orbit.insertion.length(), line, 0.01, "on the orbit line")
+	assert_almost_eq(_orbit.insertion.dot(_orbit.guide_axis), 0.0, 0.01, "in the orbit's plane")
+	assert_almost_eq(_orbit.guide_axis, Vector3(0, 1, 0), Vector3.ONE * 0.001, "round the way the ship is heading")
+	assert_gt(_orbit.insertion.x, 0.0, "ahead of the ship")
+	# As far round as climbing the 1.3 km at insertion_climb would cover along the ground.
+	var ahead := _orbit.insertion.angle_to(at) * line
+	assert_almost_eq(ahead, 1300.0 / tan(deg_to_rad(_tuning.insertion_climb)), 1.0)
+	var up_there := rad_to_deg((_orbit.insertion - at).angle_to(Vector3(1, 0, 0)))
+	assert_between(up_there, 20.0, 45.0, "a gentle climb up from level (%.1f degrees)" % up_there)
+	_at = Vector3(0, 0, 6000.0 + 1500.0)
+	at = _at
+	_tick()
+	assert_almost_eq(_orbit.insertion.angle_to(at) * line, _tuning.insertion_lead, 1.0, "on the line: just ahead")
+
+
+func test_climbing_straight_up_the_orbit_goes_the_way_the_nose_points() -> void:
+	_at = Vector3(0, 0, 6000.0 + 200.0)
+	_velocity = Vector3(0.5, 0, 60.0)
+	_orbit.step(_at, _velocity, Vector3(-1, 0, 0), false, false, false, 0.0, true, DT)
+	assert_almost_eq(_orbit.guide_axis, Vector3(0, -1, 0), Vector3.ONE * 0.001, "round the nose's way, not the drift's")
 
 
 func test_nothing_is_offered_while_cruising() -> void:
@@ -88,18 +134,21 @@ func test_nothing_is_offered_while_cruising() -> void:
 	assert_false(_orbit.active(), "O does nothing while cruising")
 
 
-func test_refuses_too_fast_or_diving_too_steeply() -> void:
+func test_refuses_too_fast_or_too_steep() -> void:
 	_velocity = Vector3(_tuning.max_entry_speed + 10.0, 0, 0)
 	_tick(true)
 	assert_false(_orbit.active())
 	assert_eq(_events, [Orbit.Event.REFUSED] as Array[Orbit.Event])
 	assert_eq(_orbit.refusal, Orbit.Refusal.TOO_FAST)
-	# 600 m up, falling at 200 m/s: it couldn't level out above the surface.
-	_at = Vector3(0, 0, 6600.0)
+	# On the line, falling at 200 m/s: stopping takes 800 m, out of the window.
 	_velocity = Vector3(0, 0, -200.0)
 	_tick(true)
 	assert_eq(_orbit.refusal, Orbit.Refusal.TOO_STEEP)
 	assert_false(_orbit.active())
+	_velocity = Vector3(0, 0, 200.0)
+	_tick(true)
+	assert_eq(_orbit.refusal, Orbit.Refusal.TOO_STEEP, "climbing too")
+	_at = Vector3(0, 0, 6000.0 + 1500.0)
 	# Slower, it can.
 	_velocity = Vector3(0, 0, -40.0)
 	_tick(true)
@@ -139,22 +188,27 @@ func test_holds_its_height_and_speed_all_the_way_round() -> void:
 	assert_eq(_events, [Orbit.Event.ENTERING, Orbit.Event.SETTLED] as Array[Orbit.Event], "never dropped out")
 
 
-func test_coming_in_steeply_settles_lower_rather_than_bouncing() -> void:
+func test_coming_in_steeply_settles_onto_the_line_without_leaving_the_window() -> void:
 	_at = Vector3(0, 0, 6000.0 + 2000.0)
-	_velocity = Vector3(0, 0, -150.0)
-	_settle()
+	_velocity = Vector3(0, 0, -100.0)
+	_tick(true)
+	var lowest := _height()
+	for i in roundi(60.0 / DT):
+		_tick()
+		lowest = minf(lowest, _height())
+		if _orbit.settled():
+			break
 	assert_true(_orbit.settled())
-	# Stopping 150 m/s at 25 m/s² takes 450 m, while it also swings sideways; it settles below where it started.
-	assert_between(_height(), 1400.0, 1800.0)
-	assert_almost_eq(_orbit.radius, _at.length(), _tuning.settle_tolerance)
+	assert_almost_eq(_height(), _planet.orbit_altitude, _tuning.settle_tolerance, "on the line")
+	assert_gt(lowest, _planet.orbit_altitude - _planet.orbit_window, "never dived out of the window (%.0f m)" % lowest)
 
 
-func test_entering_below_the_lowest_orbit_climbs_to_it() -> void:
-	_at = Vector3(0, 0, 6000.0 + 200.0)
+func test_entering_below_the_line_climbs_onto_it() -> void:
+	_at = Vector3(0, 0, 6000.0 + 1000.0)
 	_velocity = Vector3(50, 0, 0)
 	_settle()
 	assert_true(_orbit.settled())
-	assert_almost_eq(_height(), _planet.orbit_min_altitude, _tuning.settle_tolerance)
+	assert_almost_eq(_height(), _planet.orbit_altitude, _tuning.settle_tolerance)
 
 
 func test_the_swing_onto_the_orbit_is_never_sharper_than_the_thrusters() -> void:
@@ -227,6 +281,7 @@ func test_levelling_out_turns_the_nose_level_along_the_velocity_in_time() -> voi
 	_settle()
 	var ship := _orbit.facing(_at)
 	assert_gt(rad_to_deg((-ship.z).angle_to(_velocity)), 20.0, "the nose starts dipped well below the velocity")
+	var below := _at.normalized()
 	_tick(true)
 	var steps := 0
 	while _orbit.phase == Orbit.Phase.LEAVING:
@@ -236,8 +291,8 @@ func test_levelling_out_turns_the_nose_level_along_the_velocity_in_time() -> voi
 		_tick()
 		steps += 1
 	assert_almost_eq(steps, roundi(_tuning.level_time / DT), 1, "in OrbitTuning.level_time, with quick turn rates")
-	assert_lt(rad_to_deg((-ship.z).angle_to(_velocity)), 0.5, "the nose is along the velocity")
-	assert_lt(rad_to_deg(ship.y.angle_to(_at.normalized())), 0.5, "the planet straight below")
+	assert_lt(rad_to_deg((-ship.z).angle_to(_velocity)), 0.05, "the nose is along the velocity")
+	assert_lt(rad_to_deg(ship.y.angle_to(below)), 0.05, "the planet straight below where it left")
 
 
 func test_a_big_level_out_takes_longer_rather_than_turning_faster_than_the_ship_can() -> void:
