@@ -39,14 +39,14 @@ func _process(delta: float) -> void:
 ## What the start menu should offer for a save read with SaveFile.read.
 static func save_state_of(read: Dictionary) -> StartMenu.SaveState:
 	if read.get("ok", false):
-		return StartMenu.SaveState.GOOD
+		return StartMenu.SaveState.NEWER if int(read.get("version", 0)) > SaveGame.VERSION else StartMenu.SaveState.GOOD
 	if read.get("locked", false):
 		return StartMenu.SaveState.LOCKED
 	return StartMenu.SaveState.DAMAGED if read.get("found", false) else StartMenu.SaveState.NONE
 
 
 func _continue() -> void:
-	if not save.get("ok", false):
+	if TitleScreen.save_state_of(save) != StartMenu.SaveState.GOOD:
 		return
 	GameStart.continue_game(save.data)
 	_play()

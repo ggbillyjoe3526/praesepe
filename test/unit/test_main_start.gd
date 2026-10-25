@@ -1,8 +1,8 @@
 extends GutTest
 ## The game scene starts where GameStart says (design doc, "Starting a game"): continuing a game saved out in space,
 ## the real solar system comes up on the saved seed with the ship at its saved true place, heading and speed, and the
-## HUD says the game was loaded; continuing one saved docked, it is in the station's bay. Nothing is written to the
-## save folder (a continued game is not announced as an arrival).
+## HUD says the game was loaded; continuing one saved docked, it is in the station's bay. Opened on its own (F6 in
+## the editor), it starts in flight and never writes the save.
 
 var _seed_before: int = 0
 

@@ -203,6 +203,23 @@ func test_a_save_with_no_usable_place_docks_quietly_at_halfway_station() -> void
 	assert_eq(_arrived, [] as Array[Port])
 
 
+func test_numbers_no_real_game_could_reach_are_not_trusted() -> void:
+	# Written as plain numbers: a Vector3 can't hold them.
+	var data := _space_save(Vector3(20000, 0, 0), Quaternion.IDENTITY, Vector3.ZERO, Vector3.ZERO, true, 0.0)
+	data["ship"]["at"] = [1e300, 0, 0]
+	GameStart.continue_game(data)
+	assert_eq(GameStart.begin(_ship, _origin, _arrivals), GameStart.Began.DOCKED, "a place that far out: docked")
+	data["ship"]["at"] = [20000, 0, 0]
+	data["ship"]["velocity"] = [1e300, 0, 0]
+	data["ship"]["spin"] = [0, 1e300, 0]
+	data["ship"]["held"] = 1e300
+	GameStart.continue_game(data)
+	assert_eq(GameStart.begin(_ship, _origin, _arrivals), GameStart.Began.IN_SPACE)
+	assert_almost_eq(_ship.linear_velocity.length(), GameStart.FASTEST, 0.01, "speed cut down")
+	assert_almost_eq(_ship.angular_velocity.length(), GameStart.FASTEST_SPIN, 0.001, "spin cut down")
+	assert_eq(_ship.held_speed(), _ship.tuning.max_speed)
+
+
 func test_a_berth_that_no_longer_exists_falls_back_to_the_saved_place() -> void:
 	var at := Vector3(21000, 10, -30)
 	var data := _space_save(at, Quaternion.IDENTITY, Vector3.ZERO, Vector3.ZERO, true, 0.0)

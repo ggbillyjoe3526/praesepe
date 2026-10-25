@@ -2,9 +2,8 @@ class_name SaveGame
 ## The player's saved game (project instructions, "Saves"): one file in the user folder, written by SaveFile (atomic,
 ## read back, one backup, damaged copies set aside and never deleted). Version 1 holds the world (Game.snapshot: the
 ## seed, the clock and where each random stream has got to) and the port the ship is docked or landed at. Money,
-## cargo, contracts and the loan join it as they are built. Loading it, and migrating older versions one step at a
-## time, comes with the save-and-load step; until then the game is written on every docking and landing (Autosave) and
-## a new launch starts a fresh flight.
+## cargo, contracts and the loan join it as they are built. It is written on every docking and landing (Autosave);
+## Continue on the title screen reads it and GameStart puts the game back as it was.
 
 const KIND := "game"
 const VERSION := 1

@@ -23,6 +23,7 @@ enum SaveState {
 	GOOD, ## A saved game that can be continued.
 	DAMAGED, ## A saved game that can't be read (it is kept, never deleted).
 	LOCKED, ## A saved game another program holds, so it can't be opened.
+	NEWER, ## A saved game from a newer version of the game (it is kept, never deleted).
 }
 
 const PLATE_COLOUR := Color(0.03, 0.04, 0.08, 0.92)
@@ -88,7 +89,7 @@ func set_save_state(state: SaveState) -> void:
 	if continue_button == null:
 		return
 	continue_button.visible = state == SaveState.GOOD
-	_save_note.visible = state == SaveState.DAMAGED or state == SaveState.LOCKED
+	_save_note.visible = state != SaveState.NONE and state != SaveState.GOOD
 	_save_note.text = StartMenu.save_note(state)
 	if page == Page.MAIN:
 		_focus_first()
@@ -101,6 +102,8 @@ static func save_note(state: SaveState) -> String:
 			return "Your saved game couldn't be read. It stays in the save folder; a new game won't delete it."
 		SaveState.LOCKED:
 			return "Your saved game is open in another program. Close that program, then restart the game to continue."
+		SaveState.NEWER:
+			return "Your saved game is from a newer version of the game. Play it there; a new game here won't delete it."
 	return ""
 
 

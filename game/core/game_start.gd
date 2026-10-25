@@ -23,6 +23,11 @@ enum Began {
 const START_PORT := &"halfway_station"
 ## The ship a game flies when nothing else was chosen.
 const DEFAULT_SHIP := &"hauler"
+## A saved place (m from the planet's centre), speed (m/s) or spin (rad/s) beyond these is not from real play: the
+## place makes the save unusable, a speed or spin is cut down to them.
+const FARTHEST := 10000000.0
+const FASTEST := 8000.0
+const FASTEST_SPIN := 10.0
 
 static var mode: Mode = Mode.NEW
 ## Whether the title screen asked for a start. Opening the game scene on its own (F6 in the editor) starts in flight
@@ -96,7 +101,7 @@ static func _dock(at: Port, origin: FloatingOrigin, arrivals: Arrivals, resumed:
 ## Places the ship out in space as `block` says. False when its place is missing or unreadable.
 static func _place_in_space(block: Dictionary, ship: Ship, origin: FloatingOrigin) -> bool:
 	var at := GameStart.numbers(block.get("at"), 3)
-	if at.is_empty():
+	if at.is_empty() or GameStart.length_of(at) > FARTHEST:
 		return false
 	var turn := GameStart.numbers(block.get("turn"), 4)
 	var facing := Quaternion(turn[0], turn[1], turn[2], turn[3]).normalized() if not turn.is_empty() \
@@ -107,8 +112,8 @@ static func _place_in_space(block: Dictionary, ship: Ship, origin: FloatingOrigi
 	var local := Vector3(at[0] - origin.offset_x, at[1] - origin.offset_y, at[2] - origin.offset_z)
 	var assist: Variant = block.get("assist", true)
 	var held: Variant = block.get("held", 0.0)
-	ship.resume_flight(Transform3D(Basis(facing), local), GameStart.vector(block.get("velocity")),
-			GameStart.vector(block.get("spin")), assist if assist is bool else true,
+	ship.resume_flight(Transform3D(Basis(facing), local), GameStart.vector(block.get("velocity"), FASTEST),
+			GameStart.vector(block.get("spin"), FASTEST_SPIN), assist if assist is bool else true,
 			float(held) if held is float or held is int else 0.0)
 	origin.shift(local)
 	# In orbit when saved: {"body": ..., "radius": ..., "axis": [...]}, {} when not.
@@ -130,7 +135,23 @@ static func numbers(value: Variant, count: int) -> PackedFloat64Array:
 	return out
 
 
-## `value` as a Vector3, or zero when it isn't three finite numbers.
-static func vector(value: Variant) -> Vector3:
+## `value` as a Vector3 no longer than `longest`, or zero when it isn't three finite numbers. Shortened in 64-bit, so
+## a number too big for a Vector3 is cut down rather than turned into infinity.
+static func vector(value: Variant, longest: float = INF) -> Vector3:
 	var n := GameStart.numbers(value, 3)
-	return Vector3(n[0], n[1], n[2]) if not n.is_empty() else Vector3.ZERO
+	if n.is_empty():
+		return Vector3.ZERO
+	var length := GameStart.length_of(n)
+	var scale := longest / length if length > longest else 1.0
+	return Vector3(n[0] * scale, n[1] * scale, n[2] * scale)
+
+
+## The length of the vector `n` (three numbers), worked out without squaring huge numbers into infinity.
+static func length_of(n: PackedFloat64Array) -> float:
+	var biggest := maxf(absf(n[0]), maxf(absf(n[1]), absf(n[2])))
+	if biggest == 0.0:
+		return 0.0
+	var x := n[0] / biggest
+	var y := n[1] / biggest
+	var z := n[2] / biggest
+	return biggest * sqrt(x * x + y * y + z * z)

@@ -49,7 +49,8 @@ func test_continue_shows_only_for_a_good_save() -> void:
 	assert_true(_menu.continue_button.has_focus())
 	_menu.continue_button.pressed.emit()
 	assert_eq(_continued, 1)
-	for state: StartMenu.SaveState in [StartMenu.SaveState.DAMAGED, StartMenu.SaveState.LOCKED]:
+	for state: StartMenu.SaveState in [StartMenu.SaveState.DAMAGED, StartMenu.SaveState.LOCKED,
+			StartMenu.SaveState.NEWER]:
 		_menu.set_save_state(state)
 		assert_false(_menu.continue_button.visible)
 		assert_ne(StartMenu.save_note(state), "", "says why there is no Continue")
@@ -120,7 +121,10 @@ func test_esc_goes_back_a_page() -> void:
 
 
 func test_the_title_screen_reads_what_the_save_folder_holds() -> void:
-	assert_eq(TitleScreen.save_state_of({"ok": true, "data": {}}), StartMenu.SaveState.GOOD)
+	assert_eq(TitleScreen.save_state_of({"ok": true, "version": SaveGame.VERSION, "data": {}}),
+			StartMenu.SaveState.GOOD)
+	assert_eq(TitleScreen.save_state_of({"ok": true, "version": SaveGame.VERSION + 1, "data": {}}),
+			StartMenu.SaveState.NEWER, "a newer game's save is kept, not loaded")
 	assert_eq(TitleScreen.save_state_of({"ok": false, "found": false, "locked": false}), StartMenu.SaveState.NONE)
 	assert_eq(TitleScreen.save_state_of({"ok": false, "found": true, "locked": false}), StartMenu.SaveState.DAMAGED)
 	assert_eq(TitleScreen.save_state_of({"ok": false, "found": true, "locked": true}), StartMenu.SaveState.LOCKED)
