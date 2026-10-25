@@ -3,8 +3,9 @@ extends Control
 ## The flight HUD (design doc, "Flight and camera"): the nose's aim point, the velocity marker showing where the ship
 ## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus short messages,
 ## such as the cruise drive's (CruiseDrive), the orbit's (Orbit) and where the ship docked or landed and whether the
-## game saved (Events). The keys are in Settings › Controls; a message at the start says so. In the chase view a plate at the bottom also shows speed and flight assist,
-## and the place the cruise drive is locked onto with its distance; in the cockpit the dashboard screen shows them
+## game saved (Events). The keys are in Settings › Controls; a message at the start says so. In the chase view a
+## plate at the bottom also shows speed and flight assist, and the place the cruise drive is locked onto with its
+## distance; in the cockpit the dashboard screen shows them
 ## (CockpitDisplay), in the same words. Text is rebuilt only when the whole number shown changes (so while speeding
 ## up, not in steady flight; in cruise, speeds over 1 km/s show in tenths of a km/s). A placeholder look until the art
 ## style is chosen.
