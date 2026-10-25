@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=30 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_ship.tscn" id="2_ship"]
@@ -53,17 +53,6 @@ content_margin_left = 28.0
 content_margin_top = 14.0
 content_margin_right = 28.0
 content_margin_bottom = 14.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_keys"]
-bg_color = Color(0.03, 0.04, 0.08, 0.85)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 18.0
-content_margin_top = 8.0
-content_margin_right = 18.0
-content_margin_bottom = 8.0
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
@@ -217,26 +206,6 @@ visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.55, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 24
-horizontal_alignment = 1
-
-[node name="KeysPlate" type="PanelContainer" parent="Hud/FlightHud"]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -720.0
-offset_top = 16.0
-offset_right = 720.0
-offset_bottom = 60.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_keys")
-
-[node name="Keys" type="Label" parent="Hud/FlightHud/KeysPlate"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.76, 0.86, 1)
-theme_override_font_sizes/font_size = 18
-text = "W/S speed · A/D/Space/Ctrl slide · Mouse steer · Q/E roll · F cruise · O orbit · G dock or land · Z assist · X stop · V camera · Esc pause"
 horizontal_alignment = 1
 
 [node name="ToastPlate" type="PanelContainer" parent="Hud/FlightHud"]
