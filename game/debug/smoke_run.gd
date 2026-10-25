@@ -27,6 +27,10 @@ extends Node
 ## and down onto the pad with no fade and no bump, is held still there, the HUD says so and the game is autosaved (to
 ## the smoke test's own file, read back to check). G takes off, the ship climbs clear of the base and cruises to
 ## Halfway Station, slows down, docks the same way, flying itself into the bay (saved again), and undocks out of it.
+## On each locked trip the dashboard also says how long until it gets there, and the trip must take about that long.
+## Last it looks round (the cockpit camera turns with the pilot's head and the chase camera swings round the ship),
+## levels its nose, rolls over with E and presses R, and checks the ship rolls back upright against Calder with its
+## nose where it was.
 ## The result line names the belt's fingerprint and when each arrival, the orbit, the landing and the docking came
 ## (and how long flying in took), so a second run on the same seed must match it exactly.
 ##
@@ -90,6 +94,16 @@ const CLEAR_OF_BASE := 320.0
 ## The approach to the station's dock: the speed (m/s) the autopilot slows to, and how long (ticks) it may take.
 const APPROACH_SPEED := 80.0
 const APPROACH_LIMIT := 2400
+## A locked trip must take within this (s), or this share of it, of what the dashboard said at the lock check.
+const ETA_SLACK := 1.5
+const ETA_SHARE := 0.1
+## Looking round: how far (degrees) to the right, and how close (degrees) the cockpit camera must face that way.
+const LOOK_RIGHT := 90.0
+const LOOK_TOLERANCE := 1.0
+## Rolling upright: how long (ticks) E is held first, how long R may take, and how level it must end (degrees).
+const ROLL_OVER := 60
+const UPRIGHT_LIMIT := 600
+const UPRIGHT_LEVEL := 0.5
 
 var ship: Ship
 var origin: FloatingOrigin
@@ -132,6 +146,11 @@ var _orbit_start: Vector3 = Vector3.ZERO
 var _arrived_at: Port = null
 ## Checked the ship at its berth, and now watching it sit there.
 var _at_berth: bool = false
+## On a locked trip: what the time to arrival said at the lock check (s), and when (physics frame); INF when not known.
+var _eta_said: float = INF
+var _eta_frame: int = 0
+var _upright_event: Upright.Event = Upright.Event.NONE
+var _nose_before: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
@@ -140,6 +159,7 @@ func _ready() -> void:
 	process_physics_priority = FlightOrder.CONTROLS
 	ship.cruise_changed.connect(_on_cruise_changed)
 	ship.orbit_changed.connect(_on_orbit_changed)
+	ship.upright_changed.connect(_on_upright_changed)
 	Events.arrived.connect(_on_arrived)
 	SaveFile.remove(SAVE_PATH)
 
@@ -149,12 +169,18 @@ func _exit_tree() -> void:
 		ship.cruise_changed.disconnect(_on_cruise_changed)
 	if ship.orbit_changed.is_connected(_on_orbit_changed):
 		ship.orbit_changed.disconnect(_on_orbit_changed)
+	if ship.upright_changed.is_connected(_on_upright_changed):
+		ship.upright_changed.disconnect(_on_upright_changed)
 	if Events.arrived.is_connected(_on_arrived):
 		Events.arrived.disconnect(_on_arrived)
 
 
 func _on_orbit_changed(event: Orbit.Event, _body: CelestialBody) -> void:
 	_orbit_event = event
+
+
+func _on_upright_changed(event: Upright.Event, _body: CelestialBody) -> void:
+	_upright_event = event
 
 
 ## Docking or landing moved the ship to its berth: start the movement check afresh from there.
@@ -315,6 +341,10 @@ func _physics_process(_delta: float) -> void:
 			_dock_at_station(input)
 		19:
 			_undock(input)
+		20:
+			_look_round()
+		21:
+			_roll_upright(input)
 
 
 func _while_paused() -> void:
@@ -441,6 +471,7 @@ func _visit(input: ShipInput, place: Landmark, unlock: bool = false) -> bool:
 				input.toggle_cruise = true
 				_event = CruiseDrive.Event.NONE
 				_cruise_top = 0.0
+				_eta_said = INF
 				_stage = 1
 				_phase_ticks = 0
 			elif _phase_ticks >= AIM_LIMIT:
@@ -463,6 +494,9 @@ func _visit(input: ShipInput, place: Landmark, unlock: bool = false) -> bool:
 					_check_lock(place)
 					if unlock:
 						input.turn.y = 0.5
+					else:
+						_eta_said = ship.cruise.eta
+						_eta_frame = _frames
 			if unlock and _phase_ticks == charge_ticks + LOCK_CHECK + 1 and ship.cruise.active():
 				_expect(_event == CruiseDrive.Event.UNLOCKED and not ship.cruise.locked(),
 						"releases the lock when the stick moves (event %s)" % CruiseDrive.Event.keys()[_event])
@@ -496,6 +530,8 @@ func _check_lock(place: Landmark) -> void:
 	var line := FlightHud.target_text(place.display_name, 0.0).get_slice("  ·  ", 0)
 	_expect(shown[1] == FlightHud.mode_text(FlightHud.Mode.CRUISE_LOCKED, 0) and shown[2].begins_with(line),
 			"shows the lock on the dashboard (%s / %s)" % [shown[1], shown[2]])
+	_expect(not is_inf(ship.cruise.eta) and shown[2].ends_with(" s"),
+			"shows the time to %s on the dashboard (%s)" % [place.display_name, shown[2]])
 
 
 func _check_arrival(place: Landmark) -> void:
@@ -506,6 +542,10 @@ func _check_arrival(place: Landmark) -> void:
 	_expect(left < place.drop_distance and left > place.drop_distance - 200.0,
 			"drops out at the edge of %s's arrival zone (%.0f m, zone %.0f m)" % [place.display_name, left, place.drop_distance])
 	_expect(_cruise_top > ship.cruise_tuning.min_speed, "cruises faster than its slowest (%.0f m/s)" % _cruise_top)
+	if not is_inf(_eta_said):
+		var took := float(_event_tick - _eta_frame) / Engine.physics_ticks_per_second
+		_expect(absf(took - _eta_said) < maxf(ETA_SLACK, took * ETA_SHARE),
+				"gets to %s about when the dashboard said (said %.1f s, took %.1f s)" % [place.display_name, _eta_said, took])
 	_arrivals.append("%s@%d" % [place.display_name.replace(" ", ""), _event_tick])
 
 
@@ -736,6 +776,69 @@ func _undock(input: ShipInput) -> void:
 			if _phase_ticks >= 60:
 				_expect(absf(ship.held_speed() - dock.exit_speed) < 0.5 and absf(ship.speed() - dock.exit_speed) < 0.5,
 						"flies on at %.0f m/s (%.2f, set %.2f)" % [dock.exit_speed, ship.speed(), ship.held_speed()])
+				_stage = 0
+				_next()
+
+
+## Looks round: the cockpit camera turns to the right with the pilot's head, then in the chase view the camera swings
+## round to the ship's left, still looking at it; then straight ahead again in the cockpit.
+func _look_round() -> void:
+	match _phase_ticks:
+		1:
+			cameras.look = Vector2(deg_to_rad(LOOK_RIGHT), 0.0)
+		3:
+			var off := rad_to_deg((-cameras.cockpit.global_basis.z).angle_to(ship.global_basis.x))
+			_expect(off < LOOK_TOLERANCE, "turns the cockpit view with the pilot's head (%.2f degrees off the right)" % off)
+			cameras.set_view(ShipCameras.View.CHASE)
+		5:
+			var side := (cameras.chase.global_position - ship.global_position).dot(ship.global_basis.x)
+			_expect(side < -10.0 and cameras.chase.is_position_in_frustum(ship.global_position),
+					"swings the chase camera round to look at the ship's right side (%.1f m to the side)" % side)
+			cameras.look = Vector2.ZERO
+			cameras.set_view(ShipCameras.View.COCKPIT)
+		7:
+			var off := rad_to_deg((-cameras.cockpit.global_basis.z).angle_to(-ship.global_basis.z))
+			_expect(off < LOOK_TOLERANCE, "looks ahead again (%.2f degrees off the nose)" % off)
+			_next()
+
+
+## Levels the nose with Calder's horizon, rolls over with E, then presses R: the ship rolls back upright against the nearest planet or moon, its nose where it
+## was.
+func _roll_upright(input: ShipInput) -> void:
+	var calder := system.landmark("Calder") as CelestialBody
+	var up := ship.global_position - calder.global_position
+	match _stage:
+		0: # Leaving the station the nose points away from Calder, where no roll is more upright: level it first.
+			if _phase_ticks == 1:
+				_nose_before = up.cross(ship.global_basis.x).normalized()
+			var level := ship.global_position + _nose_before * 100000.0
+			input.turn = _steer_toward(level)
+			if _aimed_at(level):
+				_stage = 1
+				_phase_ticks = 0
+			elif _phase_ticks >= AIM_LIMIT:
+				_expect(false, "levels its nose with Calder's horizon")
+				_stage = 1
+		1:
+			input.turn.z = 1.0
+			if _phase_ticks >= ROLL_OVER:
+				_stage = 2
+		2: # Let the roll settle, then press R.
+			if ship.angular_velocity.length() < 0.001:
+				_expect(absf(rad_to_deg(Upright.roll_left(ship.global_basis, up))) > 30.0, "has rolled over")
+				_nose_before = _forward()
+				_upright_event = Upright.Event.NONE
+				input.roll_upright = true
+				_stage = 3
+				_phase_ticks = 0
+		3:
+			if _upright_event == Upright.Event.LEVEL or _phase_ticks >= UPRIGHT_LIMIT:
+				var left := absf(rad_to_deg(Upright.roll_left(ship.global_basis, up)))
+				var moved := rad_to_deg(_forward().angle_to(_nose_before))
+				_expect(_upright_event == Upright.Event.LEVEL and left < UPRIGHT_LEVEL,
+						"rolls upright against Calder with R (%.2f degrees off, event %s)" % [left,
+						Upright.Event.keys()[_upright_event]])
+				_expect(moved < 0.5, "keeps its nose where it was while rolling upright (%.2f degrees)" % moved)
 				_finish()
 
 

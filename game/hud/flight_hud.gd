@@ -4,7 +4,7 @@ extends Control
 ## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus the keys and
 ## short messages, such as the cruise drive's (CruiseDrive), the orbit's (Orbit) and where the ship docked or landed
 ## and whether the game saved (Events). In the chase view a plate at the bottom also shows speed and flight assist,
-## and the place the cruise drive is locked onto with its distance; in the cockpit the dashboard screen shows them
+## and the place the cruise drive is locked onto with its distance and time to arrival; in the cockpit the dashboard screen shows them
 ## (CockpitDisplay), in the same words. Text is rebuilt only when the whole number shown changes (so while speeding
 ## up, not in steady flight; in cruise, speeds over 1 km/s show in tenths of a km/s). A placeholder look until the art
 ## style is chosen.
@@ -32,9 +32,10 @@ enum Mode {
 	ASSIST_OFF, ASSIST_ON, CHARGING, CRUISING, ENTERING_ORBIT, ORBITING, LEAVING_ORBIT, DOCKED, LANDED, UNDOCKING,
 	TAKING_OFF, DOCKING, LANDING, CRUISE_LOCKED,
 }
-## The target line's state key folds the place in like a hash, the distance's own key (LandmarkMarkers.distance_key,
-## always far under DISTANCE_KEYS) added last.
+## The target line's state key folds the place in like a hash, then the distance's own key (LandmarkMarkers.distance_key,
+## always far under DISTANCE_KEYS), then the time to arrival's (eta_key(), always under ETA_KEYS).
 const DISTANCE_KEYS := 1000003
+const ETA_KEYS := 100003
 const NOSE_ARMS: Array[Vector2] = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]
 ## Sizes in px at 1080p: the nose mark's arms, the mouse stick's ring (a full push) and dot, and the velocity markers.
 const NOSE_GAP := 6.0
@@ -75,6 +76,7 @@ func _ready() -> void:
 		ship.assist_changed.connect(_on_assist_changed)
 		ship.cruise_changed.connect(_on_cruise_changed)
 		ship.orbit_changed.connect(_on_orbit_changed)
+		ship.upright_changed.connect(_on_upright_changed)
 	if arrivals != null:
 		arrivals.refused.connect(_on_dock_refused)
 		arrivals.stopped.connect(_on_dock_stopped)
@@ -94,6 +96,8 @@ func _exit_tree() -> void:
 		ship.cruise_changed.disconnect(_on_cruise_changed)
 	if ship != null and ship.orbit_changed.is_connected(_on_orbit_changed):
 		ship.orbit_changed.disconnect(_on_orbit_changed)
+	if ship != null and ship.upright_changed.is_connected(_on_upright_changed):
+		ship.upright_changed.disconnect(_on_upright_changed)
 	if arrivals != null and arrivals.refused.is_connected(_on_dock_refused):
 		arrivals.refused.disconnect(_on_dock_refused)
 	if arrivals != null and arrivals.stopped.is_connected(_on_dock_stopped):
@@ -196,10 +200,30 @@ static func target_of(ship: Ship) -> Landmark:
 	return ship.cruise.target if ship.cruise.phase != CruiseDrive.Phase.OFF else null
 
 
-## The target line, on the HUD and the dashboard: where the cruise drive is locked onto and how far it is (`metres`,
-## Landmark.marker_distance).
-static func target_text(place: String, metres: float) -> String:
-	return "TARGET  %s  ·  %s" % [place, LandmarkMarkers.distance_text(metres)]
+## The target line, on the HUD and the dashboard: where the cruise drive is locked onto, how far it is (`metres`,
+## Landmark.marker_distance) and about how long until it gets there (`seconds`, CruiseDrive.eta; left off when INF).
+static func target_text(place: String, metres: float, seconds: float = INF) -> String:
+	var words := "TARGET  %s  ·  %s" % [place, LandmarkMarkers.distance_text(metres)]
+	return words if is_inf(seconds) else words + "  ·  " + FlightHud.eta_text(seconds)
+
+
+## The time to arrival as the target line shows it: whole seconds (rounded up) under a minute, then minutes and
+## seconds, then whole minutes from ten minutes.
+static func eta_text(seconds: float) -> String:
+	var s := ceili(maxf(seconds, 0.0))
+	if s < 60:
+		return "%d s" % s
+	if s < 600:
+		return "%d min %d s" % [s / 60, s % 60]
+	return "%d min" % roundi(s / 60.0)
+
+
+## A number that changes exactly when eta_text() does, under ETA_KEYS; -1 for INF (no time shown).
+static func eta_key(seconds: float) -> int:
+	if is_inf(seconds):
+		return -1
+	var s := mini(ceili(maxf(seconds, 0.0)), ETA_KEYS - 2)
+	return s if s < 600 else 600 + roundi(s / 60.0)
 
 
 ## A number that changes exactly when the target line's words do (worked out without allocating, every frame); 0 when
@@ -208,7 +232,9 @@ static func target_key(ship: Ship) -> int:
 	var t := FlightHud.target_of(ship)
 	if t == null:
 		return 0
-	return t.get_instance_id() * DISTANCE_KEYS + LandmarkMarkers.distance_key(t.marker_distance(ship.global_position))
+	var place := posmod(t.get_instance_id(), DISTANCE_KEYS) + 1
+	var distance := LandmarkMarkers.distance_key(t.marker_distance(ship.global_position))
+	return (place * DISTANCE_KEYS + distance) * ETA_KEYS + FlightHud.eta_key(ship.cruise.eta) + 1
 
 
 ## The message for something the cruise drive did (CruiseDrive.Event) at the place called `place` (where it is
@@ -263,6 +289,20 @@ static func orbit_message(event: Orbit.Event, body: String, why: Orbit.Refusal) 
 				Orbit.Refusal.TOO_STEEP:
 					return "Diving too steeply to enter orbit round %s. Level out first" % body
 			return "Nothing to orbit here. Fly closer to a planet or moon"
+	return ""
+
+
+## The message for rolling upright (Upright.Event) against the planet or moon called `body`.
+static func upright_message(event: Upright.Event, body: String) -> String:
+	match event:
+		Upright.Event.ROLLING:
+			return "Rolling level with %s  ·  Q or E to stop" % body
+		Upright.Event.LEVEL:
+			return "Level with %s" % body
+		Upright.Event.STRAIGHT:
+			return "Can't roll level: pitch toward %s's horizon first" % body
+		Upright.Event.NOTHING:
+			return "Nothing to roll level with here"
 	return ""
 
 
@@ -333,7 +373,7 @@ func _update_text() -> void:
 		var t := FlightHud.target_of(ship)
 		_target.visible = t != null
 		if t != null:
-			_target.text = FlightHud.target_text(t.display_name, t.marker_distance(ship.global_position))
+			_target.text = FlightHud.target_text(t.display_name, t.marker_distance(ship.global_position), ship.cruise.eta)
 
 
 func _on_assist_changed(on: bool) -> void:
@@ -352,6 +392,12 @@ func _on_orbit_changed(event: Orbit.Event, body: CelestialBody) -> void:
 	var words := FlightHud.orbit_message(event, body.display_name if body != null else "", ship.orbit.refusal)
 	var warn := event == Orbit.Event.BUMPED or event == Orbit.Event.REFUSED
 	_show_toast(words, OFF_COLOUR if warn else ORBIT_COLOUR)
+
+
+func _on_upright_changed(event: Upright.Event, body: CelestialBody) -> void:
+	var words := FlightHud.upright_message(event, body.display_name if body != null else "")
+	var warn := event == Upright.Event.STRAIGHT or event == Upright.Event.NOTHING
+	_show_toast(words, OFF_COLOUR if warn else NOSE_COLOUR)
 
 
 func _on_dock_refused(port: Port, why: Arrivals.Refusal) -> void:
@@ -402,7 +448,12 @@ func _draw() -> void:
 	var view := camera.global_transform
 	# The nose's aim point: the screen's centre in the cockpit, ahead of the ship in the chase view.
 	var nose_at := ScreenMarker.project(view, camera.fov, screen, -ship.get_global_transform_interpolated().basis.z)
-	var nose := ScreenMarker.clamp_to_screen(Vector2(nose_at.x, nose_at.y), screen, EDGE)
+	var nose_point := Vector2(nose_at.x, nose_at.y)
+	if nose_at.z <= 0.0:
+		# Looking round, the nose can be behind the view: its mark waits at the edge on the side to turn back to.
+		var off := screen * 0.5 - nose_point
+		nose_point = screen * 0.5 + (off.normalized() if off.length_squared() > 1.0 else Vector2.DOWN) * screen.length()
+	var nose := ScreenMarker.clamp_to_screen(nose_point, screen, EDGE)
 	_draw_nose(nose)
 	if controls != null:
 		_draw_stick(nose, controls.stick)

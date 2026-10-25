@@ -4,7 +4,8 @@ extends Node
 ## the ship (design doc, "Camera"). V switches between them while flying; the game starts in the cockpit. Owns the
 ## shared camera shake, applies the player's field of view to both cameras, and places the active one every frame
 ## before the HUD draws over it (FlightOrder.CAMERAS_DRAW). Each physics tick, after the world has moved, it tells the
-## shake what the ship felt (FlightOrder.CAMERAS).
+## shake what the ship felt (FlightOrder.CAMERAS). While the pilot looks round (`look`, from PilotControls), the
+## cockpit camera turns the pilot's head and the chase camera swings round the ship by the same angles.
 
 signal view_changed(view: View)
 
@@ -15,6 +16,8 @@ enum View { COCKPIT, CHASE }
 
 var view: View = View.COCKPIT
 var shake: CameraShake
+## Where the pilot is looking (radians): x to the right, y up; zero is straight ahead (PilotControls.look).
+var look: Vector2 = Vector2.ZERO
 
 @onready var cockpit: CockpitCamera = $CockpitCamera
 @onready var chase: ChaseCamera = $ChaseCamera
@@ -50,6 +53,8 @@ func _physics_process(_delta: float) -> void:
 
 func _process(delta: float) -> void:
 	shake.advance(delta, tuning)
+	cockpit.look = look
+	chase.look = look
 	if view == View.CHASE:
 		chase.place(delta)
 	else:
@@ -87,3 +92,9 @@ func current() -> Camera3D:
 func _apply_settings() -> void:
 	cockpit.fov = Settings.fov
 	chase.fov = Settings.fov
+
+
+## The turn of a head looking `look` (radians: x to the right, y up) from straight ahead: turned left or right, then
+## tipped up or down.
+static func head_turn(look: Vector2) -> Basis:
+	return Basis(Vector3.UP, -look.x) * Basis(Vector3.RIGHT, look.y)
