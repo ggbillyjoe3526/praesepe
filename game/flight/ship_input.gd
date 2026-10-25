@@ -18,6 +18,8 @@ var full_stop: bool = false
 var toggle_orbit: bool = false
 ## Dock or land where that is offered, or undock or take off (one-shot, used by Arrivals).
 var dock: bool = false
+## Roll upright, level with the nearest planet or moon (one-shot).
+var roll_upright: bool = false
 
 
 ## Back to no input.
@@ -29,3 +31,4 @@ func reset() -> void:
 	full_stop = false
 	toggle_orbit = false
 	dock = false
+	roll_upright = false

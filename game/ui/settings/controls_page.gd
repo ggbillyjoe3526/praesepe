@@ -11,7 +11,9 @@ const KEYS: Array[Array] = [
 	["Slide left / right", [&"strafe_left", &"strafe_right"]],
 	["Slide up / down", [&"thrust_up", &"thrust_down"]],
 	["Steer (pitch and yaw)", []],
+	["Look round without steering (hold)", [&"look_around"]],
 	["Roll left / right", [&"roll_left", &"roll_right"]],
+	["Roll upright, level with the nearest planet or moon", [&"roll_upright"]],
 	["Flight assist on or off", [&"toggle_assist"]],
 	["Full stop", [&"full_stop"]],
 	["Cruise drive (aim at a place to fly there)", [&"toggle_cruise"]],
@@ -20,6 +22,7 @@ const KEYS: Array[Array] = [
 	["Cockpit or chase camera", [&"toggle_camera"]],
 	["Pause, settings and controls", [&"pause"]],
 	["Fullscreen or window", []],
+	["Screenshot", [&"screenshot"]],
 	["Debug overlay", []],
 ]
 ## The keys that aren't in the input map, by their words in KEYS.

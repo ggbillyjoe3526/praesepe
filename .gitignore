@@ -8,6 +8,11 @@ import.log
 smoke.log
 smoke.log.again
 unit.log
+# Release workflow logs (.github/workflows/release.yml)
+export.log
+exported.log
+installed.log
+release_notes.md
 # OS / editors
 .DS_Store
 Thumbs.db

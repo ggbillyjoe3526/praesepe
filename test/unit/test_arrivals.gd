@@ -1,8 +1,9 @@
 extends GutTest
 ## Docking and landing (design doc, "Docking and landing"): when a port is offered and why not, the one arrival
 ## function holding the ship at its berth and telling everyone (Events.arrived), G handing the ship to the way in
-## (Approach: its path is tested in test_approach.gd) and G, X or a bump taking it back, and leaving: eased out along
-## the port's way out, then handed back to the pilot at the port's exit speed.
+## (Approach: its path is tested in test_approach.gd) and G, X or a bump taking it back, settling onto a bay's floor,
+## and leaving: lifted off it, eased out along the port's way out, then handed back to the pilot at the port's exit
+## speed. Also the speed warning and the guide lights.
 
 const DT := 1.0 / 60.0
 
@@ -34,7 +35,7 @@ func before_each() -> void:
 	base.position = Vector3(0, 6000, 0)
 	_planet.add_child(base)
 	_pad = _port(base, Port.Kind.PAD, &"test_base", Transform3D(Basis.IDENTITY, Vector3(0, 5, 0)))
-	_pad.offer_range = 4000.0
+	_pad.offer_range = 600.0
 	_pad.hint_range = 8000.0
 	_ship = load("res://game/ship/greybox_ship.tscn").instantiate()
 	add_child_autofree(_ship)
@@ -90,15 +91,16 @@ func _place_ship(at: Vector3, velocity: Vector3 = Vector3.ZERO) -> void:
 	await wait_physics_frames(2)
 
 
-func test_a_dock_counts_from_its_marker_and_a_pad_from_its_planets_surface() -> void:
+func test_both_count_from_their_markers() -> void:
 	assert_eq(_dock.place.display_name, "Test Station")
 	assert_null(_dock.body, "a station is in open space")
 	assert_eq(_pad.place.display_name, "Test Base")
 	assert_eq(_pad.body, _planet, "the base stands on the planet")
 	assert_almost_eq(_dock.distance(_dock.global_position + Vector3(0, 900, 0)), 900.0, 0.01)
-	# Anywhere round the planet, the pad counts the height above the surface.
+	# The pad counts from itself too, as the station's bay does: not from anywhere round its planet.
+	assert_almost_eq(_pad.distance(_pad.global_position + Vector3(0, 900, 0)), 900.0, 0.01)
 	var far_side := _planet.global_position + Vector3(0, -7000, 0)
-	assert_almost_eq(_pad.distance(far_side), 1000.0, 0.01)
+	assert_gt(_pad.distance(far_side), _pad.hint_range, "the far side of the planet is far from the pad")
 	assert_almost_eq(_dock.exit_direction(), Vector3(1, 0, 0), Vector3.ONE * 0.0001, "out of the bay: its nose")
 	assert_almost_eq(_pad.exit_direction(), Vector3.UP, Vector3.ONE * 0.0001, "off the pad: straight up")
 
@@ -117,9 +119,14 @@ func test_offers_the_nearest_port_in_range() -> void:
 	await _place_ship(_dock.global_position + Vector3(3000, 0, 0))
 	assert_eq(_arrivals.nearest, _dock, "within its hint range")
 	assert_eq(_arrivals.refusal, Arrivals.Refusal.TOO_FAR)
-	await _place_ship(_planet.global_position + Vector3(0, 0, -6000.0 - 2500.0))
-	assert_eq(_arrivals.nearest, _pad, "2.5 km above the planet, far from the base, the pad is offered")
+	await _place_ship(_pad.global_position + Vector3(300, 400, 0))
+	assert_eq(_arrivals.nearest, _pad, "near the pad, landing is offered")
 	assert_eq(_arrivals.refusal, Arrivals.Refusal.NONE)
+	await _place_ship(_pad.global_position + Vector3(0, 2500, 0))
+	assert_eq(_arrivals.nearest, _pad, "high over the base it says how much closer to come")
+	assert_eq(_arrivals.refusal, Arrivals.Refusal.TOO_FAR)
+	await _place_ship(_planet.global_position + Vector3(0, 0, -6000.0 - 2500.0))
+	assert_null(_arrivals.nearest, "2.5 km above the planet but far from the base, it isn't")
 	await _place_ship(Vector3(0, 0, 0))
 	assert_null(_arrivals.nearest, "out between them: nothing")
 
@@ -319,3 +326,92 @@ func test_the_one_arrival_function_ends_any_orbit() -> void:
 	_arrivals.arrive(_pad)
 	assert_false(_ship.orbit.active())
 	assert_eq(_ship.orbit.spin, Vector3.ZERO)
+
+
+func test_settles_onto_a_bays_floor_and_lifts_off_it_leaving() -> void:
+	_dock.settle = 12.0
+	var up := _dock.global_basis.y
+	# On the dock's line (12 m over its floor), 20 m out, turned the berth's way.
+	_ship.global_basis = _dock.global_basis
+	await _place_ship(_dock.lane_origin() + _dock.exit_direction() * 20.0, -_dock.exit_direction() * 5.0)
+	_ship.input.dock = true
+	var settled := false
+	for i in 1200:
+		await wait_physics_frames(1)
+		if _arrivals.stage == Arrivals.Stage.DOCKED:
+			break
+		if _arrivals.approach.settling:
+			settled = true
+			var rel := _ship.global_position - _dock.global_position
+			assert_lt((rel - up * rel.dot(up)).length(), 1.0, "straight down over the berth")
+	assert_true(settled, "settles down onto the floor")
+	assert_eq(_arrivals.stage, Arrivals.Stage.DOCKED, "docks")
+	assert_almost_eq(_ship.global_position, _dock.global_position, Vector3.ONE * 0.001, "on the floor at the berth")
+	_ship.input.dock = true
+	var lifted := false
+	for i in 1200:
+		await wait_physics_frames(1)
+		if _arrivals.stage != Arrivals.Stage.LEAVING:
+			break
+		var rel := _ship.global_position - _dock.global_position
+		var height := rel.dot(up)
+		var out := rel.dot(_dock.exit_direction())
+		if height < _dock.settle - 0.01:
+			assert_lt(absf(out), 0.01, "lifts straight up first (%.2f m out at %.2f m up)" % [out, height])
+		else:
+			lifted = true
+		assert_lt(_ship.speed(), maxf(_arrivals.tuning.settle_speed, _dock.exit_speed) + 0.01, "gently")
+	assert_true(lifted, "lifts to the way out's height")
+	assert_eq(_arrivals.stage, Arrivals.Stage.FLYING)
+	var rel := _ship.global_position - _dock.global_position
+	assert_almost_eq(rel.dot(up), _dock.settle, 0.05, "and leaves along the way in's line")
+	assert_almost_eq(rel.dot(_dock.exit_direction()), _dock.exit_distance, 1.0, "out by the exit distance")
+
+
+func test_g_carries_on_at_about_the_speed_the_ship_was_going() -> void:
+	await _place_ship(_dock.global_position + Vector3(1000, 0, 0), Vector3(-20, 0, 0))
+	_ship.input.dock = true
+	var top := 0.0
+	for i in 600:
+		await wait_physics_frames(1)
+		top = maxf(top, _ship.speed())
+	assert_eq(_arrivals.stage, Arrivals.Stage.APPROACHING, "still on its way")
+	assert_lte(top, Approach.speed_limit(20.0, INF, _arrivals.tuning) + 0.01, "never much faster than it was going")
+
+
+func test_warns_when_coming_at_something_too_fast() -> void:
+	var station := _dock.get_parent() as Landmark
+	var wall := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2, 200, 200)
+	shape.shape = box
+	wall.add_child(shape)
+	station.add_child(wall)
+	wall.global_position = _dock.global_position + Vector3(400, 0, 0)
+	# 300 m from the wall: at 80 m/s it would need 256 m and more of hard braking, so that is too fast.
+	await _place_ship(_dock.global_position + Vector3(700, 0, 0), Vector3(-80, 0, 0))
+	assert_true(_arrivals.warning, "too fast for the wall ahead")
+	assert_eq(_arrivals.warning_place, station, "the wall is the station's")
+	assert_almost_eq(_arrivals.warning_time, (300.0 - 1.0 - _arrivals.tuning.warn_reach) / 80.0, 0.1,
+			"there in under 4 s")
+	await _place_ship(_dock.global_position + Vector3(700, 0, 0), Vector3(-20, 0, 0))
+	assert_false(_arrivals.warning, "slow enough to stop in time")
+	await _place_ship(_dock.global_position + Vector3(700, 0, 0), Vector3(80, 0, 0))
+	assert_false(_arrivals.warning, "going away from it")
+	await _place_ship(_dock.global_position + Vector3(700, 0, 0), Vector3(0, -80, 0))
+	assert_false(_arrivals.warning, "going along it")
+
+
+func test_lights_the_way_while_lined_up() -> void:
+	assert_not_null(_dock.get_node_or_null(^"GuideLight"), "the bay has a guide light")
+	assert_not_null(_pad.get_node_or_null(^"GuideLight"), "and so does the pad")
+	await _place_ship(_dock.global_position + _dock.exit_direction() * 100.0)
+	assert_true(_dock.guiding, "in the dock's lane, its light is lit")
+	assert_false(_pad.guiding)
+	await _place_ship(_dock.global_position + Vector3(0, 600, 0))
+	assert_false(_dock.guiding, "off the line, it isn't")
+	_ship.input.dock = true
+	await wait_physics_frames(2)
+	assert_eq(_arrivals.stage, Arrivals.Stage.APPROACHING)
+	assert_true(_dock.guiding, "flying in, it is")

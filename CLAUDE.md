@@ -6,21 +6,28 @@ flags. The project instructions hold the full rules; this file holds what is spe
 
 ## Repo notes
 - **Godot 4.7.2-stable**, standard build, typed GDScript, Forward+, Jolt physics at a fixed 60 Hz tick. The version is
-  pinned in `project.godot` (`config/features`) and `GODOT_VERSION` in `.github/workflows/ci.yml`; they change
-  together, and only with the owner.
+  pinned in `project.godot` (`config/features`) and `GODOT_VERSION` in `.github/workflows/ci.yml` and
+  `release.yml`; they change together, and only with the owner.
 - **Cloud sessions:** the SessionStart hook (`.claude/hooks/session-start.mjs`) installs that Godot as `godot` on PATH.
   Export templates are not installed. Cloud machines have no GPU: never judge feel or report frame rates from here.
 - **Checks** (CI runs all of them on every pull request): `tools/smoke_test.sh` (import, then `-- --smoke`, fails on
   any script error or `ERROR:` line), `tools/unit_tests.sh` (Gut, tests in `test/unit/`), `gdlint game test tools`
-  (settings in `gdlintrc`), `tools/changelog.sh check`.
+  (settings in `gdlintrc`), `tools/changelog.sh check`, `python3 tools/wiki.py check` (the Wiki workflow).
 - **Seeds are law:** gameplay draws only from `Game.rng(<stream>)` (`game/core/game.gd`); presentation uses
   `Game.FX_STREAM`. Never the global `randi()`/`randf()`.
 - **Event bus:** systems hear about docking, landing and saving through the `Events` autoload
   (`game/core/events.gd`); every docking and landing goes through `Arrivals.arrive()` (`game/arrival/arrivals.gd`).
 - **Saves** go through `SaveFile` (`game/save/save_file.gd`): atomic write, read-back check, one backup, damaged copies
   set aside and never deleted.
+- **Releases:** `RELEASING.md`. A `v0.1-dev.1`-style tag on `main` (or the Release workflow's button) builds, tests and
+  publishes the Windows installer and zip (`.github/workflows/release.yml`); only the owner releases.
 - **Changelog:** never edit `CHANGELOG.md` in a feature pull request. Add one new file `changelog.d/<short-name>.md`
   (`changelog.d/README.md`).
+- **Player wiki:** the GitHub wiki's pages live in `docs/wiki/` (`docs/wiki/README.md`) and are published on every
+  merge to `main` by `.github/workflows/wiki.yml`; never edit the wiki on GitHub. Every pull request a player would
+  notice (controls, settings, places, ship stats, HUD words, jobs, rewards, upgrades, menus) updates the page that
+  describes it in the same pull request, and moves anything it ships off `Roadmap.md`. The wiki describes what is on
+  `main`; planned work stays on the Roadmap page. Patch Notes is generated from the changelog notes.
 - **Git:** branch from the latest `main`, open a pull request; the owner merges. Never push to `main`, never create a
   tag unless the owner asks for a release.
 - **Reading big files:** a hook stops whole-file reads over 40 KB; grep, then read with offset and limit.

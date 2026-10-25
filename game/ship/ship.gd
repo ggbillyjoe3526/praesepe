@@ -9,7 +9,8 @@ extends RigidBody3D
 ## turns it; the thrust keys and Z do nothing until it drops out. Locked onto a place, the drive also turns the ship's
 ## nose to follow its course, until the pilot moves the mouse. In orbit (Orbit) the orbit sets its velocity the same
 ## way and the ship's attitude turns with the orbit; O or a thrust key leaves orbit once the nose has come up level, X
-## or Z at once, and then they work as usual.
+## or Z at once, and then they work as usual. R rolls it upright against the nearest planet or moon (Upright), through
+## the roll the flight model is asked for, until it is level or the pilot rolls it with Q or E.
 ## Docking or landing (Arrivals), it flies itself in: Arrivals guides it at a set velocity and spin each tick while it
 ## ignores its input. Docked or landed it is held still at its berth; leaving, Arrivals guides it out again before
 ## handing it back to the pilot.
@@ -19,7 +20,11 @@ signal assist_changed(on: bool)
 signal cruise_changed(event: CruiseDrive.Event, place: Landmark)
 ## The ship entered, settled into, left or was refused an orbit (Orbit.Event), round `body` where there is one.
 signal orbit_changed(event: Orbit.Event, body: CelestialBody)
+## Rolling upright started, finished or had nothing to roll to (Upright.Event), against `body` where there is one.
+signal upright_changed(event: Upright.Event, body: CelestialBody)
 
+## Which ship this is (saved with the game; the greybox stands in for the Hauler until the three starter ships exist).
+@export var model_id: StringName = &"hauler"
 @export var tuning: ShipTuning
 @export var cruise_tuning: CruiseTuning
 @export var orbit_tuning: OrbitTuning
@@ -32,6 +37,7 @@ var input: ShipInput = ShipInput.new()
 var model: FlightModel
 var cruise: CruiseDrive
 var orbit: Orbit
+var upright: Upright
 ## How suddenly the ship's velocity changed in the last physics step for a reason other than its own thrusters, such
 ## as a bump (m/s). Zero in open space.
 var jolt: float = 0.0
@@ -59,6 +65,7 @@ func _ready() -> void:
 	model = FlightModel.new(tuning)
 	cruise = CruiseDrive.new(cruise_tuning)
 	orbit = Orbit.new(orbit_tuning)
+	upright = Upright.new(tuning)
 
 
 func _physics_process(delta: float) -> void:
@@ -82,6 +89,7 @@ func _physics_process(delta: float) -> void:
 	_step_orbit(delta)
 	if cruise.locked():
 		input.turn = cruise.turn_for(global_basis, input.turn.z, tuning.max_rates())
+	_step_upright(pilot_turn.z)
 	if cruise.event == CruiseDrive.Event.ENGAGED or orbit.event == Orbit.Event.ENTERING:
 		model.set_assist(true, 0.0)
 	model.step(pilot_velocity(), pilot_spin(), input, delta)
@@ -113,6 +121,8 @@ func _physics_process(delta: float) -> void:
 		cruise_changed.emit(cruise.event, cruise.place)
 	if orbit.event != Orbit.Event.NONE:
 		orbit_changed.emit(orbit.event, orbit.body if orbit.event != Orbit.Event.REFUSED else orbit.offered)
+	if upright.event != Upright.Event.NONE:
+		upright_changed.emit(upright.event, upright.about)
 
 
 ## The orbit's part of a tick, before the flight model runs: O enters or leaves it, anything else the pilot does with
@@ -132,6 +142,17 @@ func _step_orbit(delta: float) -> void:
 		input.turn = orbit.turn_for(global_basis, global_position, input.turn, tuning.max_rates())
 
 
+## Rolling upright's part of a tick, once the orbit and the cruise drive have steered: R starts it, the pilot's own
+## roll (`pilot_roll`) ends it, and while it lasts it asks for the roll. While the orbit turns the ship to face along
+## it, or levels it out to leave, the orbit has the roll (and levels the ship itself).
+func _step_upright(pilot_roll: float) -> void:
+	var roll_spin := pilot_spin().z
+	upright.step(global_basis, global_position, input.roll_upright, pilot_roll, roll_spin, model.assist)
+	input.roll_upright = false
+	if upright.active() and not orbit.turning and orbit.phase != Orbit.Phase.LEAVING:
+		input.turn.z = upright.roll_for(global_basis, global_position, roll_spin, model.assist)
+
+
 ## Docked, landed or being guided in or out: no flight and nothing from the input. The one-shots are dropped so a key
 ## pressed meanwhile does nothing once the ship flies again. While guided, a bump still shows (as `jolt`), and the
 ## guiding's push counts as the thrusters', so the pilot's head sways and the engines rumble as in flight.
@@ -142,6 +163,8 @@ func _held(delta: float) -> void:
 	input.toggle_cruise = false
 	input.toggle_orbit = false
 	input.full_stop = false
+	input.roll_upright = false
+	upright.stop()
 	var before := _expected_velocity
 	linear_velocity = guided_velocity if guided else Vector3.ZERO
 	angular_velocity = guided_spin if guided else Vector3.ZERO
