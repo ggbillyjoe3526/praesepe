@@ -26,9 +26,9 @@ func _screen() -> PauseScreen:
 
 
 func test_controls_start_at_the_settings() -> void:
-	Settings.set_fov(90.0)
+	Settings.set_fov(80.0)
 	var screen := _screen()
-	assert_eq(screen.fov_slider.value, 90.0)
+	assert_eq(screen.fov_slider.value, 80.0)
 	assert_eq(screen.shake_slider.value, 1.0)
 	assert_true(screen.head_bob_check.button_pressed)
 	assert_false(screen.reduce_motion_check.button_pressed)
@@ -36,10 +36,10 @@ func test_controls_start_at_the_settings() -> void:
 
 func test_the_controls_change_the_settings() -> void:
 	var screen := _screen()
-	screen.fov_slider.value = 95.0
+	screen.fov_slider.value = 85.0
 	screen.shake_slider.value = 0.4
 	screen.head_bob_check.button_pressed = false
-	assert_eq(Settings.fov, 95.0)
+	assert_eq(Settings.fov, 85.0)
 	assert_almost_eq(Settings.shake, 0.4, 0.0001)
 	assert_false(Settings.head_bob)
 
