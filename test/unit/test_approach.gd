@@ -7,8 +7,6 @@ extends GutTest
 const DT := 1.0 / 60.0
 ## Longest any approach here may take (s): the far side of the planet is the longest way in.
 const LIMIT := 120.0
-## How far (m) from its centre the ship reaches (wingtips and nose), as the docking computer reckons it.
-const SHIP_REACH := 7.0
 
 var _tuning: ArrivalTuning
 var _rates: Vector3
@@ -101,52 +99,65 @@ func _corners(structure: Node3D) -> Array[Vector3]:
 	return out
 
 
+## How far (m) `point` (world space) is inside `shape` widened by the ship's reach (its wingtips), and the way back out
+## through the nearest side (world space); [0.0, Vector3.ZERO] when it is clear of it. Boxes and upright cylinders.
+func _inside(shape: CollisionShape3D, point: Vector3) -> Array:
+	var local := shape.global_transform.affine_inverse() * point
+	var reach := _tuning.reach
+	var cylinder := shape.shape as CylinderShape3D
+	var depth := 0.0
+	var normal := Vector3.ZERO
+	if cylinder != null:
+		var round := Vector2(local.x, local.z)
+		var from_side := cylinder.radius + reach - round.length()
+		var from_end := cylinder.height * 0.5 + reach - absf(local.y)
+		if from_side <= 0.0 or from_end <= 0.0:
+			return [0.0, Vector3.ZERO]
+		depth = minf(from_side, from_end)
+		normal = Vector3(0.0, signf(local.y), 0.0) if from_end < from_side \
+				else Vector3(round.x, 0.0, round.y).normalized()
+	else:
+		var box := shape.shape.get_debug_mesh().get_aabb().grow(reach)
+		if not box.has_point(local):
+			return [0.0, Vector3.ZERO]
+		depth = INF
+		for axis in 3:
+			var face := Vector3.ZERO
+			face[axis] = 1.0
+			if local[axis] - box.position[axis] < depth:
+				depth = local[axis] - box.position[axis]
+				normal = -face
+			if box.end[axis] - local[axis] < depth:
+				depth = box.end[axis] - local[axis]
+				normal = face
+	return [depth, (shape.global_basis * normal).normalized()]
+
+
 ## What is in the way of the ship going from `from` along `motion` among the solid parts under `structure`, as the
-## way back out of the first one it meets (Approach.obstacle, as Arrivals asks the physics): each part widened by the
-## ship's reach, checked a metre at a time.
+## way back out of the first one it meets (Approach.obstacle, as Arrivals asks the physics), checked a metre at a time.
 func _in_the_way(from: Vector3, motion: Vector3, structure: Node3D) -> Vector3:
 	var steps := int(ceil(motion.length())) + 1
 	for i in steps + 1:
 		var point := from + motion * (float(i) / steps)
 		for child in structure.get_children():
 			var shape := child as CollisionShape3D
-			if shape == null:
-				continue
-			var box := shape.shape.get_debug_mesh().get_aabb().grow(_tuning.reach)
-			var local := shape.global_transform.affine_inverse() * point
-			if not box.has_point(local):
-				continue
-			# Out through the nearest face.
-			var nearest := INF
-			var normal := Vector3.ZERO
-			for axis in 3:
-				var face := Vector3.ZERO
-				face[axis] = 1.0
-				if local[axis] - box.position[axis] < nearest:
-					nearest = local[axis] - box.position[axis]
-					normal = -face
-				if box.end[axis] - local[axis] < nearest:
-					nearest = box.end[axis] - local[axis]
-					normal = face
-			return (shape.global_basis * normal).normalized()
+			if shape != null:
+				var inside := _inside(shape, point)
+				if inside[0] > 0.0:
+					return inside[1]
 	return Vector3.ZERO
 
 
-## How deep (m) the worst point of `path` went into any solid part under `structure`, each part widened by the ship's
-## half-length; 0 when it never touched one.
+## How deep (m) the worst point of `path` went into any solid part under `structure` (_inside); 0 when it never
+## touched one.
 func _deepest_in(structure: Node3D, path: Array[Vector3]) -> float:
 	var worst := 0.0
 	for child in structure.get_children():
 		var shape := child as CollisionShape3D
 		if shape == null:
 			continue
-		var box := shape.shape.get_debug_mesh().get_aabb().grow(SHIP_REACH)
-		var to_local := shape.global_transform.affine_inverse()
 		for point in path:
-			var local := to_local * point
-			if box.has_point(local):
-				var inside := (local - box.position).min(box.end - local)
-				worst = maxf(worst, minf(inside.x, minf(inside.y, inside.z)))
+			worst = maxf(worst, _inside(shape, point)[0])
 	return worst
 
 
@@ -236,7 +247,8 @@ func test_climbs_out_of_the_middle_of_the_station_without_touching_it() -> void:
 	var station := dock.get_parent() as Node3D
 	# Inside the ring's wheel: between its spokes just above and below them, beside the spine, and under the wheel.
 	var starts: Array[Vector3] = [Vector3(60, 20, 0), Vector3(40, 20, 40), Vector3(47, 3, -69), Vector3(87, 3, -29),
-			Vector3(-73, 3, 51), Vector3(47, -37, 11), Vector3(87, -77, 11), Vector3(47, -157, 11), Vector3(0, 30, 38)]
+			Vector3(-73, 3, 51), Vector3(47, -37, 11), Vector3(87, -77, 11), Vector3(47, -157, 11), Vector3(0, 30, 38),
+			Vector3(90, 0, 30), Vector3(83.15, 0, 34.44)]
 	for start in starts:
 		var f := _fly(dock, station.global_position + start)
 		assert_true(f.done, "arrives from %s" % start)
@@ -244,6 +256,24 @@ func test_climbs_out_of_the_middle_of_the_station_without_touching_it() -> void:
 		assert_eq(into, 0.0, "never touches the station from %s (%.1f m into it)" % [start, into])
 		assert_lt(f.time, 60.0, "takes under a minute from %s" % start)
 		_check_final(dock, f)
+
+
+func test_docks_from_anywhere_inside_the_bay() -> void:
+	var dock := _station()
+	var structure := dock.get_parent().get_node(^"Structure") as Node3D
+	var station := dock.get_parent() as Node3D
+	# Off to each side, high and low, behind the berth, and just inside the mouth (the berth is at (0, 155, 0)).
+	var starts: Array[Vector3] = [Vector3(20, 155, 15), Vector3(-20, 160, 10), Vector3(30, 148, -14),
+			Vector3(-15, 150, -12), Vector3(35, 162, 0)]
+	for start in starts:
+		assert_true(dock.in_lane(station.global_position + start), "%s is in the lane" % start)
+		var f := _fly(dock, station.global_position + start)
+		assert_true(f.done, "arrives from %s" % start)
+		var into := _deepest_in(structure, f.path)
+		assert_eq(into, 0.0, "never touches the bay from %s (%.1f m into it)" % [start, into])
+		assert_lt(f.time, 60.0, "takes under a minute from %s" % start)
+	assert_false(dock.in_lane(station.global_position + Vector3(20, 185, 0)), "over the roof is not")
+	assert_false(dock.in_lane(station.global_position + Vector3(20, 155, 40)), "beside the wall is not")
 
 
 func test_brakes_before_cutting_in_when_pressed_fast_and_close() -> void:

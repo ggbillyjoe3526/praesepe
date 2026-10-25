@@ -248,6 +248,9 @@ func test_feels_ahead_for_what_is_in_the_way() -> void:
 	assert_eq(_arrivals._in_the_way(at, Vector3(0, 0, 80)), Vector3.ZERO, "nothing along the wall")
 	assert_eq(_arrivals._in_the_way(at, Vector3(30, 0, 0)), Vector3.ZERO, "nothing short of the wall (less its reach)")
 	assert_eq(_arrivals._in_the_way(at, Vector3.ZERO), Vector3.ZERO, "never the ship itself")
+	var close := wall.global_position - Vector3(5, 0, 0)
+	assert_almost_eq(_arrivals._in_the_way(close, Vector3(0, 0, 80)), Vector3(-1, 0, 0), Vector3.ONE * 0.01,
+			"already within reach of the wall: the wall, whichever way it is going")
 
 
 func test_arriving_holds_the_ship_still_at_the_berth() -> void:

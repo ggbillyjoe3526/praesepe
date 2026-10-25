@@ -212,4 +212,4 @@ max_speed = 100.0
 exit_distance = 30.0
 exit_speed = 15.0
 approach_distance = 250.0
-lane_radius = 40.0
+lane = Vector2(40, 40)

@@ -162,7 +162,7 @@ func _fly_in(asked: bool, delta: float) -> void:
 
 
 ## What is in the ship's way going from `from` along `motion` (Approach.obstacle): a ball as wide as the ship's reach,
-## swept along it, and the normal of the first thing it meets.
+## swept along it, and the normal of the first thing it meets (or of what it is already touching).
 func _in_the_way(from: Vector3, motion: Vector3) -> Vector3:
 	if _feeler == null:
 		_feeler = PhysicsShapeQueryParameters3D.new()
@@ -173,6 +173,11 @@ func _in_the_way(from: Vector3, motion: Vector3) -> Vector3:
 		_feeler.collision_mask = ship.collision_mask
 	var space := ship.get_world_3d().direct_space_state
 	_feeler.transform = Transform3D(Basis.IDENTITY, from)
+	_feeler.motion = Vector3.ZERO
+	# Already within reach of something: the sweep can't see what it starts in, so that is what is in the way.
+	var touching := space.get_rest_info(_feeler)
+	if not touching.is_empty():
+		return touching.get("normal", Vector3.ZERO)
 	_feeler.motion = motion
 	var fractions := space.cast_motion(_feeler)
 	if fractions.is_empty() or fractions[1] >= 1.0:

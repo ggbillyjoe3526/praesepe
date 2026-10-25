@@ -7,10 +7,11 @@ extends RefCounted
 ## The way in has two legs. First the ship flies to the port's gate (Port.gate): out in front of the bay's mouth, or
 ## high above the pad. On the way it goes round the station or planet (Port.centre) rather than through it, never
 ## nearer than the gate is, so it misses the station's ring and panels and the base's tower; starting nearer than
-## that, it climbs out first, and coming in fast, it brakes before it gets that near. Near the gate it cuts the
-## corner onto the final leg: straight in along the port's way out, slowing all the way to a soft touch. Only a ship
-## already in the port's lane (Port.lane_radius round the final leg's line) takes the final leg from where it is. It faces where
-## it is going until it is close, then turns to face along the final leg, and it holds short until it has lined up.
+## that, it climbs out first, feeling ahead for anything in its way and sliding along it (obstacle), and coming in
+## fast, it brakes before it gets that near. Near the gate it cuts the corner onto the final leg: straight in along
+## the port's way out, slowing all the way to a soft touch. Only a ship already in the port's lane (Port.in_lane:
+## inside the bay or in front of its mouth, or over the pad) takes the final leg from where it is. It faces where it
+## is going until it is close, then turns to face along the final leg, and it holds short until it has lined up.
 ## Into a bay it goes nose first, so the pilot sees the bay coming, stops short of the berth to turn round (yawing, in
 ## two quarter turns, so it never flips over) and eases back onto it, looking out of the mouth; onto a pad it settles
 ## straight down, already facing the berth's way.
@@ -58,11 +59,10 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 	var along := (at - berth).dot(out)
 	var side := (at - berth) - out * along
 	# It is on the final leg round the gate (within a corner's length of it along the leg and off to the side), or
-	# anywhere along the leg in the port's lane. Just past the berth counts too (a ship sitting on the pad), and it
-	# rises the last bit.
+	# anywhere in the port's lane. Past the berth counts too (deep in the bay, or sitting on the pad), and it comes
+	# back the last bit.
 	var by_gate := absf(along - port.approach_distance) <= tuning.corner and side.length() <= tuning.corner
-	var in_lane := along > -tuning.below_berth and along <= port.approach_distance \
-			and side.length() <= port.lane_radius
+	var in_lane := port.in_lane(at)
 	if not final and (by_gate or in_lane):
 		final = true
 	var target: Vector3
@@ -97,7 +97,7 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 		# Where it must stop next: short of the berth until lined up, at the turning point until turned round, then
 		# the berth. It never goes past that this tick.
 		var stop := 0.0
-		if side.length() > port.lane_radius:
+		if not in_lane:
 			# Not in the lane yet: no farther in than a corner's length inside the gate, clear of everything.
 			stop = port.approach_distance - tuning.corner
 		elif not lined_up and not turning_round:
@@ -140,15 +140,15 @@ func step(at: Vector3, ship_basis: Basis, moving: Vector3, spinning: Vector3, ra
 
 ## `target` turned along whatever is in its way (obstacle) within its stopping distance and look_ahead more, the way
 ## it is going now and the way it wants to go: along the surface, or along a second one it then meets; head on, along
-## the surface away from the centre. Climbing out of the middle of a station, that takes it up the inside of the ring
-## and over it rather than through.
+## the surface toward the gate. Climbing out of the middle of a station, that takes it up the inside of the ring and
+## over it rather than through.
 func _around(at: Vector3, moving: Vector3, target: Vector3) -> Vector3:
 	var speed := target.length()
 	if not obstacle.is_valid() or speed < 0.01:
 		return target
 	var look := moving.length_squared() / (2.0 * tuning.travel_accel) + tuning.look_ahead
 	var way := target / speed
-	var outward := (at - port.centre()).normalized()
+	var to_gate := (port.gate() - at).normalized()
 	var going := moving.length() > 0.5
 	for i in 3:
 		var away: Vector3 = obstacle.call(at, (moving.normalized() if i == 0 and going else way) * look)
@@ -156,10 +156,12 @@ func _around(at: Vector3, moving: Vector3, target: Vector3) -> Vector3:
 			if i == 0:
 				continue
 			break
-		way -= away * minf(way.dot(away), 0.0)
-		if way.length() < 0.3:
-			way = outward - away * outward.dot(away)
-		way = way.normalized() if way.length() > 0.01 else away
+		var along_it := way - away * minf(way.dot(away), 0.0)
+		if along_it.length() < 0.01:
+			along_it = to_gate - away * to_gate.dot(away)
+		if along_it.length() < 0.01:
+			along_it = away.cross(Vector3.UP if absf(away.y) < 0.9 else Vector3.RIGHT)
+		way = along_it.normalized()
 	return way * speed
 
 

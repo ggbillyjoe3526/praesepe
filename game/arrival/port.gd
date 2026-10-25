@@ -34,9 +34,12 @@ enum Kind { DOCK, PAD }
 ## For a bay the ship flies into nose first: how far (m) from the berth it stops and turns round to face out, before
 ## easing back the rest of the way. 0 for a pad: it comes down already facing the berth's way.
 @export var turn_round_at: float = 0.0
-## How far (m) from the final leg's line a ship may be and still take the final leg straight from there: inside the
-## bay's mouth, or over the pad clear of the buildings round it. Farther out, it goes to the gate first.
-@export var lane_radius: float = 10.0
+## The port's lane: where a ship takes the final leg straight from where it is, because nothing stands between it
+## and the line in (inside the bay, or over the pad clear of the buildings round it). Elsewhere it goes to the gate
+## first. Half its width (m) across the port (its x axis) and up and down it (its y axis for a dock, z for a pad), from
+## the gate in to this far (m) behind the berth (to the bay's back wall, or under the pad's marker).
+@export var lane: Vector2 = Vector2(10.0, 10.0)
+@export var lane_behind: float = 10.0
 
 ## The station or base it belongs to (its nearest Landmark ancestor), and the planet or moon it stands on (its nearest
 ## CelestialBody ancestor), or null for a station in space.
@@ -81,3 +84,13 @@ func centre() -> Vector3:
 ## Which way (world space, unit) the ship leaves.
 func exit_direction() -> Vector3:
 	return global_basis.y if kind == Kind.PAD else -global_basis.z
+
+
+## Whether a ship at `at` (world space) is in the port's lane (lane, lane_behind).
+func in_lane(at: Vector3) -> bool:
+	var along := (at - global_position).dot(exit_direction())
+	if along < -lane_behind or along > approach_distance:
+		return false
+	var local := global_basis.orthonormalized().inverse() * (at - global_position)
+	var across := Vector2(local.x, local.z if kind == Kind.PAD else local.y)
+	return (across / lane).length() <= 1.0
