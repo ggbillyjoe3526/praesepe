@@ -9,8 +9,8 @@ extends Node
 ##
 ## arrive() is the one arrival function (project instructions, "One arrival function for every landing and docking"):
 ## every docking and every landing goes through it, and it is all the rest of the game sees (Events.arrived), so how
-## the ship gets there can change without touching contracts, bases or saves. Loading a game docked and the tow back
-## to a base will use it too.
+## the ship gets there can change without touching contracts, bases or saves. A new game starts docked through it,
+## and continuing a game saved at a berth puts the ship back through it too, without telling anyone.
 
 enum Stage {
 	FLYING, ## Free flight: ports may be offered.
@@ -80,15 +80,17 @@ func _physics_process(delta: float) -> void:
 ## The one arrival function: the ship docks or lands at `to`. It is placed at the berth and held still there (the
 ## cruise drive and any orbit stopped), and everyone listening hears of it (Events.arrived): the autosave writes the
 ## game and the HUD says so. Done in one tick; coming in from the way in, the ship is already there, and touches
-## down with a bump as hard as its speed then (never softer than touch_speed).
-func arrive(to: Port) -> void:
+## down with a bump as hard as its speed then (never softer than touch_speed). Continuing a game saved at a berth
+## (GameStart) places the ship there without `announce`: nothing is told, so nothing is saved again or paid twice.
+func arrive(to: Port, announce: bool = true) -> void:
 	var touch := maxf(tuning.touch_speed, ship.linear_velocity.length()) if stage == Stage.APPROACHING else 0.0
 	port = to
 	nearest = null
 	approach = null
 	ship.hold_at(to, touch)
 	stage = Stage.DOCKED
-	Events.arrived.emit(to)
+	if announce:
+		Events.arrived.emit(to)
 
 
 ## Leaves the berth: the ship is eased out along the port's way out, then handed back to the pilot.

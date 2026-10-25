@@ -170,6 +170,24 @@ func hold_at(port: Port, touch: float = 0.0) -> void:
 	reset_physics_interpolation()
 
 
+## Puts the ship back in flight as a saved game left it (GameStart): at `at` (world space), moving at `velocity` and
+## spinning at `spin` (world space), with flight assist `assist` holding `held` m/s forward. Nothing counts as a bump.
+func resume_flight(at: Transform3D, velocity: Vector3, spin: Vector3, assist: bool, held: float) -> void:
+	cruise.stop()
+	orbit.stop()
+	berth = null
+	bound_for = null
+	guided = false
+	global_transform = at
+	linear_velocity = velocity
+	angular_velocity = spin
+	_expected_velocity = velocity
+	model.assist = assist
+	model.set_speed = clampf(held, -tuning.max_reverse_speed, tuning.max_speed)
+	input.reset()
+	reset_physics_interpolation()
+
+
 ## Starts flying the ship in to `port` (Arrivals): the cruise drive and any orbit stop, and from now on it goes as it
 ## is guided, carrying on as it was until then.
 func approach(port: Port) -> void:

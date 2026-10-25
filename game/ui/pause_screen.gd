@@ -2,7 +2,8 @@ class_name PauseScreen
 extends CanvasLayer
 ## Pausing (project instructions, "Pause on Esc, focus loss and mouse-capture loss"): Esc, the window losing focus or
 ## the game losing hold of the mouse stops the game (the tree is paused, so the ship, the clock and every timer stand
-## still) and shows this screen with the mouse free. Esc or Resume carries on; the mouse is captured again. The pause
+## still) and shows this screen with the mouse free. Esc or Resume carries on; the mouse is captured again. Quit to
+## title goes back to the start menu, Quit to desktop closes the game. The pause
 ## mechanic follows the owner's Airsoft-Next project (game/ui/pause_menu.gd); its look is a placeholder.
 ## It also holds the comfort settings until the settings menu exists: field of view, camera shake, head bob and reduce
 ## motion. Each takes effect at once (the paused frame behind shows the new field of view) and is saved on resume or
@@ -135,6 +136,8 @@ func _build() -> void:
 	list.add_child(_seed)
 	_resume = _button(list, "Resume (Esc)")
 	_resume.pressed.connect(close)
+	var to_title := _button(list, "Quit to title")
+	to_title.pressed.connect(_quit_to_title)
 	var quit := _button(list, "Quit to desktop")
 	quit.pressed.connect(_quit)
 	_build_comfort(list)
@@ -143,6 +146,13 @@ func _build() -> void:
 func _quit() -> void:
 	Settings.commit()
 	get_tree().quit()
+
+
+## Back to the title screen (TitleScreen): the game scene is freed whole, so nothing of it is left running.
+func _quit_to_title() -> void:
+	Settings.commit()
+	get_tree().paused = false
+	get_tree().change_scene_to_file(TitleScreen.SCENE)
 
 
 func _build_comfort(list: VBoxContainer) -> void:
