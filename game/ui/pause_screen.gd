@@ -3,7 +3,8 @@ extends CanvasLayer
 ## Pausing (project instructions, "Pause on Esc, focus loss and mouse-capture loss"): Esc, the window losing focus or
 ## the game losing hold of the mouse stops the game (the tree is paused, so the ship, the clock and every timer stand
 ## still) and shows this screen with the mouse free. Esc or Resume carries on; the mouse is captured again. Quit to
-## title goes back to the start menu, Quit to desktop closes the game. The pause mechanic follows the owner's Airsoft-Next project (game/ui/pause_menu.gd); its look is a placeholder.
+## title goes back to the start menu, Quit to desktop closes the game. The pause mechanic follows the owner's
+## Airsoft-Next project (game/ui/pause_menu.gd); its look is a placeholder.
 ## Settings opens the settings menu (SettingsMenu) over it; Esc or Back comes back here. Any change is saved when the
 ## menu closes, on resume and on quit (Settings.commit()).
 

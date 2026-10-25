@@ -10,7 +10,7 @@ extends Node
 ## arrive() is the one arrival function (project instructions, "One arrival function for every landing and docking"):
 ## every docking and every landing goes through it, and it is all the rest of the game sees (Events.arrived), so how
 ## the ship gets there can change without touching contracts, bases or saves. A new game starts docked through it,
-## and continuing a game saved at a berth puts the ship back through it too, without telling anyone.
+## and continuing a game saved at a berth puts the ship back through it too (Events.resumed_at, not Events.arrived).
 
 enum Stage {
 	FLYING, ## Free flight: ports may be offered.
@@ -81,15 +81,18 @@ func _physics_process(delta: float) -> void:
 ## cruise drive and any orbit stopped), and everyone listening hears of it (Events.arrived): the autosave writes the
 ## game and the HUD says so. Done in one tick; coming in from the way in, the ship is already there, and touches
 ## down with a bump as hard as its speed then (never softer than touch_speed). Continuing a game saved at a berth
-## (GameStart) places the ship there without `announce`: nothing is told, so nothing is saved again or paid twice.
-func arrive(to: Port, announce: bool = true) -> void:
+## (GameStart) places the ship there `resumed`: Events.resumed_at is told instead, so nothing is saved again or paid
+## twice, while anything keeping track of where the ship is still hears of it.
+func arrive(to: Port, resumed: bool = false) -> void:
 	var touch := maxf(tuning.touch_speed, ship.linear_velocity.length()) if stage == Stage.APPROACHING else 0.0
 	port = to
 	nearest = null
 	approach = null
 	ship.hold_at(to, touch)
 	stage = Stage.DOCKED
-	if announce:
+	if resumed:
+		Events.resumed_at.emit(to)
+	else:
 		Events.arrived.emit(to)
 
 

@@ -15,6 +15,7 @@ func after_each() -> void:
 	GameStart.mode = GameStart.Mode.NEW
 	GameStart.ship_id = GameStart.DEFAULT_SHIP
 	GameStart.saved = {}
+	GameStart.pending = false
 	Game.start_world(_seed_before)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -59,3 +60,14 @@ func test_continuing_docked_is_in_the_bay() -> void:
 	assert_eq(ship.berth.id, GameStart.START_PORT)
 	assert_eq(main.get_node("Hud/FlightHud").toast_text(), FlightHud.welcome_message(ship.berth))
 	assert_eq(FlightHud.welcome_message(ship.berth), "Welcome back  ·  Docked at Halfway Station")
+
+
+func test_opened_on_its_own_it_starts_in_flight_and_saves_nothing() -> void:
+	var saved := []
+	var on_saved := func(ok: bool) -> void: saved.append(ok)
+	Events.game_saved.connect(on_saved)
+	var main := await _open_main()
+	Events.game_saved.disconnect(on_saved)
+	var ship: Ship = main.get_node("World/Ship")
+	assert_null(ship.berth, "flying at the start point, as before the title screen")
+	assert_eq(saved, [], "the player's save is never touched")

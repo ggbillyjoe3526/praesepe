@@ -25,6 +25,9 @@ const START_PORT := &"halfway_station"
 const DEFAULT_SHIP := &"hauler"
 
 static var mode: Mode = Mode.NEW
+## Whether the title screen asked for a start. Opening the game scene on its own (F6 in the editor) starts in flight
+## at the system's start point instead, and never writes the player's save.
+static var pending: bool = false
 ## The ship this game is flown in (ShipClass.id). Saved with the game.
 static var ship_id: StringName = DEFAULT_SHIP
 ## The saved game being continued (SaveGame's data), while mode is CONTINUE.
@@ -34,6 +37,7 @@ static var saved: Dictionary = {}
 ## Starts a new game in `ship`, on the world `seed_value`: the main scene starts it docked at Halfway Station.
 static func new_game(ship: StringName, seed_value: int) -> void:
 	mode = Mode.NEW
+	pending = true
 	ship_id = ship
 	saved = {}
 	Game.start_world(seed_value)
@@ -42,6 +46,7 @@ static func new_game(ship: StringName, seed_value: int) -> void:
 ## Continues the saved game `data` (SaveGame's data): its world now, its ship once the main scene opens.
 static func continue_game(data: Dictionary) -> void:
 	mode = Mode.CONTINUE
+	pending = true
 	saved = data
 	var world: Variant = data.get("world", {})
 	Game.restore(world if world is Dictionary else {})
@@ -52,20 +57,21 @@ static func continue_game(data: Dictionary) -> void:
 
 ## Puts `ship` where the game starts, with the floating origin centred on it, and says what happened (BEGAN_...). A
 ## new game docks it at Halfway Station through the arrival function, which autosaves straight away. Continuing
-## places it as saved without announcing an arrival (no autosave, no payout): at its berth when it was docked or
+## places it as saved, resumed rather than arriving (no autosave, no payout): at its berth when it was docked or
 ## landed; otherwise at its saved place, heading, velocity and spin, with flight assist as it was, and back into
 ## orbit when it was orbiting (O pressed for the pilot, so the orbit is entered the usual way). A save that names a
 ## port that no longer exists, or holds no usable place, docks it at Halfway Station instead, quietly.
 static func begin(ship: Ship, origin: FloatingOrigin, arrivals: Arrivals) -> Began:
+	pending = false
 	if mode == Mode.NEW:
-		return _dock(GameStart.port(arrivals, START_PORT), origin, arrivals, true)
+		return _dock(GameStart.port(arrivals, START_PORT), origin, arrivals, false)
 	var berth := GameStart.port(arrivals, StringName(str(saved.get("berth", ""))))
 	if berth != null:
-		return _dock(berth, origin, arrivals, false)
+		return _dock(berth, origin, arrivals, true)
 	var block: Variant = saved.get("ship", null)
 	if block is Dictionary and _place_in_space(block, ship, origin):
 		return Began.IN_SPACE
-	return _dock(GameStart.port(arrivals, START_PORT), origin, arrivals, false)
+	return _dock(GameStart.port(arrivals, START_PORT), origin, arrivals, true)
 
 
 ## The port among `arrivals`' whose id is `id`, or null.
@@ -78,13 +84,13 @@ static func port(arrivals: Arrivals, id: StringName) -> Port:
 	return null
 
 
-static func _dock(at: Port, origin: FloatingOrigin, arrivals: Arrivals, announce: bool) -> Began:
+static func _dock(at: Port, origin: FloatingOrigin, arrivals: Arrivals, resumed: bool) -> Began:
 	if at == null:
 		push_error("GameStart: no port '%s' to start at" % START_PORT)
 		return Began.NOWHERE
 	origin.shift(at.global_position)
-	arrivals.arrive(at, announce)
-	return Began.DOCKED_NEW if announce else Began.DOCKED
+	arrivals.arrive(at, resumed)
+	return Began.DOCKED if resumed else Began.DOCKED_NEW
 
 
 ## Places the ship out in space as `block` says. False when its place is missing or unreadable.

@@ -151,6 +151,8 @@ func _choose_ship(id: StringName) -> void:
 	_chosen = id
 	var ship := ships.find(id)
 	_replace_words.text = StartMenu.replace_question(ship.display_name if ship != null else String(id), save_state)
+	# A saved game another program holds can't be written over, so a new game couldn't be saved either.
+	replace_button.visible = save_state != SaveState.LOCKED
 	show_page(Page.REPLACE)
 
 
@@ -158,6 +160,9 @@ func _choose_ship(id: StringName) -> void:
 static func replace_question(ship_name: String, state: SaveState) -> String:
 	if state == SaveState.GOOD:
 		return "Start a new game in the %s?\nThis replaces your saved game." % ship_name
+	if state == SaveState.LOCKED:
+		return "Your saved game is open in another program, so a new game couldn't be saved.\nClose that program, " \
+				+ "then restart the game."
 	return "Start a new game in the %s?\nYour old saved game is set aside in the save folder, never deleted." \
 			% ship_name
 

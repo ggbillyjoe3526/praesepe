@@ -14,12 +14,14 @@ var _arrivals: Arrivals
 var _station: Port
 var _pad: Port
 var _arrived: Array[Port] = []
+var _resumed: Array[Port] = []
 var _seed_before: int = 0
 
 
 func before_each() -> void:
 	_seed_before = Game.world_seed
 	_arrived.clear()
+	_resumed.clear()
 	_world = Node3D.new()
 	add_child_autofree(_world)
 	# A station out in space (Halfway Station's port id) and a base's pad on a planet, all in true coordinates.
@@ -51,10 +53,13 @@ func before_each() -> void:
 	_arrivals.ports = [_station, _pad] as Array[Port]
 	add_child_autofree(_arrivals)
 	Events.arrived.connect(_on_arrived)
+	Events.resumed_at.connect(_on_resumed)
 
 
 func after_each() -> void:
 	Events.arrived.disconnect(_on_arrived)
+	Events.resumed_at.disconnect(_on_resumed)
+	GameStart.pending = false
 	GameStart.mode = GameStart.Mode.NEW
 	GameStart.ship_id = GameStart.DEFAULT_SHIP
 	GameStart.saved = {}
@@ -72,6 +77,10 @@ func _port(parent: Node3D, kind: Port.Kind, id: StringName, at: Transform3D) -> 
 
 func _on_arrived(port: Port) -> void:
 	_arrived.append(port)
+
+
+func _on_resumed(port: Port) -> void:
+	_resumed.append(port)
 
 
 ## The ship's true position (the floating origin's offset plus where it is).
@@ -105,7 +114,9 @@ func test_a_new_game_starts_on_its_seed_docked_at_halfway_station_and_saves() ->
 	assert_eq(Game.world_seed, 4242)
 	assert_eq(Game.clock, 0.0, "a new world's clock starts at zero")
 	assert_eq(GameStart.ship_id, &"hauler")
+	assert_true(GameStart.pending)
 	var began := GameStart.begin(_ship, _origin, _arrivals)
+	assert_false(GameStart.pending, "taken once")
 	assert_eq(began, GameStart.Began.DOCKED_NEW)
 	assert_eq(_arrivals.stage, Arrivals.Stage.DOCKED)
 	assert_eq(_ship.berth, _station)
@@ -133,7 +144,8 @@ func test_continuing_docked_puts_the_ship_back_at_its_berth_without_announcing()
 	assert_eq(began, GameStart.Began.DOCKED)
 	assert_eq(_arrivals.stage, Arrivals.Stage.DOCKED)
 	assert_eq(_ship.berth, _pad, "landed where it was saved, not at the station")
-	assert_eq(_arrived, [] as Array[Port], "no arrival announced: nothing saved again, nothing paid twice")
+	assert_eq(_arrived, [] as Array[Port], "not an arrival: nothing saved again, nothing paid twice")
+	assert_eq(_resumed, [_pad] as Array[Port], "but where the ship is still goes on the event bus")
 	assert_almost_eq(_ship.global_basis.y, _pad.global_basis.y, Vector3.ONE * 0.001, "upright on the pad")
 	var t := _origin.true_position(_ship.global_position)
 	assert_almost_eq(Vector3(t[0], t[1], t[2]), Vector3(6005, 0, 40000), Vector3.ONE * 0.01)

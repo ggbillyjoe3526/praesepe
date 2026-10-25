@@ -97,6 +97,16 @@ func test_new_game_over_a_save_asks_first() -> void:
 	assert_string_contains(StartMenu.replace_question("Hauler", StartMenu.SaveState.DAMAGED), "never deleted")
 
 
+func test_no_new_game_over_a_save_another_program_holds() -> void:
+	_menu.set_save_state(StartMenu.SaveState.LOCKED)
+	_menu.new_game_button.pressed.emit()
+	_menu.ship_buttons[0].pressed.emit()
+	assert_eq(_menu.page, StartMenu.Page.REPLACE)
+	assert_false(_menu.replace_button.visible, "it couldn't be saved, so it isn't offered")
+	assert_true(_menu.replace_back_button.has_focus())
+	assert_string_contains(StartMenu.replace_question("Hauler", StartMenu.SaveState.LOCKED), "another program")
+
+
 func test_esc_goes_back_a_page() -> void:
 	_menu.set_save_state(StartMenu.SaveState.GOOD)
 	_menu.new_game_button.pressed.emit()

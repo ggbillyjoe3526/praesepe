@@ -7,8 +7,8 @@ Working title. Made with Godot 4.7.2, Blender and Claude Code. The design is in 
 a new game picks the ship (one so far, the Hauler, a greybox with a simple cockpit) and starts docked at a space
 station, with a planet and its base, a moon and an asteroid belt to cruise to. Newtonian flight, flight assist, a
 velocity marker, a cruise drive, a chase camera, pause and a settings menu. The ship docks at the station, lands at
-the base and parks in orbit round the planet or the moon; docking and landing autosave the game, and Continue puts it
-back where it was saved. No jobs yet.
+the base and parks in orbit round the planet or the moon; docking and landing autosave the game, and Continue puts the
+ship back where it was saved (out in space too, once the game also saves in flight). No jobs yet.
 
 ## Running it
 1. Install [Godot 4.7.2-stable](https://godotengine.org/download/archive/4.7.2-stable/) (the standard build, not
