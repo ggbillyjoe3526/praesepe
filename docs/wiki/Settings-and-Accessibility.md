@@ -3,6 +3,8 @@
 Press **Esc** to pause, then **Settings**. The menu has four pages. Every change shows at once and is kept for next
 time. Each page has a button that puts its own settings back to their defaults. **Esc** goes back.
 
+![The pause screen, with Settings and the tow home](images/pause.jpg)
+
 ## Display
 
 | Setting | Choices | Starts at |
@@ -18,6 +20,8 @@ time. Each page has a button that puts its own settings back to their defaults. 
 
 ## Interface
 
+![The Interface page of the settings menu](images/settings-interface.jpg)
+
 | Setting | Choices | Starts at |
 | --- | --- | --- |
 | Interface size | 90%, 100%, 110%, 125% | 100% |
@@ -32,6 +36,8 @@ time. Each page has a button that puts its own settings back to their defaults. 
   the [Cruise Drive](Cruise-Drive).
 
 ## Comfort
+
+![The Comfort page of the settings menu](images/settings-comfort.jpg)
 
 | Setting | Choices | Starts at |
 | --- | --- | --- |

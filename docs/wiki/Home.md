@@ -33,5 +33,5 @@ yet. Those come next: see the [Roadmap](Roadmap).
 
 This wiki follows the newest development build: when something in the game changes, the page that describes it is
 updated in the same change. Anything still being built is on the [Roadmap](Roadmap), never described here as if you
-can play it. Names of places and ships are placeholders and may change. Pictures are from the development build, with
-simple stand-in models.
+can play it. Names of places and ships are placeholders and may change. Pictures are rough captures of the development build,
+with simple stand-in models, not how the finished game will look.

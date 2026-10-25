@@ -30,7 +30,7 @@ Calder's base: a landing pad with a hangar, a control tower and a beacon. Press 
 
 Services: none yet. Jobs, trading and loan payments will be here (see the [Roadmap](Roadmap)).
 
-![Tollgate seen from above, on Calder's green land](images/tollgate-from-above.jpg)
+![Tollgate seen from the cockpit, 1.5 km above it](images/tollgate-from-above.jpg)
 
 ## Halfway Station
 
