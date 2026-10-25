@@ -1,6 +1,6 @@
 extends GutTest
 ## The test ship's model (game/ship/models/, built by tools/blender/hauler_model.py) only changes how the ship looks:
-## it sits inside the collision shapes, never below the underside the bay floor berth uses, and every surface is
+## every point sits within 0.1 m of a collision box, never below the underside the bay floor berth uses, and every surface is
 ## single sided, so the windows are clear from the cockpit and nothing inside shows through the hull.
 
 ## How far the model may reach past the collision shapes (m): the nose and the engine glow by a few centimetres.
@@ -17,12 +17,26 @@ func before_each() -> void:
 
 
 func test_the_model_fits_the_collision_shapes() -> void:
-	var shapes := _bounds_of_shapes()
-	var model := _bounds_of_meshes(_ship.get_node(^"Model"))
-	model = model.merge(_bounds_of_meshes(_ship.get_node(^"Cockpit/Model")))
-	assert_true(shapes.grow(OUTSIDE_SHAPES).encloses(model), "model %s inside shapes %s" % [model, shapes])
-	assert_almost_eq(shapes.position.y, UNDERSIDE, 0.001, "the hull's box still ends at the underside")
-	assert_gte(model.position.y, UNDERSIDE - 0.001, "nothing hangs below the underside")
+	var boxes := _shape_boxes()
+	var lowest := INF
+	var outside: Array[String] = []
+	for root: NodePath in [^"Model", ^"Cockpit/Model"]:
+		for node: Node in _ship.get_node(root).find_children("*", "MeshInstance3D", true, false):
+			var mesh := node as MeshInstance3D
+			var to_ship := _ship.global_transform.affine_inverse() * mesh.global_transform
+			for surface in mesh.mesh.get_surface_count():
+				var points: PackedVector3Array = mesh.mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+				for local in points:
+					var point := to_ship * local
+					lowest = minf(lowest, point.y)
+					if not boxes.any(func(box: AABB) -> bool: return box.has_point(point)):
+						outside.append("%s %s" % [mesh.name, point])
+	assert_eq(outside, [] as Array[String], "every point within %s m of a collision box" % OUTSIDE_SHAPES)
+	var bottom := INF
+	for box: AABB in boxes:
+		bottom = minf(bottom, box.position.y + OUTSIDE_SHAPES)
+	assert_almost_eq(bottom, UNDERSIDE, 0.001, "the hull's box still ends at the underside")
+	assert_gte(lowest, UNDERSIDE - 0.001, "nothing hangs below the underside")
 
 
 func test_every_surface_is_single_sided() -> void:
@@ -46,28 +60,12 @@ func test_the_glass_is_clear_and_casts_no_shadow() -> void:
 	assert_ne(material.transparency, BaseMaterial3D.TRANSPARENCY_DISABLED, "see-through")
 
 
-## The collision shapes' bounds in the ship's frame (all are boxes).
-func _bounds_of_shapes() -> AABB:
-	var bounds := AABB()
-	var first := true
+## Each collision shape's box in the ship's frame (all are boxes), grown by OUTSIDE_SHAPES.
+func _shape_boxes() -> Array[AABB]:
+	var boxes: Array[AABB] = []
 	for node: Node in _ship.get_children():
 		var shape := node as CollisionShape3D
-		if shape == null:
-			continue
-		var size := (shape.shape as BoxShape3D).size
-		var box := shape.transform * AABB(-size * 0.5, size)
-		bounds = box if first else bounds.merge(box)
-		first = false
-	return bounds
-
-
-## The meshes' bounds under `root`, in the ship's frame.
-func _bounds_of_meshes(root: Node) -> AABB:
-	var bounds := AABB()
-	var first := true
-	for node: Node in root.find_children("*", "MeshInstance3D", true, false):
-		var mesh := node as MeshInstance3D
-		var box := (_ship.global_transform.affine_inverse() * mesh.global_transform) * mesh.get_aabb()
-		bounds = box if first else bounds.merge(box)
-		first = false
-	return bounds
+		if shape != null:
+			var size := (shape.shape as BoxShape3D).size
+			boxes.append((shape.transform * AABB(-size * 0.5, size)).grow(OUTSIDE_SHAPES))
+	return boxes

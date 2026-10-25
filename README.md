@@ -3,12 +3,11 @@
 A casual, first-person space game: buy a ship on a loan, then earn money flying contracts around one solar system.
 Working title. Made with Godot 4.7.2, Blender and Claude Code. The design is in [DESIGN.md](DESIGN.md).
 
-**Status:** a tiny solar system to fly around. A greybox ship with a simple cockpit starts next to a space station,
-with a planet and its base, a moon and an asteroid belt to cruise to. Newtonian flight, flight assist, a velocity
-marker, a cruise drive, a chase camera, pause and a settings menu. The ship docks at the station, lands at the base
-and parks in orbit round the planet or the moon; docking and landing autosave the game, and so does flying, every 3
-minutes (loading comes next). "Tow me to base" on the pause screen takes the ship back to its last base. No jobs
-yet.
+**Status:** a tiny solar system to fly around. A simple test ship and cockpit start next to a space station, with a
+planet and its base, a moon and an asteroid belt to cruise to. Newtonian flight, flight assist, a velocity marker, a
+cruise drive, a chase camera, pause and a settings menu. The ship docks at the station, lands at the base and parks
+in orbit round the planet or the moon; docking and landing autosave the game, and so does flying, every 3 minutes
+(loading comes next). "Tow me to base" on the pause screen takes the ship back to its last base. No jobs yet.
 
 ## Running it
 1. Install [Godot 4.7.2-stable](https://godotengine.org/download/archive/4.7.2-stable/) (the standard build, not

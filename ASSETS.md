@@ -16,7 +16,7 @@ owner. They are the owner's, like the code; listed so every model is accounted f
 
 | Name | What it is | Made in | Source files | Ships in the game? |
 | --- | --- | --- | --- | --- |
-| Hauler placeholder model | The test ship outside (`game/ship/models/hauler_exterior.glb`) and its cockpit (`game/ship/models/hauler_cockpit.glb`); placeholder, art style still open | Blender 5.2 (2026-10-25), from `tools/blender/hauler_model.py` and the owner's reference pictures | The owner's `hauler_v002.blend`; rebuilt by running `ship_reference.py`, `hauler_model.py` and `export_ship.py` | Yes |
+| Hauler placeholder model | The test ship outside (`game/ship/models/hauler_exterior.glb`) and its cockpit (`game/ship/models/hauler_cockpit.glb`); placeholder, art style still open | Blender 5.2 (2026-10-25), from `tools/blender/hauler_model.py` and the owner's reference pictures | The owner's `hauler_v002.blend` (kept on their PC, not in the repo); rebuilt by running `ship_reference.py`, `hauler_model.py` and `export_ship.py` | Yes |
 
 Code reused from the owner's own games (katanashotgun, Airsoft-Next) is the owner's and is noted in each file's header,
 not here.

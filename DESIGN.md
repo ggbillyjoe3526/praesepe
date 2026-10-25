@@ -49,14 +49,15 @@ Three starter ships share a price and tier. Each leans toward a play style, but 
 Upgrades (cargo, engines, scanners, shields, mining laser) let any ship cover its weak spots. Names and exact stats are placeholders.
 
 **The test ship's model** (placeholder, 2026-10-25): the Hauler's look from the owner's reference pictures, made in
-Blender by `tools/blender/hauler_model.py` and kept in the owner's `hauler_v002.blend`. Small and simple: light grey
-with orange panels and a few glowing strips, a flat windscreen sloping down to the nose in front of a taller back half,
-flat side windows and a flat roof window, two engine pods with glowing nozzles, short swept wings; about 14 m long and
-14 m across. Inside, a slim dark dashboard low across the bottom of the view (the dashboard screen where it always
-was) and side consoles low in the corners, with no frame bars in the pilot's view. About 700 triangles outside and
-1,100 in the cockpit, one mesh per material. The model only changes the look: the collision shapes follow it (a box
-for the taller back half and one per engine pod), but mass, centre of mass and inertia stay as approved and the
-underside stays at 1.2 m below the centre, so flying, docking and the floor berth are unchanged.
+Blender by `tools/blender/hauler_model.py` and kept in the owner's `hauler_v002.blend` (on their PC, not in the repo).
+Small and simple: light grey with orange panels and a few glowing strips, a flat windscreen sloping down to the nose
+in front of a taller back half, flat side windows and a flat roof window, two engine pods with glowing nozzles, short
+swept wings; about 14 m long and 14 m across. Inside, a slim dark dashboard low across the bottom of the view (the
+dashboard screen where it always was) and side consoles low in the corners, with no frame bars in the pilot's view.
+About 700 triangles outside and 1,100 in the cockpit, one mesh per material. The model only changes the look: the
+collision shapes follow it (a box for the taller back half, one per engine pod and one per fin), but mass, centre of
+mass and inertia stay as approved and the underside stays at 1.2 m below the centre, so flying, docking and the floor
+berth are unchanged.
 
 ## Flight and camera
 

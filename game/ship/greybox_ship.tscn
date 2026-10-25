@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://game/ship/ship.gd" id="1_ship"]
 [ext_resource type="Resource" path="res://game/ship/greybox_ship_tuning.tres" id="2_tuning"]
@@ -8,13 +8,16 @@
 [ext_resource type="PackedScene" path="res://game/ship/models/hauler_exterior.glb" id="6_model"]
 
 [sub_resource type="BoxShape3D" id="Shape_hull"]
-size = Vector3(4, 2.4, 13.2)
+size = Vector3(4, 2.4, 13.4)
 
 [sub_resource type="BoxShape3D" id="Shape_upper"]
 size = Vector3(3.4, 0.7, 10.6)
 
 [sub_resource type="BoxShape3D" id="Shape_pod"]
-size = Vector3(1.44, 1.44, 6.5)
+size = Vector3(1.44, 1.44, 6.65)
+
+[sub_resource type="BoxShape3D" id="Shape_fin"]
+size = Vector3(0.14, 1.1, 2.3)
 
 [sub_resource type="BoxShape3D" id="Shape_wings"]
 size = Vector3(14, 0.4, 4)
@@ -36,7 +39,7 @@ eye = NodePath("Eye")
 chase_anchor = NodePath("ChaseAnchor")
 
 [node name="HullShape" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
 shape = SubResource("Shape_hull")
 
 [node name="UpperShape" type="CollisionShape3D" parent="."]
@@ -48,12 +51,20 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 2.5)
 shape = SubResource("Shape_wings")
 
 [node name="PodShapeLeft" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, -0.05, 3.85)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, -0.05, 3.775)
 shape = SubResource("Shape_pod")
 
+[node name="FinShapeLeft" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 1.2, 5.75)
+shape = SubResource("Shape_fin")
+
 [node name="PodShapeRight" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, -0.05, 3.85)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, -0.05, 3.775)
 shape = SubResource("Shape_pod")
+
+[node name="FinShapeRight" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 1.2, 5.75)
+shape = SubResource("Shape_fin")
 
 [node name="Model" parent="." instance=ExtResource("6_model")]
 

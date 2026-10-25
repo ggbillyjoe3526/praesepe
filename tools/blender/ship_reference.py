@@ -17,10 +17,11 @@ import bpy
 from mathutils import Matrix, Vector
 
 # Godot positions (x right, y up, z back) of what the model must fit round.
-HULL_SHAPE = ((0.0, 0.0, -0.6), (4.0, 2.4, 13.2))
+HULL_SHAPE = ((0.0, 0.0, -0.5), (4.0, 2.4, 13.4))
 UPPER_SHAPE = ((0.0, 1.55, 0.8), (3.4, 0.7, 10.6))
 WING_SHAPE = ((0.0, -0.4, 2.5), (14.0, 0.4, 4.0))
-POD_SHAPES = (((-2.25, -0.05, 3.85), (1.44, 1.44, 6.5)), ((2.25, -0.05, 3.85), (1.44, 1.44, 6.5)))
+POD_SHAPES = (((-2.25, -0.05, 3.775), (1.44, 1.44, 6.65)), ((2.25, -0.05, 3.775), (1.44, 1.44, 6.65)))
+FIN_SHAPES = (((-2.25, 1.2, 5.75), (0.14, 1.1, 2.3)), ((2.25, 1.2, 5.75), (0.14, 1.1, 2.3)))
 EYE = (0.0, 1.15, -3.54)
 CHASE_ANCHOR = (0.0, 5.3, 24.0)
 CHASE_LOOK_DOWN = 9.0
@@ -172,6 +173,8 @@ def build():
 	box("Ref_WingShape", shapes, *WING_SHAPE)
 	for i, shape in enumerate(POD_SHAPES):
 		box("Ref_PodShape%d" % i, shapes, *shape)
+	for i, shape in enumerate(FIN_SHAPES):
+		box("Ref_FinShape%d" % i, shapes, *shape)
 
 	grey = collection("Ref_Greybox", ref)
 	for name, centre, size in GREYBOX_SHIP:
