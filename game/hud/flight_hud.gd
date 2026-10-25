@@ -1,9 +1,9 @@
 class_name FlightHud
 extends Control
 ## The flight HUD (design doc, "Flight and camera"): the nose's aim point, the velocity marker showing where the ship
-## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus the keys and
-## short messages, such as the cruise drive's (CruiseDrive), the orbit's (Orbit) and where the ship docked or landed
-## and whether the game saved (Events). In the chase view a plate at the bottom also shows speed and flight assist,
+## is really going and the mouse stick, drawn through whichever camera is active (ShipCameras), plus short messages,
+## such as the cruise drive's (CruiseDrive), the orbit's (Orbit) and where the ship docked or landed and whether the
+## game saved (Events). The keys are in Settings › Controls; a message at the start says so. In the chase view a plate at the bottom also shows speed and flight assist,
 ## and the place the cruise drive is locked onto with its distance; in the cockpit the dashboard screen shows them
 ## (CockpitDisplay), in the same words. Text is rebuilt only when the whole number shown changes (so while speeding
 ## up, not in steady flight; in cruise, speeds over 1 km/s show in tenths of a km/s). A placeholder look until the art
@@ -14,6 +14,9 @@ const STOPPED := 0.5
 ## How long (s) a message (flight assist, camera) stays up; the one saying where the ship docked or landed stays longer.
 const TOAST_TIME := 2.5
 const ARRIVAL_TOAST_TIME := 4.0
+## The message at the start saying where the keys are (they live in Settings › Controls, not on the screen).
+const START_HINT := "Esc  ·  pause, settings and controls"
+const START_HINT_TIME := 8.0
 ## How close (px at 1080p) markers come to the screen's edge.
 const EDGE := 64.0
 const NOSE_COLOUR := Color(0.92, 0.95, 1.0, 0.85)
@@ -83,8 +86,10 @@ func _ready() -> void:
 	if cameras != null:
 		cameras.view_changed.connect(_on_view_changed)
 		_readout.visible = cameras.view == ShipCameras.View.CHASE
-	# A new field of view on the pause screen moves the markers while the game is paused.
+	# A new field of view in the settings menu moves the markers while the game is paused.
 	Settings.changed.connect(queue_redraw)
+	if ship != null and not Game.launch_args.smoke:
+		_show_toast(START_HINT, BERTH_COLOUR, START_HINT_TIME)
 
 
 func _exit_tree() -> void:
