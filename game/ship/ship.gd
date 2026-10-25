@@ -20,6 +20,8 @@ signal cruise_changed(event: CruiseDrive.Event, place: Landmark)
 ## The ship entered, settled into, left or was refused an orbit (Orbit.Event), round `body` where there is one.
 signal orbit_changed(event: Orbit.Event, body: CelestialBody)
 
+## Which ship this is (saved with the game; the greybox stands in for the Hauler until the three starter ships exist).
+@export var model_id: StringName = &"hauler"
 @export var tuning: ShipTuning
 @export var cruise_tuning: CruiseTuning
 @export var orbit_tuning: OrbitTuning

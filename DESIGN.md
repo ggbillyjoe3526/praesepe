@@ -362,6 +362,21 @@ the station's and base's scenes (`game/system/greybox_station.tscn`, `game/syste
 | Leaving the bay | 60 m, speeding up to 25 m/s (about 5 s) | Clear of the bay's mouth before the pilot has it |
 | Taking off | 30 m straight up, speeding up to 15 m/s (about 4 s) | Then flight assist brings it to a hover |
 
+**Saving and the tow home**
+
+- The game saves itself on every docking and landing, and every 3 minutes of play in flight (paused time doesn't
+  count), so quitting or a crash never loses more than that. A save in flight waits until the ship is flying freely
+  or settled in orbit: not while the cruise drive charges or runs, the ship swings into orbit or levels out of it, or
+  it flies itself in to a berth or out of one. Its file is written in the background, so it never holds up a frame.
+- The save holds the world (seed, clock, random streams), the berth ("" in flight), home (the last port the ship
+  arrived at), and the ship: which one, where it is in the solar system's own coordinates, which way it faces, how it
+  moves, flight assist and the orbit it is settled in (the planet or moon, its height and its axis). Loading (being
+  built with the start menu) is to put the ship back exactly there, in space too.
+- "Tow me to base" on the pause screen puts the ship straight back at home (the nearest port if it has never docked
+  or landed), whatever it was doing, through the one arrival function, so it is docked or landed there and the game
+  saves. It asks for a second press first. It isn't offered while docked or landed. It is free until money exists;
+  then it costs the towing fee, a small amount set with the economy.
+
 **Authored vs. seeded**
 
 | Authored (same every game) | Seeded (varies by seed) |
@@ -444,6 +459,7 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-25: Autosave every few minutes in flight as well as on docking and landing, and a "Tow me to base" button on the pause screen, free until money exists and then the towing fee (owner approved both, 2026-10-25). Until the owner tunes them: every 3 minutes of in-game time; the tow goes to the last port the ship arrived at, or the nearest if none, asks for a second press, and is not offered while docked; the save file goes to version 2 (old saves are brought up to date when read) (default, Claude).
 - 2026-10-25: Orbit is up in space and slow: William asked that the orbit prompt "only appear while in space near the orbital trajectory", that orbit be "as realistic as possible while keeping the game simple and easy to control", maybe with "a visual indicator ... that shows the player an orbital insertion route or point", and said orbiting "feels way too fast ... orbiting should feel like the ship is slowly moving around the planet" (owner). Until the owner tunes it: each body has one orbit line (Calder 3 km up at 45 m/s, Mote 1.2 km at 20 m/s), entering is offered only within 600 m (Mote 300 m) of it, a faint lane and an insertion ring show the way there from a quarter of the line's height up, and the ship settles onto the line; the cause of "too fast" was the low height and speed, not the animation, so the planets keep their size (values and reasons in "How orbit works") (default, Claude).
 - 2026-10-25: Place names and markers can be hidden: William said the names "are cluttering up the screen too much" and asked for two separate settings and a proximity or look-direction mode (owner). Until the owner tunes it: values as in "How the cruise drive works" (Which markers show); markers default to Always so every place can still be found, names to Near or looked at; with markers Off the place aimed at keeps its corner brackets and the place the drive is locked onto its blue brackets, since they say what F does; a change in the settings menu shows at once behind it, with no fade; the two settings sit on the settings menu's Interface page (default, Claude).
 - 2026-10-25: A settings menu replaces the comfort settings on the pause screen, and the game starts fullscreen: William asked that "when booting up the game it should go into full screen on the player's monitor/display", with windowed, V-Sync, frame-rate caps and other basic PC settings "inside a settings menu", the key hints at the top of the screen moved into the controls settings and the comfort settings in their own menu; they also approved a HUD and text size setting for big or high-resolution screens (owner). Until the owner says otherwise: fullscreen means borderless (quick to switch windows), with exclusive fullscreen as a choice; V-Sync on and no frame-rate limit; a window at 80% of the display; 30 frames a second in the background; mouse sensitivity and invert are player settings (invert moves out of the flight tuning); changing keys waits until the HUD prompts can name a changed key, since other work on the prompts is in flight (default, Claude).

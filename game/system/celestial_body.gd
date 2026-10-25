@@ -18,6 +18,8 @@ const GLOW_RINGS := 32
 ## How far (share of lod_distance) the camera must go past the switch before it switches back, so it never flickers.
 const LOD_HYSTERESIS := 0.03
 
+## What saves call it (`&"calder"`): never shown and never renamed, unlike its display name.
+@export var id: StringName = &""
 ## Its surface (game/system/body_surface.gdshader).
 @export var surface: Material
 ## The glow around it (game/system/atmosphere.gdshader), or none for an airless moon.
