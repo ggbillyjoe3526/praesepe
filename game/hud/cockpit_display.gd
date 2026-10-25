@@ -2,8 +2,8 @@ class_name CockpitDisplay
 extends Node3D
 ## The cockpit's dashboard screen (design doc, "Cockpit UI is in the world where possible"): the ship's speed and
 ## flight assist (or the cruise drive), in the same words and colours as the flight HUD, lit on a dark screen so they
-## read in any light, and under them the place the cruise drive is locked onto with its distance. Text is rebuilt only
-## when what it shows changes. Sits on the root of a cockpit scene, such as
+## read in any light, and under them the place the cruise drive is locked onto with its distance and the time to get
+## there. Text is rebuilt only when what it shows changes. Sits on the root of a cockpit scene, such as
 ## game/ship/greybox_cockpit.tscn; its parent is the ship.
 
 var _speed_shown: int = -1
@@ -39,7 +39,8 @@ func _process(_delta: float) -> void:
 	if key != _target_shown:
 		_target_shown = key
 		var t := FlightHud.target_of(_ship)
-		_target.text = FlightHud.target_text(t.display_name, t.marker_distance(_ship.global_position)) if t != null else ""
+		_target.text = FlightHud.target_text(t.display_name, t.marker_distance(_ship.global_position),
+				_ship.cruise.eta) if t != null else ""
 
 
 ## The speed and flight assist lines as the screen shows them now, and the flight assist line's colour: the nav

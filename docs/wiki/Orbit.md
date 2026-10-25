@@ -22,8 +22,8 @@ shows you the way:
 ## Entering orbit
 
 1. Climb to the line, slower than 250 m/s and not climbing or diving too steeply.
-2. Close to the line (within 600 m of it round Calder, 300 m round Mote) the HUD shows **O  Enter orbit round
-   Calder**. Press **O**.
+2. Close to the line (within 600 m of it round Calder, 300 m round Mote) the HUD shows **O  Enter orbit**.
+   Press **O**.
 3. The ship swings onto the orbit with a firm push and settles onto the line's height, turning so the planet fills the
    bottom of the cockpit window. Moving the mouse stops that turn and leaves the view to you.
 
@@ -42,7 +42,8 @@ you're in orbit.
 - **X** leaves and stops; **Z** leaves and drifts with flight assist off; starting the cruise drive leaves at once.
 - A hard bump knocks you out of orbit ("Bump! Knocked out of orbit").
 
-You can land at Tollgate straight from orbit round Calder: press **G** when the HUD offers it.
+To land at Tollgate from orbit, leave orbit and fly down to the base: landing is offered within 600 m of its pad
+([Docking and Landing](Docking-and-Landing#landing-at-tollgate)).
 
 ## Orbits
 

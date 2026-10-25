@@ -14,3 +14,5 @@ const CAMERAS := 20
 ## Each frame (process_priority, lowest first), the cameras move before anything that draws over them, such as the
 ## HUD's markers.
 const CAMERAS_DRAW := -10
+## And the pilot's head turn (PilotControls.look) is worked out before the cameras use it.
+const CONTROLS_DRAW := -20

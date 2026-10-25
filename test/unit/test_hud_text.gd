@@ -153,7 +153,10 @@ func test_arriving_and_the_refusals_name_the_place() -> void:
 
 func test_the_cruise_lock_has_words_on_the_hud_and_the_dashboard() -> void:
 	assert_eq(FlightHud.target_text("Mote", 31400.0), "TARGET  Mote  ·  31 km")
-	assert_lt(FlightHud.target_text("Halfway Station", 31400.0).length(), 40, "fits the dashboard")
+	# The dashboard's target line is 34 px text at 1 mm a pixel on a screen 1 m wide: the longest line fits with room.
+	var widest := FlightHud.target_text("Halfway Station", 31400.0, 312.0)
+	var font := ThemeDB.fallback_font
+	assert_lt(font.get_string_size(widest, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x * 0.001, 0.94, widest + " fits")
 	assert_eq(FlightHud.mode_text(FlightHud.Mode.CRUISE_LOCKED, 0), "CRUISE LOCKED  ·  F to drop out")
 	assert_eq(ActionPrompts.cruise_text(null), "", "nothing aimed at, nothing to say")
 	assert_string_contains(FlightHud.cruise_message(CruiseDrive.Event.CHARGING, "Mote"), "locked onto Mote")

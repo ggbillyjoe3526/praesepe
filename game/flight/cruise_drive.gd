@@ -15,6 +15,7 @@ extends RefCounted
 ## flies there by itself, turning the ship's nose to follow (turn_for()), going round any planet, moon or station in the
 ## way (course()), and drops out only on arriving there. Moving the mouse, while it charges or cruises, hands the
 ## steering back (it cruises where the nose points, as without a lock); F or X cancel or drop out as usual. With nothing aimed at, F cruises where the nose points.
+## Locked on, it also keeps an estimate of how long until it arrives (`eta`, from time_to_arrive()), for the HUD.
 ##
 ## Vectors are in world space. Each step() fills `velocity` (the ship's velocity this tick while cruising, and the
 ## velocity to leave it with on the tick it drops out) and `event` (what happened, for messages).
@@ -42,6 +43,17 @@ const REARM_MARGIN := 250.0
 ## Locked on (or charging to), a stick pushed further than this (of a full push, pitch and yaw) hands the steering back
 ## to the pilot, the same as taking over from the orbit's turn.
 const STICK_TAKES_OVER := Orbit.STICK_TAKES_OVER
+## Locked on, how often (s) the estimate of the time to arrival is worked out afresh; in between it counts down.
+const ETA_EVERY := 1.0
+## The estimate flies the rest of the trip ahead in steps this share of the time to the nearest surface at the speed
+## then, kept between ETA_STEP_MIN and ETA_STEP_MAX seconds, and gives up beyond ETA_LONGEST seconds or
+## ETA_MOST_STEPS steps (no time shown then).
+const ETA_STEP_SHARE := 0.1
+const ETA_STEP_MIN := 0.1
+const ETA_STEP_MAX := 1.0
+const ETA_LONGEST := 600.0
+## And never takes more steps than this, however small they get.
+const ETA_MOST_STEPS := 1000
 
 var tuning: CruiseTuning
 ## Every place in the solar system (SolarSystem.landmarks).
@@ -67,8 +79,12 @@ var aimed: Landmark = null
 ## A place for the next F to lock onto instead of the aimed one, wherever the nose points: the nav computer
 ## (NavComputer) sets it with the F it presses for the pilot. Used once.
 var wanted: Landmark = null
+## Locked on (charging or cruising): about how long (s) until it arrives at `target`; INF without a lock or an answer.
+var eta: float = INF
 
 var _charge_left: float = 0.0
+## How long (s) until the time to arrival is worked out afresh.
+var _eta_age: float = 0.0
 ## Per landmark: 1 when arriving there drops the drive out, 0 until the ship has left it.
 var _armed: PackedByteArray = PackedByteArray()
 
@@ -98,6 +114,12 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, stop
 		delta: float, steering: bool = false) -> void:
 	event = Event.NONE
 	place = null
+	_advance(at, ship_velocity, nose, toggle, stop, jolt, delta, steering)
+	_update_eta(at, ship_velocity, nose, delta)
+
+
+func _advance(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, stop: bool, jolt: float,
+		delta: float, steering: bool) -> void:
 	match phase:
 		Phase.OFF:
 			aimed = CruiseDrive.aim(landmarks, at, nose, tuning.lock_cone)
@@ -144,6 +166,7 @@ func stop() -> void:
 	target = null
 	aimed = null
 	wanted = null
+	eta = INF
 	speed = 0.0
 	velocity = Vector3.ZERO
 	nearest = null
@@ -214,9 +237,67 @@ func _cruise(at: Vector3, nose: Vector3, delta: float) -> void:
 		if time_to_reach(l, at, velocity) < tuning.safety_time:
 			_drop(Event.SAFETY, l, tuning.safety_exit_speed)
 			return
-	var want_speed := clampf(nearest_distance / tuning.approach_time, tuning.min_speed, tuning.max_speed)
-	speed = move_toward(speed, want_speed, maxf(speed, tuning.min_speed) * delta / tuning.ramp_time)
+	speed = next_speed(speed, nearest_distance, delta)
 	velocity = direction * speed
+
+
+## The drive's speed (m/s) `delta` seconds on from `current`, with the nearest surface `nearest_surface` metres away:
+## heading for that distance over approach_time, within min_speed and max_speed, changing by at most its own size over
+## ramp_time.
+func next_speed(current: float, nearest_surface: float, delta: float) -> float:
+	var want := clampf(nearest_surface / tuning.approach_time, tuning.min_speed, tuning.max_speed)
+	return move_toward(current, want, maxf(current, tuning.min_speed) * delta / tuning.ramp_time)
+
+
+## Locked on, keeps `eta` current: worked out afresh every ETA_EVERY seconds, counted down in between.
+func _update_eta(at: Vector3, ship_velocity: Vector3, nose: Vector3, delta: float) -> void:
+	if target == null or phase == Phase.OFF:
+		eta = INF
+		_eta_age = 0.0
+		return
+	_eta_age -= delta
+	if _eta_age <= 0.0:
+		eta = time_to_arrive(at, ship_velocity, nose)
+		_eta_age = ETA_EVERY
+	elif eta < INF:
+		eta = maxf(eta - delta, 0.0)
+
+
+## Locked on, about how long (s) a ship at `at`, moving at `ship_velocity` with its nose along `nose`, takes to arrive
+## at `target`: the rest of the trip flown ahead the way the drive will fly it (the rest of the charge at the ship's
+## own velocity, then the drive's course round anything in the way and its speed, slowing on the way in), without
+## moving anything. INF without a lock, or when it would take longer than ETA_LONGEST.
+func time_to_arrive(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> float:
+	if target == null or phase == Phase.OFF:
+		return INF
+	var t := charge_left()
+	var pos := at + ship_velocity * t
+	var way := direction
+	var going := speed
+	if phase == Phase.CHARGING:
+		way = course(pos, nose)
+		going = maxf(ship_velocity.dot(way), 0.0)
+	var left := target.surface_distance(pos) - target.drop_distance
+	var steps := 0
+	while left > 0.0:
+		steps += 1
+		if t > ETA_LONGEST or steps > ETA_MOST_STEPS:
+			return INF
+		var near := INF
+		for l: Landmark in landmarks:
+			if l.obstacle:
+				near = minf(near, l.surface_distance(pos))
+		var dt := clampf(near / maxf(going, tuning.min_speed) * ETA_STEP_SHARE, ETA_STEP_MIN, ETA_STEP_MAX)
+		way = way.slerp(course(pos, way), Smoothing.factor(dt, tuning.align_time)).normalized()
+		going = next_speed(going, near, dt)
+		pos += way * going * dt
+		var now := target.surface_distance(pos) - target.drop_distance
+		if now <= 0.0:
+			# Into the arrival zone partway through the step.
+			return t + dt * left / (left - now)
+		t += dt
+		left = now
+	return t
 
 
 ## The pilot took the steering back. Places whose zones the ship is flying through on its way count as left behind,
