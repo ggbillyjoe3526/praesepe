@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://game/ship/greybox_ship.tscn" id="2_ship"]
@@ -21,10 +21,12 @@
 [ext_resource type="Resource" path="res://game/arrival/arrival_tuning.tres" id="19_arrival_tuning"]
 [ext_resource type="Script" path="res://game/hud/action_prompts.gd" id="21_prompts"]
 [ext_resource type="Script" path="res://game/save/autosave.gd" id="22_autosave"]
-[ext_resource type="Script" path="res://game/nav/nav_computer.gd" id="23_nav"]
-[ext_resource type="Resource" path="res://game/nav/nav_tuning.tres" id="24_nav_tuning"]
-[ext_resource type="Script" path="res://game/nav/nav_panel.gd" id="25_nav_panel"]
-[ext_resource type="Script" path="res://game/nav/nav_strip.gd" id="26_nav_strip"]
+[ext_resource type="Script" path="res://game/world/orbit_line.gd" id="23_orbit_line"]
+[ext_resource type="Script" path="res://game/hud/orbit_marker.gd" id="24_orbit_marker"]
+[ext_resource type="Script" path="res://game/nav/nav_computer.gd" id="25_nav"]
+[ext_resource type="Resource" path="res://game/nav/nav_tuning.tres" id="26_nav_tuning"]
+[ext_resource type="Script" path="res://game/nav/nav_panel.gd" id="27_nav_panel"]
+[ext_resource type="Script" path="res://game/nav/nav_strip.gd" id="28_nav_strip"]
 
 [sub_resource type="ShaderMaterial" id="Mat_sky"]
 shader = ExtResource("3_sky")
@@ -94,6 +96,10 @@ streak_time = 0.02
 streak_max = 60.0
 for_cruise = true
 
+[node name="OrbitLine" type="MeshInstance3D" parent="." node_paths=PackedStringArray("ship")]
+script = ExtResource("23_orbit_line")
+ship = NodePath("../World/Ship")
+
 [node name="ShipCameras" type="Node" parent="." node_paths=PackedStringArray("ship")]
 script = ExtResource("13_cameras")
 ship = NodePath("../World/Ship")
@@ -122,16 +128,19 @@ script = ExtResource("18_arrivals")
 ship = NodePath("../World/Ship")
 tuning = ExtResource("19_arrival_tuning")
 
-[node name="Autosave" type="Node" parent="."]
+[node name="Autosave" type="Node" parent="." node_paths=PackedStringArray("ship", "arrivals", "origin")]
 script = ExtResource("22_autosave")
+ship = NodePath("../World/Ship")
+arrivals = NodePath("../Arrivals")
+origin = NodePath("../FloatingOrigin")
 
 [node name="NavComputer" type="Node" parent="." node_paths=PackedStringArray("ship", "arrivals", "cameras", "controls")]
-script = ExtResource("23_nav")
+script = ExtResource("25_nav")
 ship = NodePath("../World/Ship")
 arrivals = NodePath("../Arrivals")
 cameras = NodePath("../ShipCameras")
 controls = NodePath("../PilotControls")
-tuning = ExtResource("24_nav_tuning")
+tuning = ExtResource("26_nav_tuning")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
@@ -144,6 +153,18 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("17_markers")
+ship = NodePath("../../World/Ship")
+cameras = NodePath("../../ShipCameras")
+
+[node name="OrbitMarker" type="Control" parent="Hud" node_paths=PackedStringArray("ship", "cameras")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("24_orbit_marker")
 ship = NodePath("../../World/Ship")
 cameras = NodePath("../../ShipCameras")
 
@@ -239,7 +260,7 @@ horizontal_alignment = 1
 
 [node name="NavStrip" type="PanelContainer" parent="Hud"]
 layout_mode = 3
-script = ExtResource("26_nav_strip")
+script = ExtResource("28_nav_strip")
 
 [node name="NavCard" type="PanelContainer" parent="Hud"]
 visible = false
@@ -252,13 +273,14 @@ offset_top = -24.0
 offset_right = 604.0
 offset_bottom = -24.0
 grow_vertical = 0
-script = ExtResource("25_nav_panel")
+script = ExtResource("27_nav_panel")
 compact = true
 font_size = 22
 
-[node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls")]
+[node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls", "arrivals")]
 script = ExtResource("11_pause")
 controls = NodePath("../PilotControls")
+arrivals = NodePath("../Arrivals")
 
 [node name="DebugPerf" type="CanvasLayer" parent="." node_paths=PackedStringArray("ship", "origin")]
 script = ExtResource("12_perf")

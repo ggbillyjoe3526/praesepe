@@ -87,6 +87,14 @@ func setup(landmarks: Array[Landmark], ports: Array[Port]) -> void:
 	places = NavPlan.places(landmarks)
 	plan.max_steps = tuning.max_steps
 	select(0)
+	# Towed home from the pause screen: the plan was for where the ship was, so it is dropped.
+	if not Events.towed.is_connected(_on_towed):
+		Events.towed.connect(_on_towed)
+
+
+func _on_towed(_port: Port) -> void:
+	if not plan.is_empty():
+		clear()
 
 
 ## Shows the screen in the view the pilot is in (`dashboard` in the cockpit, `chase_card` in the chase view).
@@ -407,8 +415,8 @@ func _cruise(step: NavStep, delta: float) -> void:
 		ship.input.turn = Vector3(0.0, 0.0, ship.input.turn.z)
 
 
-## Enter orbit round the step's body: O once it is offered; until then fly toward the body and level out above it,
-## slowly enough. Done once the ship has settled into the orbit.
+## Enter orbit round the step's body: O once it is offered; until then fly toward the body and then at the insertion
+## point on its orbit line, slowly enough. Done once the ship has settled into the orbit.
 func _orbit(step: NavStep, delta: float) -> void:
 	if _leave_berth():
 		return
@@ -431,16 +439,12 @@ func _orbit(step: NavStep, delta: float) -> void:
 		_set_activity("Entering orbit round %s", body.display_name)
 		return
 	_set_activity("Lining up for orbit round %s", body.display_name)
-	var out := (ship.global_position - body.global_position).normalized()
-	var way := -out
+	# Toward the body until its orbit line is near; then at the insertion point on the line (the ring the HUD shows),
+	# which a gentle climb or descent reaches, and O as soon as the orbit is offered on the way.
+	var way := body.global_position - ship.global_position
 	if o.offered == body:
-		# Close enough: level with the ground, the way the ship is already going.
-		var moving := ship.linear_velocity if ship.speed() > 1.0 else -ship.global_basis.z
-		var level := moving - out * moving.dot(out)
-		if level.length_squared() < 1.0e-6:
-			level = out.cross(Vector3.UP if absf(out.y) < 0.9 else Vector3.RIGHT)
-		way = level.normalized()
-	_fly(way, o.tuning.max_entry_speed * tuning.orbit_speed_share)
+		way += o.insertion
+	_fly(way.normalized(), o.tuning.max_entry_speed * tuning.orbit_speed_share)
 
 
 ## Dock or land at the step's port: G once it is offered; until then close in on its gate, slowing to below the port's

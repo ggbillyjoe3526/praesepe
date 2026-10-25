@@ -19,6 +19,7 @@ const PAGES: Array[Script] = [
 ]
 const PLATE_COLOUR := Color(0.03, 0.04, 0.08, 0.97)
 const PLATE_MARGIN := 36.0
+const PLATE_CORNER := 10
 const PLATE_SIZE := Vector2(1240.0, 820.0)
 const SIDEBAR_WIDTH := 240.0
 const GAP := 24
@@ -53,6 +54,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Opens on the page last shown, with the keyboard on its button.
 func open() -> void:
+	# Brought up to date (a display plugged in since the menu was last open shows in the list).
+	for page in pages:
+		page.sync()
 	visible = true
 	page_buttons[current].grab_focus()
 
@@ -82,7 +86,7 @@ func _build() -> void:
 	var plate := PanelContainer.new()
 	var box := StyleBoxFlat.new()
 	box.bg_color = PLATE_COLOUR
-	box.set_corner_radius_all(10)
+	box.set_corner_radius_all(PLATE_CORNER)
 	box.set_content_margin_all(PLATE_MARGIN)
 	plate.add_theme_stylebox_override("panel", box)
 	centre.add_child(plate)

@@ -5,7 +5,8 @@ extends Landmark
 ## the scene, so its look, its collision and the cruise drive's idea of its size always agree. Close up it is drawn
 ## with a finely divided sphere; past `lod_distance` with a coarse one, which looks the same from that far (its edge
 ## is out by under a pixel). Its collision is one sphere shape. Placeholder look until the art style is chosen.
-## The ship can park in orbit round it (Orbit) between its two orbit heights, going round at its orbit speed.
+## The ship can park in orbit round it (Orbit) on its orbit line, up in space at its orbit height, going round at its
+## orbit speed.
 
 ## Segments around and rings from pole to pole, close up and far away.
 const NEAR_SEGMENTS := 128
@@ -17,6 +18,8 @@ const GLOW_RINGS := 32
 ## How far (share of lod_distance) the camera must go past the switch before it switches back, so it never flickers.
 const LOD_HYSTERESIS := 0.03
 
+## What saves call it (`&"calder"`): never shown and never renamed, unlike its display name.
+@export var id: StringName = &""
 ## Its surface (game/system/body_surface.gdshader).
 @export var surface: Material
 ## The glow around it (game/system/atmosphere.gdshader), or none for an airless moon.
@@ -27,12 +30,17 @@ const LOD_HYSTERESIS := 0.03
 @export var lod_distance: float = 40000.0
 
 @export_group("Orbit")
-## The lowest and highest orbits (m above the surface). Below the highest, the HUD offers to enter orbit; entering
-## lower than the lowest climbs to it.
-@export var orbit_min_altitude: float = 500.0
-@export var orbit_max_altitude: float = 4000.0
+## The orbit line's height (m above the surface), well clear of the air: a ship entering orbit settles onto it.
+@export var orbit_altitude: float = 3000.0
+## Entering orbit is offered only this close (m) above or below the orbit line, so never near the surface.
+@export var orbit_window: float = 600.0
 ## How fast (m/s) a ship goes round in orbit.
-@export var orbit_speed: float = 90.0
+@export var orbit_speed: float = 45.0
+
+
+## The orbit line's distance (m) from the centre.
+func orbit_radius() -> float:
+	return radius + orbit_altitude
 
 
 func _ready() -> void:
