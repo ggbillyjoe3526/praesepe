@@ -8,11 +8,13 @@ as you near something, and drops you out when you arrive. A trip across the whol
 ## Fly to a place (lock on)
 
 1. Put the nose on a place's marker (or anywhere on a planet's or moon's disc). The marker is framed in corner
-   brackets and the HUD says, for example, **F  Cruise to Mote**.
+   brackets and the HUD says **F  Cruise**.
 2. Press **F**. The drive charges for 2 seconds while you fly normally, then takes over.
 3. Sit back. The ship turns to face the place and flies there by itself, going round any planet, moon or station in
    the way. The place's marker turns blue, the HUD reads "CRUISE LOCKED · F to drop out" and the dashboard shows the
-   target and how far it is.
+   target, how far it is and how long until you get there, for example "TARGET  Mote · 16 km · 18 s".
+   The time counts down as you go and is checked again every second, so a detour round a planet is
+   counted in. Trips longer than ten minutes show no time.
 4. It drops out when you arrive, at 200 m/s, and flight assist holds that speed.
 
 Going to Tollgate, it flies past Calder without stopping. If it can see the base well above the horizon it flies

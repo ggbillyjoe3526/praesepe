@@ -12,16 +12,16 @@ There is no download yet (see the [FAQ](FAQ#is-there-a-download)). Once there is
    going. More on the [Flying](Flying) page.
 3. **Look around.** Press **V** for the chase camera behind the ship, and **V** again for the cockpit.
 4. **Dock at the station.** Fly toward Halfway Station's marker and slow down. When the HUD shows
-   **G  Dock at Halfway Station**, press **G** and your ship flies itself into the docking bay. **G** again undocks. See
+   **G  Dock**, press **G** and your ship flies itself into the docking bay. **G** again undocks. See
    [Docking and Landing](Docking-and-Landing).
 5. **Cruise somewhere.** Put the nose on a place's marker (try Mote, the moon) until it is framed in corner brackets
-   and the HUD says **F  Cruise to Mote**, then press **F**. After a two-second charge the cruise drive flies you there
+   and the HUD says **F  Cruise**, then press **F**. After a two-second charge the cruise drive flies you there
    by itself and drops out when you arrive. See [Cruise Drive](Cruise-Drive).
 6. **Park in orbit.** Head for Calder and climb to its orbit line, 3 km up: once you're off the ground a ring on the
    HUD shows where to join it. Close to the line, press **O** when the HUD offers it to circle the planet and enjoy
    the view. See [Orbit](Orbit).
-7. **Land.** Close to Calder, the HUD offers **G  Land at Tollgate**: press **G** and the ship flies down onto the
-   base's pad.
+7. **Land.** Fly to Tollgate, Calder's base, and follow its cyan guide light down. Within 600 m of the pad the HUD
+   offers **G  Land**: press **G** and the ship flies down onto the pad.
 
 The game saves itself every time you dock or land, and every 3 minutes while you fly.
 

@@ -37,6 +37,17 @@ extends Resource
 ## The same for turning: how quickly assist settles the nose on the stick's turn rate.
 @export var assist_turn_response: float = 0.12
 
+@export_group("Rolling upright")
+## R rolls the ship upright (Upright), closing the roll left at a rate that would take this long (s), never faster than
+## the full roll rate.
+@export var upright_time: float = 0.4
+## Upright once the roll left is under this (degrees) and it rolls slower than this (degrees per second).
+@export var upright_tolerance: float = 0.5
+@export var upright_settled_spin: float = 1.0
+## With flight assist off nothing stops a leftover roll, so it holds on until the roll is slower than this (degrees per
+## second) before calling the ship upright.
+@export var upright_still_spin: float = 0.02
+
 
 ## The turn rates as radians per second: pitch up, yaw right, roll right.
 func max_rates() -> Vector3:

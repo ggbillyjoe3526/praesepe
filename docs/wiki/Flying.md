@@ -34,8 +34,24 @@ Flight assist is **on** when you start. Press **Z** to switch it off or on at an
   assist off it leans toward where the ship is really drifting, so you can see the slide. It never goes through
   things: if something gets between it and the ship, it moves in close.
 
+### Looking round
+
+Hold the **right mouse button** and the mouse turns your head instead of steering: up to 140° to either side, 70° up
+and 45° down. The ship carries on as if you had let go of the mouse. In the chase camera, the camera swings round the
+ship instead. Let go and the view eases back to the front. While the nose is out of sight, its mark waits at the edge
+of the screen on the side to turn back to. Your mouse sensitivity and invert settings apply.
+
 Head sway, shake and the chase camera's swing can be turned down or off under Settings > Comfort
 ([Settings and Accessibility](Settings-and-Accessibility#comfort)).
+
+## Rolling level
+
+Press **R** near a planet or moon and the ship rolls round its nose until that body is below you and its horizon is
+level, using its own thrusters. It works with flight assist on or off and never moves the nose. It picks whichever
+planet or moon is closest. Press **Q** or **E** to stop it and roll yourself.
+
+The HUD says "Rolling level with Calder", then "Level with Calder". If your nose points straight at the planet or
+straight away from it, every roll is as level as any other, so it asks you to pitch toward the horizon first.
 
 ## Bumping into things
 
