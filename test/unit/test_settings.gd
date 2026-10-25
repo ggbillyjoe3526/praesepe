@@ -34,6 +34,8 @@ func test_defaults() -> void:
 	assert_eq(Settings.shake, 1.0)
 	assert_true(Settings.head_bob)
 	assert_false(Settings.reduce_motion)
+	assert_eq(Settings.marker_icons, LandmarkMarkers.Show.ALWAYS)
+	assert_eq(Settings.marker_names, LandmarkMarkers.Show.NEARBY, "names show only near or looked at")
 
 
 func test_values_keep_to_their_ranges() -> void:
@@ -186,3 +188,29 @@ func test_saving_after_a_damaged_load_sets_the_damaged_copy_aside() -> void:
 	Settings.reset()
 	assert_true(Settings.load_saved())
 	assert_eq(Settings.fov, 70.0)
+
+
+func test_marker_settings_keep_to_their_choices_and_survive_a_save() -> void:
+	Settings.set_marker_icons(LandmarkMarkers.Show.OFF)
+	Settings.set_marker_names(7)
+	assert_eq(Settings.marker_names, LandmarkMarkers.Show.OFF, "past the last choice is the last choice")
+	Settings.set_marker_names(LandmarkMarkers.Show.ALWAYS)
+	assert_true(Settings.commit())
+	Settings.reset()
+	assert_true(Settings.load_saved())
+	assert_eq(Settings.marker_icons, LandmarkMarkers.Show.OFF)
+	assert_eq(Settings.marker_names, LandmarkMarkers.Show.ALWAYS)
+
+
+func test_damaged_marker_settings_keep_the_defaults() -> void:
+	Settings.from_dict({"marker_icons": 9, "marker_names": "off"})
+	assert_eq(Settings.marker_icons, LandmarkMarkers.Show.ALWAYS)
+	assert_eq(Settings.marker_names, LandmarkMarkers.Show.NEARBY)
+	Settings.from_dict({"marker_icons": 1.5})
+	assert_eq(Settings.marker_icons, LandmarkMarkers.Show.ALWAYS, "not a whole number")
+
+
+func test_an_older_file_without_marker_settings_keeps_the_defaults() -> void:
+	Settings.from_dict({"v": 2, "fov": 70.0})
+	assert_eq(Settings.fov, 70.0)
+	assert_eq(Settings.marker_names, LandmarkMarkers.Show.NEARBY)

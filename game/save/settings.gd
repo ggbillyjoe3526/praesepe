@@ -1,7 +1,7 @@
 extends Node
 ## The Settings autoload: the player's own choices, kept apart from any saved game. For now the view and comfort
 ## settings (project instructions, "Comfort"): field of view, camera shake, head bob and reduce motion, changed on the
-## pause screen. The settings menu adds audio, video and keys here later. The shape (to_dict and from_dict with a
+## pause screen, and when the places' HUD markers show (LandmarkMarkers). The settings menu adds audio, video and keys here later. The shape (to_dict and from_dict with a
 ## version and one-step migrations, damaged values ignored) follows the owner's katanashotgun project
 ## (scripts/settings.gd); the file is written by SaveFile, crash-safe with one backup.
 ##
@@ -31,6 +31,10 @@ var shake: float = 1.0
 var head_bob: bool = true
 ## Calmer cameras: no shake, no head bob, and a chase camera that swings less.
 var reduce_motion: bool = false
+## When the places' HUD markers show their diamonds and their names (LandmarkMarkers.Show): always, only when the
+## place is near or looked at, or never. Names default to near or looked at, so the screen stays clear.
+var marker_icons: int = LandmarkMarkers.Show.ALWAYS
+var marker_names: int = LandmarkMarkers.Show.NEARBY
 
 var _dirty: bool = false
 
@@ -70,6 +74,14 @@ func set_head_bob(on: bool) -> void:
 
 func set_reduce_motion(on: bool) -> void:
 	_change(&"reduce_motion", on)
+
+
+func set_marker_icons(mode: int) -> void:
+	_change(&"marker_icons", clampi(mode, 0, LandmarkMarkers.Show.size() - 1))
+
+
+func set_marker_names(mode: int) -> void:
+	_change(&"marker_names", clampi(mode, 0, LandmarkMarkers.Show.size() - 1))
 
 
 ## Back to the defaults (the file is written on the next commit()).
@@ -114,7 +126,8 @@ func load_saved() -> bool:
 
 
 func to_dict() -> Dictionary:
-	return {"v": VERSION, "fov": fov, "shake": shake, "head_bob": head_bob, "reduce_motion": reduce_motion}
+	return {"v": VERSION, "fov": fov, "shake": shake, "head_bob": head_bob, "reduce_motion": reduce_motion,
+			"marker_icons": marker_icons, "marker_names": marker_names}
 
 
 ## Reads `d` over the current values. Anything missing, of the wrong type or out of range keeps its current value, so
@@ -131,6 +144,10 @@ func from_dict(d: Dictionary) -> void:
 		head_bob = d.head_bob
 	if d.get("reduce_motion") is bool:
 		reduce_motion = d.reduce_motion
+	if _is_marker_mode(d.get("marker_icons")):
+		marker_icons = int(d.marker_icons)
+	if _is_marker_mode(d.get("marker_names")):
+		marker_names = int(d.marker_names)
 
 
 ## Version 1 saved the field of view whenever any setting changed, so the old default (75°) almost always means the
@@ -145,8 +162,14 @@ static func _migrate_v1(d: Dictionary) -> Dictionary:
 
 
 func _defaults() -> Dictionary:
-	return {"fov": DEFAULT_FOV, "shake": 1.0, "head_bob": true, "reduce_motion": false}
+	return {"fov": DEFAULT_FOV, "shake": 1.0, "head_bob": true, "reduce_motion": false,
+			"marker_icons": LandmarkMarkers.Show.ALWAYS, "marker_names": LandmarkMarkers.Show.NEARBY}
 
 
 static func _is_num(v: Variant) -> bool:
 	return v is float or v is int
+
+
+## A whole number naming one of LandmarkMarkers.Show (JSON gives it back as a float).
+static func _is_marker_mode(v: Variant) -> bool:
+	return _is_num(v) and float(v) == roundf(float(v)) and int(v) >= 0 and int(v) < LandmarkMarkers.Show.size()

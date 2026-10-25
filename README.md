@@ -65,7 +65,7 @@ CI runs all four on every pull request. Set `GODOT=/path/to/godot` if `godot` is
 | `game/camera/` | The cockpit and chase cameras, camera shake and their tuning. |
 | `game/system/` | The solar system scene: the planet, its base and landing pad, the moon, the station and its docking bay, the seeded asteroid belt and their tuning. |
 | `game/world/` | The floating origin, space dust, the starfield sky and buoys. |
-| `game/hud/` | The flight HUD, velocity marker, the markers on each place, the docking, landing and orbit prompts and the cockpit's dashboard screen. |
+| `game/hud/` | The flight HUD, velocity marker, the markers on each place (with the settings for when their names and diamonds show), the docking, landing and orbit prompts and the cockpit's dashboard screen. |
 | `game/ui/` | The pause screen and its comfort settings. |
 | `game/save/` | Crash-safe save files, the saved game and its autosave, and the player's settings (the `Settings` autoload). |
 | `game/main/` | The first scene. |
