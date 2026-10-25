@@ -112,3 +112,21 @@ func test_the_transition_and_the_refusals_name_the_place() -> void:
 	assert_eq(TransitionScreen.saved_text(true), "Game saved")
 	assert_string_contains(TransitionScreen.saved_text(false), "last save is safe")
 	assert_eq(FlightHud.dock_refused_message(null, Arrivals.Refusal.TOO_FAR), "Nothing to dock at or land on here")
+
+
+func test_the_cruise_lock_has_words_on_the_hud_and_the_dashboard() -> void:
+	assert_eq(FlightHud.target_text("Mote", 31400.0), "TARGET  Mote  ·  31 km")
+	assert_lt(FlightHud.target_text("Halfway Station", 31400.0).length(), 40, "fits the dashboard")
+	assert_eq(FlightHud.mode_text(FlightHud.Mode.CRUISE_LOCKED, 0), "CRUISE LOCKED  ·  F to drop out")
+	assert_eq(ActionPrompts.cruise_text(null), "", "nothing aimed at, nothing to say")
+	assert_string_contains(FlightHud.cruise_message(CruiseDrive.Event.CHARGING, "Mote"), "locked onto Mote")
+	assert_string_contains(FlightHud.cruise_message(CruiseDrive.Event.ENGAGED, "Mote"), "Cruising to Mote")
+	assert_eq(FlightHud.cruise_message(CruiseDrive.Event.CHARGING, ""), "Cruise drive charging  ·  F to cancel",
+			"without a lock, as before")
+
+
+func test_the_cruise_prompt_names_the_aimed_place() -> void:
+	var mote := Landmark.new()
+	mote.display_name = "Mote"
+	assert_eq(ActionPrompts.cruise_text(mote), "F   Cruise to Mote")
+	mote.free()

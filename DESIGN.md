@@ -126,6 +126,9 @@ The values live in `game/camera/camera_tuning.tres` (shared by every ship). Wher
 - It won't engage inside the asteroid belt or among a base's buildings (within 150 m of Tollgate), or when the nose points at something it would reach within 5 s; a message says what is in the way.
 - In cruise the dashboard and HUD show "CRUISE · F to drop out" and the speed in km/s, and the space dust fades out (it can't show such speeds) while a coarser cruise dust, specks kilometres apart, fades in so the speed still reads.
 - Every place has a marker on the HUD with its name and distance (to the surface, or to the belt's home pocket), so the player can point at it and go.
+- **Locking on** (added at the owner's request, 2026-10-25): with the nose within 4° of a place's marker (the nearest one, if several), or else anywhere on a place's disc (a planet or moon, or a station close up), that marker is framed in corner brackets and the HUD offers "F  Cruise to Mote" (not while docking or landing is offered, where G is what matters). F then locks the drive onto it: once charged it flies there by itself and the player can sit back. The travel heads for the place (following it over 0.4 s, as when steering), and the nose is turned to follow the travel (closing the angle in 0.6 s), so the place stays ahead in the cockpit window. The locked place's marker turns cruise blue, the readout says "CRUISE LOCKED · F to drop out" and the dashboard (and the chase view's plate) shows "TARGET  Mote · 12 km".
+- Locked on, it only drops out on arriving at that place: it flies on through other places' zones (so a trip to Tollgate doesn't stop at Calder). A planet, moon or station in the way is flown round, along the shortest way and a planet's radius above it (never closer than its arrival zone): the drive heads along the line that just touches that clearance, follows it, and goes straight once the way is clear. A base on a planet's surface is flown at straight once it is seen at least 15° above its horizon; from lower, or from the far side, the drive goes round the planet first and comes down at it from above. The safety drop still holds.
+- Moving the mouse (more than 15% of a full stick push, as with orbit), while the drive charges or cruises, releases the lock, "Lock released · steering yourself": the drive then charges or carries on where the nose points, as without a lock. F or X drop out as usual. Rolling with Q/E doesn't release it. Taking over while inside another place's zone doesn't drop out there (it counts as left behind, like a place the drive starts at), and a ship that reaches its target while still charging has simply arrived. With nothing aimed at, F cruises where the nose points, exactly as before. A place the ship is already at (inside its arrival zone) can't be locked onto.
 
 **Cruise drive tuning**
 
@@ -143,6 +146,10 @@ The values live in `game/ship/greybox_cruise_tuning.tres` (per ship, so an engin
 | Engage look-ahead | 5 s | Won't engage when the nose points at something it would reach this soon |
 | Bump limit | 3 m/s | A harder knock drops it out |
 | Rumble | 0.3 of full thrust | Camera shake while cruising |
+| Lock cone | 4° | Nose this close to a marker (or on a planet's disc) locks on with F |
+| Lock turning | 0.6 s | How quickly the nose follows a locked course |
+| Clearance | 1 radius above a planet, moon or station, at least its arrival zone | Locked on, how wide it goes round things in the way |
+| Approach angle | 15° | Locked onto a base, it flies straight at it once it sees it this high over its horizon |
 
 **How orbit works (first values, to be tuned with the owner)**
 
@@ -371,6 +378,8 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 ## Decisions log
 
 Newest first. Each line: date, the decision, who made it.
+
+- 2026-10-25: The cruise drive locks onto a place: William asked that "when the player aims at a location and enables cruise drive the ship should lock onto the target and fly there" (owner). Until the owner tunes it: values and behaviour as in "How the cruise drive works" (Locking on); the lock is taken when F is pressed, from the place the nose is aimed at; moving the mouse releases it; locked on, the drive arrives only at its target and goes round what is in the way; with nothing aimed at, F cruises where the nose points as before (default, Claude).
 
 - 2026-10-24: Docking, landing and orbit until the owner tunes them: values as in "How docking and landing work" and "How orbit works"; G docks, lands, undocks and takes off, O enters and leaves orbit; landing at a planet's base is offered anywhere close to the planet; the docked ship sits in an open bay on the station (the station's dock is no longer a solid block); the autosave writes the game on every docking and landing (seed, clock, random streams and where the ship is), and loading it comes with save and load (build step 7), so a new launch still starts in flight; the event bus is an autoload, `Events` (default, Claude).
 - 2026-10-24: Orbit joins the first playable: William asked for ships to "sit in orbit of objects", not a simulation like Kerbal Space Program, "just a simple 'Enter Orbit' button prompt. The player can enter orbit and stay there" (owner).

@@ -11,6 +11,19 @@ extends Resource
 ## or min_speed, whichever is more.
 @export var engage_look_ahead: float = 5.0
 
+@export_group("Locking on")
+## Pressing F with the nose within this (degrees) of a place's marker, or on a planet's or moon's disc, locks the drive
+## onto it: it flies there by itself. The marker nearest the nose wins; a disc counts only with no marker that close.
+@export var lock_cone: float = 4.0
+## Locked on, how quickly (s) the nose is turned to follow the way the ship is going.
+@export var lock_turn_time: float = 0.6
+## Locked on, the drive goes round a planet, moon or station in its way, keeping this far above its surface: this many
+## of its radii, and never less than its arrival zone (Landmark.drop_distance).
+@export var clearance: float = 1.0
+## Locked onto a place on a planet's surface (a base), the drive flies straight at it once it sees it at least this
+## high (degrees) above the place's horizon; lower, it goes round the planet first.
+@export var approach_angle: float = 15.0
+
 @export_group("Speed (m/s)")
 ## The slowest the drive goes, close to anything. Faster than normal flight, so cruising always gains time.
 @export var min_speed: float = 300.0
