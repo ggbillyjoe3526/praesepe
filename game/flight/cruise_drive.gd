@@ -11,6 +11,11 @@ extends RefCounted
 ## leaving a station never drops straight back out. It refuses to engage inside something (the asteroid belt, a base's
 ## buildings) or when the nose points at something close.
 ##
+## Pressing F with the nose aimed at a place (`aimed`, from aim()) locks the drive onto it (`target`): once charged it
+## flies there by itself, turning the ship's nose to follow (turn_for()), going round any planet, moon or station in the
+## way (course()), and drops out only on arriving there. Moving the mouse, while it charges or cruises, hands the
+## steering back (it cruises where the nose points, as without a lock); F or X cancel or drop out as usual. With nothing aimed at, F cruises where the nose points.
+##
 ## Vectors are in world space. Each step() fills `velocity` (the ship's velocity this tick while cruising, and the
 ## velocity to leave it with on the tick it drops out) and `event` (what happened, for messages).
 
@@ -27,12 +32,16 @@ enum Event {
 	DROPPED, ## Dropped out because the pilot asked.
 	SAFETY, ## Dropped out before running into `place`.
 	BUMPED, ## Dropped out after a bump.
+	UNLOCKED, ## The pilot moved the mouse: no longer locked onto `place`, steered by hand.
 }
 
 ## How far ahead (s) the drive looks to see whether it is closing on something.
 const PROBE_TIME := 0.25
 ## How far (m) beyond its drop distance the ship must go before a place it left counts for arrival again.
 const REARM_MARGIN := 250.0
+## Locked on (or charging to), a stick pushed further than this (of a full push, pitch and yaw) hands the steering back
+## to the pilot, the same as taking over from the orbit's turn.
+const STICK_TAKES_OVER := Orbit.STICK_TAKES_OVER
 
 var tuning: CruiseTuning
 ## Every place in the solar system (SolarSystem.landmarks).
@@ -51,6 +60,10 @@ var place: Landmark = null
 ## The closest thing to fly into while cruising, and how far (m) its surface is.
 var nearest: Landmark = null
 var nearest_distance: float = INF
+## The place the drive is locked onto while it charges or cruises, or null when it goes where the nose points.
+var target: Landmark = null
+## While off: the place the nose is aimed at, which F would lock onto, or null.
+var aimed: Landmark = null
 
 var _charge_left: float = 0.0
 ## Per landmark: 1 when arriving there drops the drive out, 0 until the ship has left it.
@@ -65,28 +78,44 @@ func active() -> bool:
 	return phase == Phase.CRUISING
 
 
+## Cruising locked onto `target`, so the drive steers the ship.
+func locked() -> bool:
+	return phase == Phase.CRUISING and target != null
+
+
 ## How long (s) until the drive finishes charging; zero unless charging.
 func charge_left() -> float:
 	return _charge_left if phase == Phase.CHARGING else 0.0
 
 
 ## One physics tick: the ship is `at`, moving at `ship_velocity`, its nose pointing `nose` (unit), and it was bumped by
-## `jolt` (m/s, Ship.jolt). `toggle` is F this tick, `stop` is X.
+## `jolt` (m/s, Ship.jolt). `toggle` is F this tick, `stop` is X. `steering` is the pilot pushing the stick further
+## than STICK_TAKES_OVER, which ends a lock.
 func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, stop: bool, jolt: float,
-		delta: float) -> void:
+		delta: float, steering: bool = false) -> void:
 	event = Event.NONE
 	place = null
 	match phase:
 		Phase.OFF:
+			aimed = CruiseDrive.aim(landmarks, at, nose, tuning.lock_cone)
 			if toggle:
 				phase = Phase.CHARGING
 				_charge_left = tuning.charge_time
+				target = aimed
+				aimed = null
 				event = Event.CHARGING
+				place = target
 		Phase.CHARGING:
 			if toggle or stop:
 				phase = Phase.OFF
+				target = null
 				event = Event.CANCELLED
 				return
+			if target != null and steering:
+				# Turning away while it charges: the pilot is choosing somewhere else.
+				event = Event.UNLOCKED
+				place = target
+				target = null
 			_charge_left -= delta
 			if _charge_left <= 0.0:
 				_engage(at, ship_velocity, nose)
@@ -100,12 +129,16 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, stop
 				velocity = ship_velocity.limit_length(exit_speed)
 				exit_speed = 0.0
 			else:
+				if target != null and steering:
+					_unlock(at)
 				_cruise(at, nose, delta)
 
 
 ## Off at once with no event, as when the ship docks or lands.
 func stop() -> void:
 	phase = Phase.OFF
+	target = null
+	aimed = null
 	speed = 0.0
 	velocity = Vector3.ZERO
 	nearest = null
@@ -114,8 +147,15 @@ func stop() -> void:
 
 func _engage(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> void:
 	phase = Phase.OFF
-	var forward := maxf(ship_velocity.dot(nose), 0.0)
-	var probe := nose * maxf(forward, tuning.min_speed)
+	if target != null and target.surface_distance(at) <= target.drop_distance:
+		# The ship got there while charging: it has arrived, with nothing left to cruise to.
+		event = Event.ARRIVED
+		place = target
+		target = null
+		return
+	var heading := nose if target == null else course(at, nose)
+	var forward := maxf(ship_velocity.dot(heading), 0.0)
+	var probe := heading * maxf(forward, tuning.min_speed)
 	# Of everything too close ahead, the one it would reach first is the one the message names.
 	var soonest := tuning.engage_look_ahead
 	for l: Landmark in landmarks:
@@ -124,6 +164,7 @@ func _engage(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> void:
 		if l.surface_distance(at) <= 0.0:
 			event = Event.BLOCKED_INSIDE
 			place = l
+			target = null
 			return
 		var reach := time_to_reach(l, at, probe)
 		if reach < soonest:
@@ -131,6 +172,7 @@ func _engage(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> void:
 			event = Event.BLOCKED
 			place = l
 	if event == Event.BLOCKED:
+		target = null
 		return
 	if _armed.size() != landmarks.size():
 		_armed.resize(landmarks.size())
@@ -138,13 +180,15 @@ func _engage(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> void:
 		_armed[i] = 1 if landmarks[i].surface_distance(at) > landmarks[i].drop_distance else 0
 	phase = Phase.CRUISING
 	event = Event.ENGAGED
+	place = target
 	speed = forward
-	direction = nose
+	direction = heading
 	velocity = direction * speed
 
 
 func _cruise(at: Vector3, nose: Vector3, delta: float) -> void:
-	direction = direction.slerp(nose, Smoothing.factor(delta, tuning.align_time)).normalized()
+	var want := nose if target == null else course(at, direction)
+	direction = direction.slerp(want, Smoothing.factor(delta, tuning.align_time)).normalized()
 	velocity = direction * speed
 	nearest = null
 	nearest_distance = INF
@@ -153,7 +197,8 @@ func _cruise(at: Vector3, nose: Vector3, delta: float) -> void:
 		var s := l.surface_distance(at)
 		if _armed[i] == 0 and s > l.drop_distance + REARM_MARGIN:
 			_armed[i] = 1
-		if _armed[i] == 1 and s < l.drop_distance:
+		# Locked on, only the place it is going to counts: it flies on through the others' arrival zones.
+		if _armed[i] == 1 and s < l.drop_distance and (target == null or l == target):
 			_drop(Event.ARRIVED, l, tuning.exit_speed)
 			return
 		if not l.obstacle:
@@ -164,13 +209,25 @@ func _cruise(at: Vector3, nose: Vector3, delta: float) -> void:
 		if time_to_reach(l, at, velocity) < tuning.safety_time:
 			_drop(Event.SAFETY, l, tuning.safety_exit_speed)
 			return
-	var target := clampf(nearest_distance / tuning.approach_time, tuning.min_speed, tuning.max_speed)
-	speed = move_toward(speed, target, maxf(speed, tuning.min_speed) * delta / tuning.ramp_time)
+	var want_speed := clampf(nearest_distance / tuning.approach_time, tuning.min_speed, tuning.max_speed)
+	speed = move_toward(speed, want_speed, maxf(speed, tuning.min_speed) * delta / tuning.ramp_time)
 	velocity = direction * speed
+
+
+## The pilot took the steering back. Places whose zones the ship is flying through on its way count as left behind,
+## so taking over there never drops it straight out; they count again once it has left them.
+func _unlock(at: Vector3) -> void:
+	event = Event.UNLOCKED
+	place = target
+	target = null
+	for i in landmarks.size():
+		if landmarks[i].surface_distance(at) < landmarks[i].drop_distance:
+			_armed[i] = 0
 
 
 func _drop(why: Event, at_place: Landmark, keep: float) -> void:
 	phase = Phase.OFF
+	target = null
 	event = why
 	place = at_place
 	exit_speed = minf(speed, keep)
@@ -186,3 +243,96 @@ static func time_to_reach(l: Landmark, at: Vector3, moving: Vector3) -> float:
 	var now := l.surface_distance(at)
 	var closing := (now - l.surface_distance(at + moving * PROBE_TIME)) / PROBE_TIME
 	return now / closing if closing > 0.0 else INF
+
+
+## Locked on, the turn (ShipInput.turn) that brings the nose of a ship whose attitude is `ship_basis` round to the way
+## it is going, closing the angle in CruiseTuning.lock_turn_time as a share of the full-stick `rates`; `roll` is the
+## pilot's own roll, which the lock leaves alone.
+func turn_for(ship_basis: Basis, roll: float, rates: Vector3) -> Vector3:
+	var local := ship_basis.inverse() * direction
+	var yaw := atan2(local.x, -local.z)
+	var pitch := atan2(local.y, Vector2(local.x, local.z).length())
+	var t := tuning.lock_turn_time
+	return Vector3(clampf(pitch / (rates.x * t), -1.0, 1.0), clampf(yaw / (rates.y * t), -1.0, 1.0), roll)
+
+
+## Which way (unit) a ship at `at` locked onto `target` goes: straight at its marker, unless a planet, moon or station
+## is in the way, then round the nearest such along the shortest way, CruiseTuning.clearance above it, until the way
+## is clear. A place on a planet's surface (a base) is in the planet's way while the ship sees it lower than
+## CruiseTuning.approach_angle over its horizon, so the drive goes round to come down at it from above. `fallback` is
+## the way to go when the ship is at the marker already.
+func course(at: Vector3, fallback: Vector3) -> Vector3:
+	var goal := target.marker_position()
+	var to_goal := goal - at
+	var length := to_goal.length()
+	if length < 1.0:
+		return fallback
+	var straight := to_goal / length
+	var way := straight
+	var first := INF
+	var low := sin(deg_to_rad(tuning.approach_angle))
+	for l: Landmark in landmarks:
+		if l == target or not l.obstacle or l.radius <= 0.0:
+			continue
+		var centre := l.global_position
+		var r := l.radius + maxf(l.drop_distance, l.radius * tuning.clearance)
+		var along := (centre - at).dot(straight)
+		var aim := goal
+		var blocked := false
+		var up := goal - centre
+		if up.length_squared() < r * r:
+			# The place is within this one's clearance: on it or close by. Clear once seen high enough over its horizon.
+			up = up.normalized() if up.length_squared() > 1.0 else Vector3.UP
+			aim = centre + up * r
+			blocked = -straight.dot(up) < low
+		else:
+			blocked = along > 0.0 and along < length and (at + straight * along).distance_squared_to(centre) < r * r
+		if blocked and along < first:
+			first = along
+			way = CruiseDrive.round_sphere(at, centre, r, aim)
+	return way
+
+
+## The way (unit) from `at` round a sphere of radius `r` at `centre` toward `aim`: along the line that just touches the
+## sphere on the side `aim` is, or, inside the sphere, along it while climbing back out.
+static func round_sphere(at: Vector3, centre: Vector3, r: float, aim: Vector3) -> Vector3:
+	var out := at - centre
+	var d := out.length()
+	var radial := out / d if d > 1.0e-3 else Vector3.UP
+	var want := aim - at
+	var side := want - radial * want.dot(radial)
+	if side.length_squared() < 1.0e-6:
+		# Straight through the middle: either way round is as short.
+		side = radial.cross(Vector3.UP if absf(radial.y) < 0.9 else Vector3.RIGHT)
+	side = side.normalized()
+	if d <= r:
+		return (side + radial * (1.0 - d / r)).normalized()
+	var s := r / d
+	return (side * s - radial * sqrt(1.0 - s * s)).normalized()
+
+
+## The place a ship at `at` with its nose along `nose` (unit) is aimed at, which F would lock onto, of the places with
+## a marker that it isn't already at (inside the arrival zone): the one whose marker is nearest the nose, within
+## `cone_degrees` of it; failing that, the planet or moon whose disc the nose is on (the nearest middle, as a share of
+## its disc). So a base wins over its planet near the base's marker. Null when nothing is aimed at.
+static func aim(places: Array[Landmark], at: Vector3, nose: Vector3, cone_degrees: float) -> Landmark:
+	var best: Landmark = null
+	# Markers in the cone score 0 to 1, discs 1 to 2: lowest wins.
+	var best_score := 2.0
+	var cone := deg_to_rad(cone_degrees)
+	for l: Landmark in places:
+		if not l.marker or l.surface_distance(at) <= l.drop_distance:
+			continue
+		var to := l.marker_position() - at
+		var d := to.length()
+		if d < 1.0:
+			continue
+		var angle := nose.angle_to(to)
+		var score := angle / cone
+		if score > 1.0:
+			var disc := atan2(l.radius, d)
+			score = 1.0 + angle / disc if disc > 0.0 and angle < disc else INF
+		if score < best_score or (score == best_score and best != null and l.radius < best.radius):
+			best = l
+			best_score = score
+	return best
