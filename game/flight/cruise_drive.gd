@@ -46,11 +46,14 @@ const STICK_TAKES_OVER := Orbit.STICK_TAKES_OVER
 ## Locked on, how often (s) the estimate of the time to arrival is worked out afresh; in between it counts down.
 const ETA_EVERY := 1.0
 ## The estimate flies the rest of the trip ahead in steps this share of the time to the nearest surface at the speed
-## then, kept between ETA_STEP_MIN and ETA_STEP_MAX seconds, and gives up beyond ETA_LONGEST seconds.
+## then, kept between ETA_STEP_MIN and ETA_STEP_MAX seconds, and gives up beyond ETA_LONGEST seconds or
+## ETA_MOST_STEPS steps (no time shown then).
 const ETA_STEP_SHARE := 0.1
 const ETA_STEP_MIN := 0.1
 const ETA_STEP_MAX := 1.0
 const ETA_LONGEST := 600.0
+## And never takes more steps than this, however small they get.
+const ETA_MOST_STEPS := 1000
 
 var tuning: CruiseTuning
 ## Every place in the solar system (SolarSystem.landmarks).
@@ -270,8 +273,10 @@ func time_to_arrive(at: Vector3, ship_velocity: Vector3, nose: Vector3) -> float
 		way = course(pos, nose)
 		going = maxf(ship_velocity.dot(way), 0.0)
 	var left := target.surface_distance(pos) - target.drop_distance
+	var steps := 0
 	while left > 0.0:
-		if t > ETA_LONGEST:
+		steps += 1
+		if t > ETA_LONGEST or steps > ETA_MOST_STEPS:
 			return INF
 		var near := INF
 		for l: Landmark in landmarks:

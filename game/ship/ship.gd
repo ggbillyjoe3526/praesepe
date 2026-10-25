@@ -145,7 +145,7 @@ func _step_orbit(delta: float) -> void:
 ## it, or levels it out to leave, the orbit has the roll (and levels the ship itself).
 func _step_upright(pilot_roll: float) -> void:
 	var roll_spin := pilot_spin().z
-	upright.step(global_basis, global_position, input.roll_upright, pilot_roll, roll_spin)
+	upright.step(global_basis, global_position, input.roll_upright, pilot_roll, roll_spin, model.assist)
 	input.roll_upright = false
 	if upright.active() and not orbit.turning and orbit.phase != Orbit.Phase.LEAVING:
 		input.turn.z = upright.roll_for(global_basis, global_position, roll_spin, model.assist)

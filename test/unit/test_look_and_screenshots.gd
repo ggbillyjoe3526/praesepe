@@ -66,3 +66,22 @@ func test_the_note_says_where_the_picture_went() -> void:
 	assert_string_contains(words, "praesepe_2026-10-25_12-00-00.png")
 	assert_false(words.contains("user://"), "a real place on the disk, not the game's own name for it")
 	assert_string_contains(Screenshots.note_for("", false), "Couldn't save")
+
+
+func test_the_new_keys_are_in_the_input_map() -> void:
+	for action: StringName in [&"look_around", &"roll_upright", &"screenshot"]:
+		assert_true(InputMap.has_action(action), action)
+		assert_false(InputMap.action_get_events(action).is_empty(), "%s has a key" % action)
+
+
+func test_a_screenshot_with_no_frame_drawn_gives_up_and_says_so() -> void:
+	# Headless, no frame is ever drawn: the key must not stay stuck.
+	var shots := Screenshots.new()
+	shots.folder = "user://test_screenshots_never"
+	add_child_autofree(shots)
+	shots.take()
+	assert_true(shots.busy())
+	await wait_process_frames(Screenshots.DRAW_WAIT_FRAMES + 2)
+	assert_false(shots.busy(), "free to take another")
+	assert_string_contains(shots.note_text(), "Couldn't save")
+	assert_eq(shots.last_path, "")

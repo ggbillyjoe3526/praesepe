@@ -3,13 +3,16 @@ extends CanvasLayer
 ## The screenshot key (F12): saves the picture on the screen, exactly as the player sees it (HUD, messages and pause
 ## screen included), as a PNG in the `screenshots` folder in the user folder, then says where for a few seconds. Works
 ## while paused too. The picture is read back once the frame is drawn and written to disk on a worker thread, so
-## taking one never holds up flight; its own note is hidden first, so it is never in the picture. The file's name is
+## taking one never holds up flight; its own note is hidden first, so it is never in the picture. If no frame is drawn
+## within DRAW_WAIT_FRAMES (a headless run, a window that isn't drawing) it gives up and says so. The file's name is
 ## the date and time it was taken (for naming only: nothing in the game runs on the real clock).
 
 const LAYER := 60
 const FOLDER := "user://screenshots"
 ## How long (s) the note saying where the picture went stays up.
 const NOTE_TIME := 4.0
+## Frames to wait for the picture to be drawn before giving up (a window that isn't drawing, as when minimised).
+const DRAW_WAIT_FRAMES := 30
 const PLATE_COLOUR := Color(0.03, 0.04, 0.08, 0.92)
 const SAVED_COLOUR := Color(0.55, 0.95, 0.75)
 const FAILED_COLOUR := Color(1.0, 0.72, 0.3)
@@ -17,6 +20,7 @@ const FAILED_COLOUR := Color(1.0, 0.72, 0.3)
 const TEXT_SIZE := 20
 const MARGIN := 24.0
 const PAD := Vector2(18.0, 8.0)
+const CORNER := 6
 
 ## Where pictures go.
 var folder: String = FOLDER
@@ -31,6 +35,8 @@ var _taking: bool = false
 var _path: String = ""
 var _task: int = -1
 var _written: Error = OK
+## Frames left to wait for the frame to be drawn, while waiting.
+var _draw_wait: int = 0
 
 
 func _ready() -> void:
@@ -61,6 +67,7 @@ func take() -> void:
 	_taking = true
 	_plate.visible = false
 	_note_left = 0.0
+	_draw_wait = DRAW_WAIT_FRAMES
 	RenderingServer.frame_post_draw.connect(_grab, CONNECT_ONE_SHOT)
 
 
@@ -96,10 +103,11 @@ static func free_path(in_folder: String, when: Dictionary) -> String:
 static func note_for(path: String, ok: bool) -> String:
 	if ok:
 		return "Screenshot saved  ·  %s" % ProjectSettings.globalize_path(path)
-	return "Couldn't save the screenshot. Check there is room on the disk"
+	return "Couldn't save the screenshot. Check the user folder can be written to and has room"
 
 
 func _grab() -> void:
+	_draw_wait = 0
 	var image := get_viewport().get_texture().get_image()
 	if image == null or image.is_empty():
 		_finish(false)
@@ -115,6 +123,12 @@ func _write(image: Image, path: String, in_folder: String) -> void:
 
 
 func _process(delta: float) -> void:
+	if _draw_wait > 0:
+		_draw_wait -= 1
+		if _draw_wait == 0 and RenderingServer.frame_post_draw.is_connected(_grab):
+			# Nothing was drawn: give up rather than leave the key dead.
+			RenderingServer.frame_post_draw.disconnect(_grab)
+			_finish(false)
 	if _task != -1 and WorkerThreadPool.is_task_completed(_task):
 		WorkerThreadPool.wait_for_task_completion(_task)
 		_task = -1
@@ -136,7 +150,7 @@ func _finish(ok: bool) -> void:
 func _build() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = PLATE_COLOUR
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(CORNER)
 	style.content_margin_left = PAD.x
 	style.content_margin_right = PAD.x
 	style.content_margin_top = PAD.y

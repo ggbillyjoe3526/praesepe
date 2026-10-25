@@ -83,7 +83,10 @@ func test_with_flight_assist_off_it_still_ends_level_and_still() -> void:
 	await _press_and_wait(900)
 	assert_eq(_events.back(), Upright.Event.LEVEL)
 	assert_lt(_tilt(), 1.0, "level")
-	assert_lt(absf(_ship.pilot_spin().z), deg_to_rad(_ship.tuning.upright_settled_spin), "not left rolling")
+	assert_lt(absf(_ship.pilot_spin().z), deg_to_rad(_ship.tuning.upright_still_spin), "not left rolling")
+	var tilt := _tilt()
+	await wait_physics_frames(600)
+	assert_lt(absf(_tilt() - tilt), 0.25, "and doesn't creep off level over 10 s")
 	assert_false(_ship.assist_on(), "flight assist stays off")
 
 
@@ -117,3 +120,14 @@ func test_every_event_has_words() -> void:
 		else:
 			assert_ne(words, "", Upright.Event.keys()[event])
 			assert_lt(words.length(), 60, words)
+
+
+func test_stops_and_says_so_when_the_nose_swings_straight_down() -> void:
+	_ship.global_basis = Basis(Vector3.FORWARD, deg_to_rad(130.0))
+	_ship.input.roll_upright = true
+	await wait_physics_frames(3)
+	assert_true(_ship.upright.active())
+	_ship.global_basis = Basis.looking_at(Vector3.DOWN, Vector3.FORWARD)
+	await wait_physics_frames(2)
+	assert_false(_ship.upright.active())
+	assert_eq(_events.back(), Upright.Event.STRAIGHT)

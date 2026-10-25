@@ -2,7 +2,8 @@ class_name PilotControls
 extends Node
 ## The player's hands on the ship: keys for thrust and roll, the mouse as a stick for pitch and yaw. Fills the ship's
 ## ShipInput every physics tick, before the ship acts on it (FlightOrder). The mouse moves a stick that springs back
-## to the centre (FlightControls), so moving the mouse turns the ship and stopping lets the turn settle.
+## to the centre (FlightControls), so moving the mouse turns the ship and stopping lets the turn settle. The player's
+## mouse sensitivity and invert (Settings › Controls) scale and flip it.
 ## Holding the look button (right mouse) turns the pilot's head instead (ShipCameras.look): the mouse looks round the
 ## cockpit, or swings the chase camera round the ship, while the stick eases back to the centre so the ship's turn
 ## settles as if the mouse had stopped. Let go and the view turns back to the front. R asks the ship to roll upright
@@ -72,8 +73,8 @@ func looking() -> bool:
 
 
 func _process(delta: float) -> void:
-	var push := _look_mouse * deg_to_rad(controls.look_gain)
-	if controls.invert_pitch:
+	var push := _look_mouse * deg_to_rad(controls.look_gain) * Settings.sensitivity
+	if Settings.invert_mouse:
 		push.y = -push.y
 	# Screen y is down; the head's y is up.
 	look = PilotControls.move_look(look, Vector2(push.x, -push.y), looking(), controls, delta)
@@ -85,14 +86,15 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if ship == null:
 		return
-	stick = PilotControls.move_stick(stick, _mouse * controls.mouse_gain, controls.stick_return, delta)
+	var gain := controls.mouse_gain * Settings.sensitivity
+	stick = PilotControls.move_stick(stick, _mouse * gain, controls.stick_return, delta)
 	_mouse = Vector2.ZERO
 	var input := ship.input
 	input.thrust = Vector3(
 		Input.get_axis(&"strafe_left", &"strafe_right"),
 		Input.get_axis(&"thrust_down", &"thrust_up"),
 		Input.get_axis(&"thrust_back", &"thrust_forward"))
-	var pitch := stick.y if controls.invert_pitch else -stick.y
+	var pitch := stick.y if Settings.invert_mouse else -stick.y
 	input.turn = Vector3(pitch, stick.x, Input.get_axis(&"roll_left", &"roll_right"))
 	input.toggle_assist = input.toggle_assist or _toggle_assist
 	input.full_stop = input.full_stop or _full_stop

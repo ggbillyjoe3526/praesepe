@@ -349,6 +349,7 @@ func _physics_process(_delta: float) -> void:
 
 func _while_paused() -> void:
 	_paused_frames += 1
+	_visit_settings()
 	if _paused_frames < PAUSED_FRAMES:
 		return
 	_expect(ship.global_position == _paused_at, "stands still while paused")
@@ -357,6 +358,22 @@ func _while_paused() -> void:
 	_expect(not get_tree().paused, "resumes")
 	# The ship stood still; start the movement check afresh.
 	_last_true = PackedFloat64Array()
+
+
+## While paused: opens the settings menu, shows each page for a frame, and closes it again (the menu never writes the
+## settings in the smoke test).
+func _visit_settings() -> void:
+	var menu := pause.settings_menu
+	var pages := menu.pages.size()
+	if _paused_frames == 2:
+		pause.open_settings()
+		_expect(menu.visible, "opens the settings menu")
+	elif _paused_frames > 2 and _paused_frames <= 2 + pages:
+		menu.show_page(_paused_frames - 3)
+		_expect(menu.pages[menu.current].is_visible_in_tree(), "shows the %s settings" % menu.pages[menu.current].title)
+	elif _paused_frames == 3 + pages:
+		menu.close()
+		_expect(not menu.visible and pause.visible, "goes back from the settings menu to the pause screen")
 
 
 ## The ship's true position should move by its velocity each tick (to within the physics step), whatever the floating

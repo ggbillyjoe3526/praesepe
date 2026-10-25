@@ -13,14 +13,14 @@ enum Event {
 	NONE,
 	ROLLING, ## R pressed: rolling upright.
 	LEVEL, ## Upright: done.
-	STRAIGHT, ## R pressed with the nose almost straight at the body or away from it: nothing to roll to.
+	STRAIGHT, ## The nose is almost straight at the body or away from it, on pressing R or since: nothing to roll to.
 	NOTHING, ## R pressed with no planet or moon in the system.
 }
 
 ## The nose within this angle (degrees) of straight at the body or away from it leaves nothing to roll to.
 const STRAIGHT_ANGLE := 10.0
 
-## How it rolls (ShipTuning: upright_time, upright_tolerance, upright_settled_spin, and the roll's rate and push).
+## How it rolls (ShipTuning: upright_time, upright_tolerance, upright_settled_spin, upright_still_spin, and the roll's rate and push).
 var tuning: ShipTuning
 ## Every planet and moon in the solar system (SolarSystem.bodies).
 var bodies: Array[CelestialBody] = []
@@ -40,8 +40,10 @@ func active() -> bool:
 
 
 ## One physics tick: the ship is `at` with attitude `ship_basis`, rolling at `roll_spin` (rad/s, pilot frame: roll
-## right). `press` is R this tick; `pilot_roll` is the pilot's own roll (Q or E), which takes over.
-func step(ship_basis: Basis, at: Vector3, press: bool, pilot_roll: float, roll_spin: float) -> void:
+## right). `press` is R this tick; `pilot_roll` is the pilot's own roll (Q or E), which takes over. `assist` is flight
+## assist: with it off the roll must be all but still before the ship counts as upright, since nothing else stops it.
+func step(ship_basis: Basis, at: Vector3, press: bool, pilot_roll: float, roll_spin: float,
+		assist: bool = true) -> void:
 	event = Event.NONE
 	if press:
 		var nearest := Upright.nearest(bodies, at)
@@ -63,9 +65,13 @@ func step(ship_basis: Basis, at: Vector3, press: bool, pilot_roll: float, roll_s
 		return
 	var left := Upright.roll_left(ship_basis, at - body.global_position)
 	if is_nan(left):
-		# The pilot pointed the nose at the body or away from it: nothing more to roll to.
+		# The nose swung round to point at the body or away from it (the pilot, or a cruise lock's course): nothing
+		# more to roll to, and the message says so.
+		event = Event.STRAIGHT
+		about = body
 		body = null
-	elif absf(left) < deg_to_rad(tuning.upright_tolerance) and absf(roll_spin) < deg_to_rad(tuning.upright_settled_spin):
+	elif absf(left) < deg_to_rad(tuning.upright_tolerance) and absf(roll_spin) < deg_to_rad(
+			tuning.upright_settled_spin if assist else tuning.upright_still_spin):
 		event = Event.LEVEL
 		about = body
 		body = null
