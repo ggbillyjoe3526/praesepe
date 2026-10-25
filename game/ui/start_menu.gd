@@ -45,6 +45,7 @@ const TEXT_SIZE := 22
 const NOTE_SIZE := 20
 const VERSION_SIZE := 18
 const EDGE := 24.0
+const TITLE_TOP := 120.0
 
 ## The ships to choose from. Set before the menu enters the tree.
 @export var ships: StarterShips
@@ -64,6 +65,7 @@ var replace_button: Button
 var replace_back_button: Button
 
 var _pages: Dictionary[Page, Control] = {}
+var _title: Label
 var _save_note: Label
 var _replace_words: Label
 ## The ship chosen while asking whether to replace the saved game.
@@ -103,6 +105,8 @@ func show_page(to: Page) -> void:
 	page = to
 	for p: Page in _pages:
 		_pages[p].visible = p == to
+	# The game's name heads the first page only; the others have their own heading or question.
+	_title.visible = to == Page.MAIN
 	_focus_first()
 
 
@@ -152,12 +156,12 @@ static func replace_question(ship_name: String, state: SaveState) -> String:
 
 
 func _build() -> void:
-	var title := _label(self, ProjectSettings.get_setting("application/config/name", "Project Praesepe"), TITLE_SIZE,
+	_title = _label(self, ProjectSettings.get_setting("application/config/name", "Project Praesepe"), TITLE_SIZE,
 			TITLE_COLOUR)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	title.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	title.offset_top = 120.0
+	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_title.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_title.offset_top = TITLE_TOP
 	var version := _label(self, String(ProjectSettings.get_setting("application/config/version", "")), VERSION_SIZE,
 			QUIET_COLOUR)
 	version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)

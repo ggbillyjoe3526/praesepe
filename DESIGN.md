@@ -48,6 +48,16 @@ Three starter ships share a price and tier. Each leans toward a play style, but 
 
 Upgrades (cargo, engines, scanners, shields, mining laser) let any ship cover its weak spots. Names and exact stats are placeholders.
 
+## Starting a game
+
+The game opens on a title screen: the game's name over a slowly turning starfield, and a start menu.
+
+- **Continue** puts back the saved game exactly as it was saved: the same world (seed, clock, random streams), and the ship docked or landed where it was, or out in space at the same place, heading and speed, with flight assist as it was. A ship saved in orbit goes back into orbit. Loading never moves the ship to a station. Continue only shows when there is a saved game that can be read; one that can't be read is kept in the save folder and the menu says so.
+- **New game** opens "Choose your ship": a card for each starter ship with its "Great for:" hint, strengths and trade-offs. The first playable has one, the Hauler (the greybox ship stands in for it); the Interceptor and the Surveyor join the list when they are built. The game starts on a fresh world (or the `--seed` one), docked at Halfway Station, and saves straight away. Over an existing save the menu asks first: "This replaces your saved game".
+- **Settings** opens the settings menu. **Quit** closes the game.
+- Esc goes back a page. The pause screen has **Quit to title**.
+- The ships offered live in `game/ship/starter_ships.tres`, one file per ship (`game/ship/hauler.tres`).
+
 ## Flight and camera
 
 Flight uses one Newtonian physics model with a flight assist toggle. It should never feel arcade-like.
@@ -413,6 +423,7 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-25: A title screen with a start menu (Continue, New game, Settings, Quit), and a new game starts by choosing the ship, then docked at Halfway Station; loading a save puts the ship back where it was saved, even out in space ("if a player saves out in space then they return to those coordinates and not back at a station") (owner). Until the owner says otherwise: the one ship of the first playable is the Hauler, because its jobs are deliveries and mining; a new game saves at once; a new game over a saved game asks first; a ship continued out in space carries on at its saved speed and spin; the title screen is a starfield, not the solar system (default, Claude).
 - 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, nose first into the bay and turning round inside it (so the pilot sees where they are going and the docked view still looks out of its mouth), or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).
 - 2026-10-25: Seamless docking and landing join the first playable, moved up from the future roadmap: after playing PR #5 William said "I want to remove the transitions. The player should be able to enter/land at any station/planet seamlessly. No loading screens." The transition screen is gone (owner).
 - 2026-10-25: No lens effect over the picture: William chose the narrower 60° view only. Planets may stretch a little near the screen's edges, in exchange for a sharp picture, straight cockpit lines and no frame-rate cost (owner).
