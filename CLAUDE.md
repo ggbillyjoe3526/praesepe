@@ -12,7 +12,7 @@ flags. The project instructions hold the full rules; this file holds what is spe
   Export templates are not installed. Cloud machines have no GPU: never judge feel or report frame rates from here.
 - **Checks** (CI runs all of them on every pull request): `tools/smoke_test.sh` (import, then `-- --smoke`, fails on
   any script error or `ERROR:` line), `tools/unit_tests.sh` (Gut, tests in `test/unit/`), `gdlint game test tools`
-  (settings in `gdlintrc`), `tools/changelog.sh check`.
+  (settings in `gdlintrc`), `tools/changelog.sh check`, `python3 tools/wiki.py check` (the Wiki workflow).
 - **Seeds are law:** gameplay draws only from `Game.rng(<stream>)` (`game/core/game.gd`); presentation uses
   `Game.FX_STREAM`. Never the global `randi()`/`randf()`.
 - **Event bus:** systems hear about docking, landing and saving through the `Events` autoload
@@ -21,6 +21,11 @@ flags. The project instructions hold the full rules; this file holds what is spe
   set aside and never deleted.
 - **Changelog:** never edit `CHANGELOG.md` in a feature pull request. Add one new file `changelog.d/<short-name>.md`
   (`changelog.d/README.md`).
+- **Player wiki:** the GitHub wiki's pages live in `docs/wiki/` (`docs/wiki/README.md`) and are published on every
+  merge to `main` by `.github/workflows/wiki.yml`; never edit the wiki on GitHub. Every pull request a player would
+  notice (controls, settings, places, ship stats, HUD words, jobs, rewards, upgrades, menus) updates the page that
+  describes it in the same pull request, and moves anything it ships off `Roadmap.md`. The wiki describes what is on
+  `main`; planned work stays on the Roadmap page. Patch Notes is generated from the changelog notes.
 - **Git:** branch from the latest `main`, open a pull request; the owner merges. Never push to `main`, never create a
   tag unless the owner asks for a release.
 - **Reading big files:** a hook stops whole-file reads over 40 KB; grep, then read with offset and limit.

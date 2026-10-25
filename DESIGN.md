@@ -392,20 +392,34 @@ A few early decisions avoid costly rework later.
 
 ## Player wiki
 
-A GitHub wiki will document the full game for players. It is written for players, not developers, and kept current as the game changes.
+The GitHub wiki (<https://github.com/ggbillyjoe3526/project-praesepe/wiki>) documents the full game for players. It is
+written for players, not developers, and kept current as the game changes.
 
-- **Release notes:** what changed in each version, newest first, drawn from the changelog.
-- **Getting started:** controls, the first hour, choosing a starter ship, paying off the loan.
+- **Home:** what the game is and what the current build lets you do.
+- **Patch notes:** what changed in each version, newest first, generated from the changelog (with the notes waiting
+  for the next release at the top).
+- **Getting started:** the first flight; later the first hour, choosing a starter ship and paying off the loan.
+- **Controls:** every key.
+- **Flying, Cruise drive, Docking and landing, Orbit:** how each works, in the words the game uses.
 - **Ships:** every ship with its role, stats, upgrades and how to get it.
-- **Contracts and jobs:** each job type, how it works, rewards and reputation.
+- **Contracts and jobs:** each job type, how it works, rewards and reputation (a page once the first job ships).
 - **Locations:** planets, moons, stations and bases, with their environments, services and points of interest.
-- **Items and upgrades:** what each upgrade does and where to buy it.
-- **Events and encounters:** random events, distress calls, derelicts.
+- **Items and upgrades:** what each upgrade does and where to buy it (a page once the shop ships).
+- **Events and encounters:** random events, distress calls, derelicts (a page once events ship).
 - **Settings and accessibility:** options, comfort settings, key rebinding.
-- **Roadmap:** what is planned next, with no promised dates.
+- **Roadmap:** what is being built and planned next, with no promised dates.
 - **FAQ and troubleshooting:** common questions, saves, known issues.
 
-The wiki is updated when a player-facing change ships, alongside the changelog. It only describes what is in a released build, never planned features as if they exist (those go on the Roadmap page).
+**How it stays current:** the pages live in the repository under `docs/wiki/` (one Markdown file per page; its
+`README.md` has the conventions) and a workflow publishes them to the wiki on every merge to `main`, so edits made on
+GitHub are overwritten. Every pull request a player would notice updates its page in the same pull request, alongside
+its changelog note. A check on every pull request fails on broken links or pictures, a page missing from the sidebar,
+or a place (any `display_name` in the game's scenes and resources) that no page mentions, and warns when a changelog
+note arrives without a wiki change.
+
+**What it describes:** the newest development build, what is on `main` (the owner's call, 2026-10-25). Features still
+being built or planned go on the Roadmap page, never on other pages as if they were playable. Patch notes keep
+released versions apart from what is waiting for the next download.
 
 ## Future roadmap
 
@@ -421,6 +435,7 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-25: The player wiki describes the newest development build (what is merged to `main`), not only released builds, and is updated in the same pull request as each player-facing change: William asked for a wiki "kept up to date as the game is developed. For example, when a new feature/content or any important is changed it will update the wiki." Pages live in `docs/wiki/` and are published to the GitHub wiki on every merge, as in katanashotgun; work still being built or planned stays on the Roadmap page (owner asked; the publishing setup default, Claude).
 - 2026-10-25: Place names and markers can be hidden: William said the names "are cluttering up the screen too much" and asked for two separate settings and a proximity or look-direction mode (owner). Until the owner tunes it: values as in "How the cruise drive works" (Which markers show); markers default to Always so every place can still be found, names to Near or looked at; with markers Off the place aimed at keeps its corner brackets and the place the drive is locked onto its blue brackets, since they say what F does; a change in the settings menu shows at once behind it, with no fade; the two settings sit on the settings menu's Interface page (default, Claude).
 - 2026-10-25: A settings menu replaces the comfort settings on the pause screen, and the game starts fullscreen: William asked that "when booting up the game it should go into full screen on the player's monitor/display", with windowed, V-Sync, frame-rate caps and other basic PC settings "inside a settings menu", the key hints at the top of the screen moved into the controls settings and the comfort settings in their own menu; they also approved a HUD and text size setting for big or high-resolution screens (owner). Until the owner says otherwise: fullscreen means borderless (quick to switch windows), with exclusive fullscreen as a choice; V-Sync on and no frame-rate limit; a window at 80% of the display; 30 frames a second in the background; mouse sensitivity and invert are player settings (invert moves out of the flight tuning); changing keys waits until the HUD prompts can name a changed key, since other work on the prompts is in flight (default, Claude).
 - 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, nose first into the bay and turning round inside it (so the pilot sees where they are going and the docked view still looks out of its mouth), or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).

@@ -26,7 +26,7 @@ file only where a hunk can't settle a check. You may run `tools/smoke_test.sh` i
 | 5 | Readability: contracts, prices, cargo, fuel, hull and speed stay clear with solid backing behind text, readable on a paused frame | yes |
 | 6 | Scope and hard rules: first playable before anything else; no new system, resource or mechanic without sign-off; combat never required; open decisions not built; tuning values unchanged unless `DESIGN.md` is updated in the same diff with the reason; names original and in the naming list | yes |
 | 7 | Fits the architecture: extends `Game`, the event bus, the one arrival function and the two controllers rather than adding parallel systems; typed GDScript; no magic numbers; pause, quit and return-to-title leave no stray nodes, timers, tweens or connections | no |
-| 8 | Docs current: one `changelog.d/<short-name>.md` note for player-facing changes (never an edit to `CHANGELOG.md`), `DESIGN.md` for changed decisions or values, `ASSETS.md` for any third-party asset, `README.md` for new flags or controls | no |
+| 8 | Docs current: one `changelog.d/<short-name>.md` note for player-facing changes (never an edit to `CHANGELOG.md`), `DESIGN.md` for changed decisions or values, `ASSETS.md` for any third-party asset, `README.md` for new flags or controls, the `docs/wiki/` page a player would read for any player-facing change | no |
 
 - Mark each failed check `measured` (a log, test or number showed it) or `judgment` (decided by reading).
 - **Verdict:** Accept when every blocking check passes and at most one non-blocking check fails; otherwise Retry.

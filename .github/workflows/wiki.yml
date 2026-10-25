@@ -1,0 +1,86 @@
+name: Wiki
+
+# The player wiki (docs/wiki/, one Markdown file per page; docs/wiki/README.md).
+# On every pull request: check the pages (links, headings, pictures, the sidebar,
+# and that every place in the game is mentioned), and warn when a changelog note
+# arrives without a wiki change. On every merge to main: publish the pages to
+# this repository's GitHub wiki. Patch-Notes is generated from CHANGELOG.md and
+# changelog.d/, so it is never written twice. Pages edited in the wiki's web
+# editor are overwritten: edit docs/wiki/ instead. Actions > Wiki > Run workflow
+# republishes by hand. Ported from katanashotgun (.github/workflows/wiki.yml).
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "docs/wiki/**"
+      - "CHANGELOG.md"
+      - "changelog.d/**"
+      - "project.godot"
+      - "game/**/*.tscn"
+      - "game/**/*.tres"
+      - "tools/wiki.py"
+      - "tools/changelog.sh"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Wiki pages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # the warning compares this change with its base branch
+
+      - name: Check the pages (docs/wiki/README.md)
+        run: python3 tools/wiki.py check --base "origin/${{ github.base_ref }}"
+
+  publish:
+    name: Publish the wiki
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # pushing to the wiki of the same repository
+    # One publish at a time, in merge order.
+    concurrency:
+      group: wiki
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # Patch-Notes orders the upcoming notes by when they were added
+
+      - name: Check the pages
+        run: python3 tools/wiki.py check
+
+      - name: Build the pages
+        run: python3 tools/wiki.py build build/wiki
+
+      - name: Push to the wiki
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          remote="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          if ! git clone --quiet "$remote" wiki-repo; then
+            echo "::error::The wiki has no pages yet, so GitHub hasn't created it. Open the repository's Wiki tab, click 'Create the first page', save it, then run Actions > Wiki > Run workflow. (Also check Settings > General > Features > Wikis is ticked.)"
+            exit 1
+          fi
+          rsync -a --delete --exclude .git build/wiki/ wiki-repo/
+          cd wiki-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The wiki is already up to date."
+            exit 0
+          fi
+          git commit --quiet -m "Update the wiki from ${GITHUB_SHA::7}"
+          git push --quiet origin HEAD
+          echo "Published: https://github.com/${GITHUB_REPOSITORY}/wiki"
