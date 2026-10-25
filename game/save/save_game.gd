@@ -60,9 +60,14 @@ static func orbit_state(orbit: Orbit) -> Dictionary:
 	return {"body": String(orbit.body.id), "radius": orbit.radius, "axis": [axis.x, axis.y, axis.z]}
 
 
-## Writes `data` (a snapshot()) to `path`. Returns false (keeping the last good save) when the write failed. Safe to
-## call from a worker thread: it touches nothing but the files.
+## Writes `data` (a snapshot()) to `path`. Returns false (keeping the last good save) when the write failed, or when
+## the save there is from a newer version of the game, which is never written over. Safe to call from a worker
+## thread: it touches nothing but the files.
 static func write(path: String, data: Dictionary) -> bool:
+	var there := SaveFile.read(path, KIND)
+	if there.ok and int(there.version) > VERSION:
+		push_warning("save: %s is from a newer version of the game (%d), so it is not replaced" % [path, there.version])
+		return false
 	return SaveFile.write(path, KIND, VERSION, data)
 
 
@@ -84,6 +89,7 @@ static func migrate(data: Dictionary, version: int) -> Dictionary:
 	if version < 2:
 		# 1 -> 2: no home or ship yet. The ship was always docked or landed, and that port was the last it arrived at;
 		# with no ship block, loading puts it at its berth.
-		data["home"] = str(data.get("berth", ""))
+		var berth: Variant = data.get("berth", "")
+		data["home"] = berth if berth is String else ""
 	data["v"] = VERSION
 	return data

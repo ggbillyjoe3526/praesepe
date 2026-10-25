@@ -94,6 +94,9 @@ func test_a_save_from_a_newer_game_is_refused() -> void:
 	var r := SaveGame.read(PATH)
 	assert_false(r.ok)
 	assert_true(r.newer)
+	assert_false(SaveGame.write(PATH, SaveGame.snapshot(_port, _port)), "and never written over")
+	assert_false(SaveGame.write(PATH, SaveGame.snapshot(_port, _port)))
+	assert_eq(int(SaveFile.read(PATH, SaveGame.KIND).version), SaveGame.VERSION + 1)
 
 
 func test_arriving_autosaves() -> void:
