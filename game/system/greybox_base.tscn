@@ -202,14 +202,18 @@ visibility_range_end_margin = 500.0
 mesh = SubResource("Mesh_pad_light")
 
 [node name="PadPort" type="Marker3D" parent="."]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, 5.4, 0)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, 5.25, 0)
 script = ExtResource("2_port")
 kind = 1
 id = &"tollgate"
-offer_range = 4000.0
+offer_range = 600.0
 hint_range = 8000.0
 max_speed = 100.0
 exit_distance = 30.0
 exit_speed = 15.0
 approach_distance = 250.0
+low_gate = 120.0
 lane = Vector2(40, 40)
+guide_colour = Color(0.4, 0.9, 1, 1)
+guide_reach = 400.0
+guide_radius = 2.0
