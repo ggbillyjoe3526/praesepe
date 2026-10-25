@@ -7,8 +7,8 @@ extends Node
 ##
 ## It flies like a pilot would, through the ship's one input (ShipInput) and the same systems: it climbs clear of a
 ## station or base, lines the nose up with the cruise drive's course and presses F (locking the drive onto the place,
-## CruiseDrive.wanted), flies to the orbit line's insertion point and presses O, closes in on a dock or pad slowly enough and presses
-## G, or presses G to undock or take off. So docking still goes through Arrivals.arrive() and saves as ever.
+## CruiseDrive.wanted), flies to the orbit line's insertion point and presses O, closes in on a dock or pad slowly
+## enough and presses G, or presses G to undock or take off. So docking still goes through Arrivals.arrive() and saves as ever.
 ##
 ## The pilot is always in charge: touching the controls (thrust, the mouse stick, F, O, G, X or Z) while it flies
 ## pauses the plan and leaves the ship to them, as does anything that stops a step (a bump, the drive refusing). P

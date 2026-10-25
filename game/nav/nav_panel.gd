@@ -5,8 +5,8 @@ extends PanelContainer
 ## side by side) and as a card in the chase view (compact: one above the other), so both read the same. Everything on
 ## it works with the mouse and with keys, and each button says its key. Text is rebuilt only when the nav computer
 ## says something changed while the panel shows (or once it shows again), the ways to arrive only when they or the
-## pick change, and the distances four times a second while it shows; the button looks are made once. Buttons never take keyboard focus,
-## so Space and the arrows keep flying the ship and working the list. Placeholder look until the art style is chosen.
+## pick change, and the distances four times a second while it shows; the button looks are made once. Buttons never
+## take keyboard focus, so Space and the arrows keep flying the ship and working the list. Placeholder look until the art style is chosen.
 
 const PLATE_COLOUR := Color(0.012, 0.02, 0.047, 0.94)
 const EDGE_COLOUR := Color(0.165, 0.227, 0.345)
@@ -31,7 +31,8 @@ const DISTANCE_EVERY := 0.25
 @export var max_rows: int = 5
 
 var computer: NavComputer = null
-## What shows the panel, when that isn't the panel itself (NavScreen, whose viewport's Controls always count as visible).
+## What shows the panel, when that isn't the panel itself (NavScreen, whose viewport's Controls always count as
+## visible).
 var shown_by: Node3D = null
 ## The cockpit's speed screen, which the panel covers on the dashboard: its speed and flight assist are repeated in the
 ## panel's top line (none on the chase view's card, where the HUD shows them).

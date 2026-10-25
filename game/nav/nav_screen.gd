@@ -1,9 +1,9 @@
 class_name NavScreen
 extends MeshInstance3D
 ## The nav computer on the cockpit's dashboard (design doc, "Nav computer"): a screen in the world, in front of the
-## speed screen, as tall and wider, that lights up while the nav computer is open in the cockpit. It shows a NavPanel drawn
-## in a viewport of its own, and passes the mouse on to it where the mouse points at the screen, so it is clicked like
-## any screen. Its quad (a QuadMesh) is set in the cockpit's scene; the panel's canvas matches its shape.
+## speed screen, as tall and wider, that lights up while the nav computer is open in the cockpit. It shows a NavPanel
+## drawn in a viewport of its own, and passes the mouse on to it where the mouse points at the screen, so it is clicked
+## like any screen. Its quad (a QuadMesh) is set in the cockpit's scene; the panel's canvas matches its shape.
 
 ## The panel's canvas (px) for the quad's size, its main text size, and the plan rows it has room for.
 @export var canvas: Vector2i = Vector2i(1600, 340)
