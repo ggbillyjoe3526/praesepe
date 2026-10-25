@@ -9,7 +9,8 @@ next job.
 
 ## Where the game is now
 
-The game is in **early development** and there is **no download yet**. What you can do in the current build:
+The game is in **early development**. The first download, **0.1 Dev 1**, is on the [Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases) for
+Windows (see [Getting Started](Getting-Started)). What you can do in the current build:
 
 - Start a new game by choosing your ship (the Hauler, for now) and fly it with weighty, Newtonian flight and flight
   assist ([Getting Started](Getting-Started), [Flying](Flying)).

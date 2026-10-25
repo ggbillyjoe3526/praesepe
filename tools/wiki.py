@@ -159,7 +159,7 @@ def patch_notes() -> str:
     released = changelog[m.start():].strip() if m else ""
     parts = [
         "# Patch Notes",
-        "What changed in each version of Project Praesepe, newest first. Downloads will be on the "
+        "What changed in each version of Project Praesepe, newest first. Downloads are on the "
         "[Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases). "
         "What's planned next is on the [Roadmap](Roadmap).",
         "## Coming in the next update",
