@@ -35,7 +35,7 @@ func before_each() -> void:
 	base.position = Vector3(0, 6000, 0)
 	_planet.add_child(base)
 	_pad = _port(base, Port.Kind.PAD, &"test_base", Transform3D(Basis.IDENTITY, Vector3(0, 5, 0)))
-	_pad.offer_range = 4000.0
+	_pad.offer_range = 600.0
 	_pad.hint_range = 8000.0
 	_ship = load("res://game/ship/greybox_ship.tscn").instantiate()
 	add_child_autofree(_ship)
@@ -119,9 +119,12 @@ func test_offers_the_nearest_port_in_range() -> void:
 	await _place_ship(_dock.global_position + Vector3(3000, 0, 0))
 	assert_eq(_arrivals.nearest, _dock, "within its hint range")
 	assert_eq(_arrivals.refusal, Arrivals.Refusal.TOO_FAR)
-	await _place_ship(_pad.global_position + Vector3(1500, 2500, 0))
-	assert_eq(_arrivals.nearest, _pad, "2.5 km above the base, the pad is offered")
+	await _place_ship(_pad.global_position + Vector3(300, 400, 0))
+	assert_eq(_arrivals.nearest, _pad, "near the pad, landing is offered")
 	assert_eq(_arrivals.refusal, Arrivals.Refusal.NONE)
+	await _place_ship(_pad.global_position + Vector3(0, 2500, 0))
+	assert_eq(_arrivals.nearest, _pad, "high over the base it says how much closer to come")
+	assert_eq(_arrivals.refusal, Arrivals.Refusal.TOO_FAR)
 	await _place_ship(_planet.global_position + Vector3(0, 0, -6000.0 - 2500.0))
 	assert_null(_arrivals.nearest, "2.5 km above the planet but far from the base, it isn't")
 	await _place_ship(Vector3(0, 0, 0))
@@ -316,7 +319,7 @@ func test_taking_off_rises_and_settles_to_a_hover() -> void:
 
 func test_the_one_arrival_function_ends_any_orbit() -> void:
 	_ship.orbit.bodies.append(_planet)
-	await _place_ship(_planet.global_position + Vector3(0, 0, -7500), Vector3(60, 0, 0))
+	await _place_ship(_planet.global_position + Vector3(0, 0, -_planet.orbit_radius()), Vector3(60, 0, 0))
 	_ship.input.toggle_orbit = true
 	await wait_physics_frames(2)
 	assert_true(_ship.orbit.active())

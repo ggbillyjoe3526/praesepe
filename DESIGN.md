@@ -134,7 +134,7 @@ The values live in `game/camera/camera_tuning.tres` (shared by every ship). Wher
 - In cruise the dashboard and HUD show "CRUISE · F to drop out" and the speed in km/s, and the space dust fades out (it can't show such speeds) while a coarser cruise dust, specks kilometres apart, fades in so the speed still reads.
 - Every place has a marker on the HUD with its name and distance (to the surface, or to the belt's home pocket), so the player can point at it and go.
 - **Which markers show** (added at the owner's request, 2026-10-25, because names cluttered the screen): two settings on the settings menu's Interface page, "Place markers" (the diamonds) and "Place names" (the name and distance), each Always, Near or looked at, or Off. Near or looked at shows a place that is within 5 km, whose marker is within 10° of the middle of the view (it stays until 14°, so a name at the edge doesn't flicker), that the nose is aimed at for a lock, or that the cruise drive is locked onto. Markers start on Always and names on Near or looked at. Diamonds and names fade in and out over 0.25 s rather than popping. With markers Off, the place aimed at for a lock still gets its corner brackets (blue when locked). The values are in `game/hud/landmark_markers.gd`.
-- **Locking on** (added at the owner's request, 2026-10-25): with the nose within 4° of a place's marker (the nearest one, if several), or else anywhere on a place's disc (a planet or moon, or a station close up), that marker is framed in corner brackets and the HUD offers "F  Cruise to Mote" (not while docking or landing is offered, where G is what matters). F then locks the drive onto it: once charged it flies there by itself and the player can sit back. The travel heads for the place (following it over 0.4 s, as when steering), and the nose is turned to follow the travel (closing the angle in 0.6 s), so the place stays ahead in the cockpit window. The locked place's marker turns cruise blue, the readout says "CRUISE LOCKED · F to drop out" and the dashboard (and the chase view's plate) shows "TARGET  Mote · 12 km".
+- **Locking on** (added at the owner's request, 2026-10-25): with the nose within 4° of a place's marker (the nearest one, if several), or else anywhere on a place's disc (a planet or moon, or a station close up), that marker is framed in corner brackets and the HUD offers "F  Cruise" (not while docking or landing is offered, where G is what matters). F then locks the drive onto it: once charged it flies there by itself and the player can sit back. The travel heads for the place (following it over 0.4 s, as when steering), and the nose is turned to follow the travel (closing the angle in 0.6 s), so the place stays ahead in the cockpit window. The locked place's marker turns cruise blue, the readout says "CRUISE LOCKED · F to drop out" and the dashboard (and the chase view's plate) shows "TARGET  Mote · 12 km".
 - Locked on, it only drops out on arriving at that place: it flies on through other places' zones (so a trip to Tollgate doesn't stop at Calder). A planet, moon or station in the way is flown round, along the shortest way and a planet's radius above it (never closer than its arrival zone): the drive heads along the line that just touches that clearance, follows it, and goes straight once the way is clear. A base on a planet's surface is flown at straight once it is seen at least 15° above its horizon; from lower, or from the far side, the drive goes round the planet first and comes down at it from above. The safety drop still holds.
 - Moving the mouse (more than 15% of a full stick push, as with orbit), while the drive charges or cruises, releases the lock, "Lock released · steering yourself": the drive then charges or carries on where the nose points, as without a lock. F or X drop out as usual. Rolling with Q/E doesn't release it. Taking over while inside another place's zone doesn't drop out there (it counts as left behind, like a place the drive starts at), and a ship that reaches its target while still charging has simply arrived. With nothing aimed at, F cruises where the nose points, exactly as before. A place the ship is already at (inside its arrival zone) can't be locked onto.
 
@@ -162,17 +162,31 @@ The values live in `game/ship/greybox_cruise_tuning.tres` (per ship, so an engin
 **How orbit works (first values, to be tuned with the owner)**
 
 Added at the owner's request: a ship can park in orbit round a planet or moon and stay there. It is a simple mode, not
-a simulation: the game has no gravity, so nothing ever falls out of orbit.
+a simulation: the game has no gravity, so nothing ever falls out of orbit. It keeps the parts of a real orbit a
+player can feel, simply: the orbit is up in space, well clear of the air; you get there by climbing to it and turning
+along it, like a launch; and going round is slow and calm, the ground drifting past below.
 
-- Near a planet or moon (below its highest orbit) the HUD offers "O  Enter orbit round Calder". O swings the ship onto
-  a circle round it, the way it was heading, at the height where it levels out (raised to the lowest orbit if it is
-  under it). The swing is no harder than the side thrusters (25 m/s²), so it feels like a firm push, never a snap.
+- Each planet and moon has one orbit line, a circle at its orbit height (Calder 3 km up, Mote 1.2 km). From a
+  quarter of that height above the surface (so not on take-off or while landing) up to twice it, the orbit shows the
+  way there: the line itself, a faint lane round the planet in the orbit's colour, brighter at its edges, in the plane
+  the ship would go round in (the way it is heading; it swings round no faster than 15° a second, so small turns and
+  wobbles leave it still and a real turn swings it smoothly); and on the HUD a small ring with ticks where the ship would join it ahead, labelled "Orbit  ·  climb 1.2 km" (or "descend"; on the line, "slow down" or "level out" until O
+  would work, then just "Orbit").
+  The ring is as far ahead as a 30° climb would take to reach the line (at least 400 m ahead), so flying at it is a
+  gentle climb into orbit. Off the screen it waits at the edge on the side to turn to. The lane fades out near the
+  camera, so it never cuts across the cockpit, and the planet hides its far side.
+- "O  Enter orbit" shows only close to the line: within 600 m above or below it round Calder, 300 m
+  round Mote, so never near the surface or just after taking off. O anywhere else says how far to climb or descend.
+  O swings the ship onto the line shown, the way it was heading, and it settles onto the line's height (climbing or sinking
+  at most 30 m/s). The swing is no harder than the side thrusters (25 m/s²), so it feels like a firm push, never a
+  snap.
 - Entering, the ship turns to face along the orbit with the planet below and the horizon a little above the middle of
-  the cockpit window, so the planet fills the bottom of the view. Moving the mouse stops that turn and leaves the view
-  to the pilot.
-- In orbit the ship goes round at the body's orbit speed, holding its height, and its view turns with the orbit, so
-  the planet stays where it is in the window while the ground slides past. The mouse still turns the ship. The
-  dashboard shows "IN ORBIT · O or thrust to leave".
+  the cockpit window, so the planet fills the bottom of the view, and keeps that view while it settles onto the line.
+  Moving the mouse stops that turn and leaves the view to the pilot.
+- In orbit the ship goes round at the body's orbit speed, holding the line's height, and its view turns with the
+  orbit, so the planet stays where it is in the window while the ground slides past. The mouse still turns the ship.
+  The dashboard shows "IN ORBIT · O or thrust to leave". The line and its ring are hidden while in orbit, cruising,
+  docked or landed.
 - O again or any thrust key leaves orbit gently. The ship carries straight on at the velocity it had while its nose
   comes up level along it over 1 s, longer for a bigger turn so it never turns faster than the ship can ("LEAVING
   ORBIT · levelling out"), then flight assist holds that velocity. In orbit
@@ -181,8 +195,14 @@ a simulation: the game has no gravity, so nothing ever falls out of orbit.
   hands the ship straight back.
 - X (which then stops), Z (which then drifts) or the cruise drive engaging leave orbit at once, keeping the velocity
   the ship had. A hard bump knocks it out of orbit.
-- It won't enter while cruising, above 250 m/s, or diving so steeply it couldn't level out 100 m above the surface; a
-  message says why.
+- It won't enter while cruising, above 250 m/s, or climbing or diving so steeply that stopping it would carry the
+  ship out of the window round the line; a message says why.
+
+Why these speeds: what makes an orbit look fast is how quickly the ground below sweeps across the view, its speed
+over its distance. From the real space station that is about 1° a second, which is why its videos look so calm. The
+first orbits here were offered from 500 m up at 90 m/s, about 10° a second, and still over 3° a second at 1.5 km up,
+on a planet only 6 km in radius. The planets keep their size (the whole compressed system, the cruise drive and
+landing are built round it); instead the orbit is higher and slower, back to about 1° a second.
 
 **Orbit tuning**
 
@@ -191,14 +211,17 @@ system scene (`game/system/solar_system.tscn`).
 
 | Value | First value | What it does |
 | --- | --- | --- |
-| Calder's orbits | 500 m to 4 km up, 90 m/s | About 9 minutes round at 1.5 km up |
-| Mote's orbits | 300 m to 2.5 km up, 45 m/s | About 6 minutes round at 1 km up |
+| Calder's orbit | 3 km up, offered 2.4 to 3.6 km up, 45 m/s | About 21 minutes round; the ground below sweeps about 0.9° a second |
+| Mote's orbit | 1.2 km up, offered 0.9 to 1.5 km up, 20 m/s | About 14 minutes round; about 1° a second |
+| Guide reach | A quarter to 2 times the orbit's height | Where the orbit line and its ring show (Calder 750 m to 6 km up, Mote 300 m to 2.4 km) |
+| Guide swing | 15° a second | How fast the line's plane follows the ship's heading |
+| Insertion point | A 30° climb ahead, at least 400 m | Where the ring sits on the line |
 | Top entry speed | 250 m/s | Anything but cruising |
 | Swing onto the orbit | 25 m/s² | No harder than the side thrusters |
-| Entry clearance | 100 m | Refuses a dive it couldn't level out of above this |
-| Height correction | Closes a gap over 4 s, at most 30 m/s; settled within 5 m | Climbs to the lowest orbit; holds the height |
+| Too steep | Stopping the climb or dive would leave the window | Refuses rather than overshoot |
+| Height correction | Closes a gap over 4 s, at most 30 m/s; settled within 5 m | Onto the line; holds the height |
 | Horizon | 5° above the middle of the view | Where the turn on entering puts it |
-| Turn on entering | Closes the angle over about 0.8 s, done within 0.5° | Within the ship's own turn limits |
+| Turn on entering | Closes the angle over about 0.8 s, done within 0.5° once settled | Within the ship's own turn limits |
 | Bump limit | 3 m/s | A harder knock leaves orbit |
 | Level out on leaving | 1 s, easing in and out; longer if the turn would beat the ship's turn rates | O or thrust: nose up along the velocity before flight assist takes over |
 
@@ -283,10 +306,11 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
   beam straight out of the bay's mouth along the line in, and a thin cyan beam straight up from the pad. Each brightens
   while the ship is lined up in the port's lane, and while the ship flies itself in. The pilot can fly all the way in
   by hand; G is still what docks or lands.
-- Near a port the HUD says what to do: "Fly within 1.5 km of Halfway Station to dock (2.3 km)", then "Slow below
-  100 m/s to dock at Halfway Station", then "G  Dock at Halfway Station". Landing works the same way, counted from the
-  pad: "Fly within 4 km of Tollgate to land (5.2 km)", then "G  Land at Tollgate" (a cruise locked onto Tollgate ends
-  just outside that). Nothing is offered while the cruise drive charges or runs.
+- Near a port the HUD says what to do: "Fly within 1.5 km to dock (2.3 km)", then "Slow below 100 m/s to dock", then
+  "G  Dock". Landing works the same way, counted from the pad, but only close to it, never from orbit or high over
+  the base: "Fly within 600 m to land (3.1 km)", then "G  Land". The prompts stay short (the owner asked for "G  Dock",
+  not "G  Dock at Halfway Station"); the place is named by its marker and on the dashboard. Nothing is offered while
+  the cruise drive charges or runs.
 - Flying by hand, the HUD warns "SLOW DOWN  ·  Halfway Station in 4 s" (or the planet, moon, base or belt, or
   "Obstacle") in red above the prompts while the ship is coming at something faster than it could comfortably stop:
   anything along its velocity nearer than it would take to stop using half of its weakest thrusters' push (25 m/s²
@@ -322,7 +346,7 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
   engines rumble as in normal flight. Within its speed limit above, it goes faster the farther it has to go, slower
   the closer it goes round a planet or station, and gently (6 m/s²) on the final leg. From the edge of the docking
   offer at 80 m/s it takes about 40 s (the turn round and settling in the bay are about 14 s of that), at 10 m/s
-  about 55 s; landing from orbit over the base about 40 s; from rest at the edge of the landing offer about 105 s.
+  about 55 s; landing from 60 m up at the edge of the landing offer at 50 m/s about 18 s, from rest there about 30 s.
   Flying closer, or faster (up to 100 m/s), by hand before pressing G makes it shorter.
 - G (cancelled) or X (cancelled, then a full stop) hands the ship straight back, as it is moving; so does a bump on
   the way ("Bump! Docking stopped. G to try again"), and the ship then comes to rest. Cancelled on the final leg, it
@@ -346,7 +370,7 @@ the station's and base's scenes (`game/system/greybox_station.tscn`, `game/syste
 | Value | First value | What it does |
 | --- | --- | --- |
 | Docking offered | Within 1.5 km of the bay, below 100 m/s; hints from 3.5 km | The cruise drive drops out about 2.8 km away |
-| Landing offered | Within 4 km of the pad, below 100 m/s; hints from 8 km | Like docking; a cruise to Tollgate ends about 4.2 km away, inside the hint |
+| Landing offered | Within 600 m of the pad, below 100 m/s; hints from 8 km | Only near the pad, never from orbit; a cruise to Tollgate ends about 4.2 km away, inside the hint |
 | Gate | 220 m out from the berth in the bay (180 m in front of its mouth); 250 m above the pad, or the ship's own height if lower, but at least 120 m | Outside everything at the station, above Tollgate's tower (87 m with its beacon); a low ship never climbs more than it must |
 | Speed on the way | At most 1.25 times the ship's speed when G was pressed, but at least its way in over 30 s, from 5 to 40 m/s (never over 400 m/s), slowing at 20 m/s²; going round, no faster than half of 40 m/s² can curve it; tucked in among the station's parts, at least 40 m/s on the way out round them | Carries on from the pilot's own speed, never racing off |
 | Berths | The bay's on its floor (15.75 m under the middle of its mouth); the pad's on the pad; the ship's underside 5 cm above each | Sits on the ground, not hovering |
@@ -446,9 +470,11 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
+- 2026-10-25: Orbit is up in space and slow: William asked that the orbit prompt "only appear while in space near the orbital trajectory", that orbit be "as realistic as possible while keeping the game simple and easy to control", maybe with "a visual indicator ... that shows the player an orbital insertion route or point", and said orbiting "feels way too fast ... orbiting should feel like the ship is slowly moving around the planet" (owner). Until the owner tunes it: each body has one orbit line (Calder 3 km up at 45 m/s, Mote 1.2 km at 20 m/s), entering is offered only within 600 m (Mote 300 m) of it, a faint lane and an insertion ring show the way there from a quarter of the line's height up, and the ship settles onto the line; the cause of "too fast" was the low height and speed, not the animation, so the planets keep their size (values and reasons in "How orbit works") (default, Claude).
 - 2026-10-25: Place names and markers can be hidden: William said the names "are cluttering up the screen too much" and asked for two separate settings and a proximity or look-direction mode (owner). Until the owner tunes it: values as in "How the cruise drive works" (Which markers show); markers default to Always so every place can still be found, names to Near or looked at; with markers Off the place aimed at keeps its corner brackets and the place the drive is locked onto its blue brackets, since they say what F does; a change in the settings menu shows at once behind it, with no fade; the two settings sit on the settings menu's Interface page (default, Claude).
 - 2026-10-25: A settings menu replaces the comfort settings on the pause screen, and the game starts fullscreen: William asked that "when booting up the game it should go into full screen on the player's monitor/display", with windowed, V-Sync, frame-rate caps and other basic PC settings "inside a settings menu", the key hints at the top of the screen moved into the controls settings and the comfort settings in their own menu; they also approved a HUD and text size setting for big or high-resolution screens (owner). Until the owner says otherwise: fullscreen means borderless (quick to switch windows), with exclusive fullscreen as a choice; V-Sync on and no frame-rate limit; a window at 80% of the display; 30 frames a second in the background; mouse sensitivity and invert are player settings (invert moves out of the flight tuning); changing keys waits until the HUD prompts can name a changed key, since other work on the prompts is in flight (default, Claude).
-- 2026-10-25: Docking and landing as an assist (William asked for these after playing PR #8): each port shines a faint guide light to line up with, G proceeds from the ship's own position and speed instead of speeding up or climbing, the ship settles onto the bay's floor instead of hovering in the bay, and a "SLOW DOWN" warning shows when coming at a surface or station too fast (owner). Until the owner tunes them: values as in "Docking and landing tuning"; landing at Tollgate is now offered within 4 km of the pad itself, as docking is offered near the bay, rather than anywhere within 4 km of Calder's surface, since the owner asked that landing "work the same as stations" and a docking computer flying round the planet at the pilot's own speed would take minutes; the speed limit is a quarter over the ship's speed, never less than the way in over 30 s (5 to 40 m/s); the lights are the ports' colours (green bay, cyan pad) (default, Claude).
+- 2026-10-25: Short prompts, and landing only near the pad: William asked to "cut down on the size of buttons", "it doesn't need to say 'G Dock at Halfway Station' it can just be 'G Dock'", and that "the button prompt to land should only appear when the ship is near the landing pad", not high in the atmosphere (owner). Until the owner tunes it: every prompt drops the place's name ("G  Dock", "G  Land", "O  Enter orbit", "F  Cruise", "Docking  ·  G to cancel"); the SLOW DOWN warning keeps it, since it says what is in the way; landing is offered within 600 m of the pad, so not from orbit any more (default, Claude).
+- 2026-10-25: Docking and landing as an assist (William asked for these after playing PR #8): each port shines a faint guide light to line up with, G proceeds from the ship's own position and speed instead of speeding up or climbing, the ship settles onto the bay's floor instead of hovering in the bay, and a "SLOW DOWN" warning shows when coming at a surface or station too fast (owner). Until the owner tunes them: values as in "Docking and landing tuning"; landing at Tollgate is now offered near the pad itself (see the entry above), as docking is offered near the bay, rather than anywhere within 4 km of Calder's surface, since the owner asked that landing "work the same as stations" and a docking computer flying round the planet at the pilot's own speed would take minutes; the speed limit is a quarter over the ship's speed, never less than the way in over 30 s (5 to 40 m/s); the lights are the ports' colours (green bay, cyan pad) (default, Claude).
 - 2026-10-25: How the ship flies itself in until the owner tunes it: values as in "How docking and landing work"; G hands the ship to a docking computer that goes round the station or planet to the port's gate and then straight in, nose first into the bay and turning round inside it (so the pilot sees where they are going and the docked view still looks out of its mouth), or settling onto the pad; G or X takes the ship back, and a bump stops it; the HUD says where it arrived and that the game saved; landing is still offered anywhere close to Calder, so from the far side the ship flies itself round to Tollgate (default, Claude).
 - 2026-10-25: Seamless docking and landing join the first playable, moved up from the future roadmap: after playing PR #5 William said "I want to remove the transitions. The player should be able to enter/land at any station/planet seamlessly. No loading screens." The transition screen is gone (owner).
 - 2026-10-25: No lens effect over the picture: William chose the narrower 60° view only. Planets may stretch a little near the screen's edges, in exchange for a sharp picture, straight cockpit lines and no frame-rate cost (owner).

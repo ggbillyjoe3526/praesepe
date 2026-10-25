@@ -1,13 +1,13 @@
 class_name ActionPrompts
 extends Control
 ## The HUD's prompts for docking, landing and orbit (design doc, "Docking and landing", "Orbit"), so the player always
-## knows what they can do here and what to do first: "G  Dock at Halfway Station", "Slow below 100 m/s to land at
-## Tollgate", "O  Enter orbit round Calder", "Docking at Halfway Station  ·  G to cancel", "G  Undock", and "F  Cruise
-## to Mote" while the nose is aimed at a place the cruise drive would lock onto (not while docking or landing is
-## offered), with "SLOW DOWN  ·  Halfway Station in 4 s" above them while the ship is coming at something faster than
-## it could comfortably stop (Arrivals.warning). Up to four lines on a dark plate a little under the middle of the view, hidden when there is nothing to
-## say. Each line is rebuilt only when what it says changes (a distance, as shown, counts). Placeholder look until the
-## art style is chosen.
+## knows what they can do here and what to do first: "G  Dock", "Slow below 100 m/s to land", "O  Enter orbit",
+## "Docking  ·  G to cancel", "G  Undock", and "F  Cruise" while the nose is aimed at a place the cruise drive would
+## lock onto (not while docking or landing is offered). Each is kept short: the place is named by its marker and on the
+## dashboard. With "SLOW DOWN  ·  Halfway Station in 4 s" above them while the ship is coming at something faster than
+## it could comfortably stop (Arrivals.warning). Up to four lines on a dark plate a little under the middle of the
+## view, hidden when there is nothing to say. Each line is rebuilt only when what it says changes (a distance, as
+## shown, counts). Placeholder look until the art style is chosen.
 
 const FONT_SIZE := 26
 const GAP := 6
@@ -95,47 +95,48 @@ static func port_text(stage: Arrivals.Stage, p: Port, why: Arrivals.Refusal, dis
 	var dock := p.kind == Port.Kind.DOCK
 	match stage:
 		Arrivals.Stage.APPROACHING:
-			return ("Docking at %s   ·   G to cancel" if dock else "Landing at %s   ·   G to cancel") % p.place_name()
+			return "Docking   ·   G to cancel" if dock else "Landing   ·   G to cancel"
 		Arrivals.Stage.DOCKED:
 			return "G   Undock" if dock else "G   Take off"
 		Arrivals.Stage.FLYING:
-			var verb := "dock at" if dock else "land at"
+			var verb := "dock" if dock else "land"
 			match why:
 				Arrivals.Refusal.NONE:
-					return ("G   Dock at %s" if dock else "G   Land at %s") % p.place_name()
+					return "G   Dock" if dock else "G   Land"
 				Arrivals.Refusal.TOO_FAST:
-					return "Slow below %d m/s to %s %s" % [roundi(p.max_speed), verb, p.place_name()]
+					return "Slow below %d m/s to %s" % [roundi(p.max_speed), verb]
 				Arrivals.Refusal.TOO_FAR:
-					return "Fly within %s of %s to %s (%s)" % [LandmarkMarkers.distance_text(p.offer_range),
-							p.place_name(), "dock" if dock else "land", LandmarkMarkers.distance_text(distance)]
+					return "Fly within %s to %s (%s)" % [LandmarkMarkers.distance_text(p.offer_range), verb,
+							LandmarkMarkers.distance_text(distance)]
 	return ""
 
 
 ## The orbit line: in `phase`, about `body` (orbited, or offered), offered or not (`why`, with the top entry speed
-## `max_speed`). Empty when there is nothing to say.
+## `max_speed`). Empty when there is nothing to say, as when the ship is still below or above the orbit line (the
+## insertion marker, OrbitMarker, shows the way there).
 static func orbit_text(phase: Orbit.Phase, body: CelestialBody, why: Orbit.Refusal, max_speed: float) -> String:
 	if body == null:
 		return ""
 	match phase:
 		Orbit.Phase.ENTERING:
-			return "Entering orbit round %s   ·   O to cancel" % body.display_name
+			return "Entering orbit   ·   O to cancel"
 		Orbit.Phase.ORBITING:
-			return "O   Leave orbit round %s" % body.display_name
+			return "O   Leave orbit"
 		Orbit.Phase.LEAVING:
-			return "Levelling out to leave orbit round %s" % body.display_name
+			return "Levelling out to leave orbit"
 	match why:
 		Orbit.Refusal.NONE:
-			return "O   Enter orbit round %s" % body.display_name
+			return "O   Enter orbit"
 		Orbit.Refusal.TOO_FAST:
-			return "Slow below %d m/s to enter orbit round %s" % [roundi(max_speed), body.display_name]
+			return "Slow below %d m/s to enter orbit" % roundi(max_speed)
 		Orbit.Refusal.TOO_STEEP:
-			return "Level out to enter orbit round %s" % body.display_name
+			return "Level out to enter orbit"
 	return ""
 
 
 ## The cruise line: F locks the cruise drive onto `aimed` (CruiseDrive.aimed). Empty when nothing is aimed at.
 static func cruise_text(aimed: Landmark) -> String:
-	return "F   Cruise to %s" % aimed.display_name if aimed != null else ""
+	return "F   Cruise" if aimed != null else ""
 
 
 ## A number that changes exactly when the docking line's words do (worked out without allocating, every frame).

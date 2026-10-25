@@ -11,6 +11,7 @@ func before_each() -> void:
 	_planet = CelestialBody.new()
 	_planet.display_name = "Test planet"
 	_planet.radius = 6000.0
+	_planet.orbit_altitude = 1500.0
 	_planet.orbit_speed = 90.0
 	add_child_autofree(_planet)
 	_ship = load("res://game/ship/greybox_ship.tscn").instantiate()

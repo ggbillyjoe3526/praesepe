@@ -2,15 +2,27 @@ class_name OrbitTuning
 extends Resource
 ## How one ship enters and holds an orbit (design doc, "Orbit"). One file per ship, like
 ## `game/ship/greybox_orbit_tuning.tres`; the values and the reasons for them are in DESIGN.md, "Orbit tuning".
-## Each planet or moon sets its own orbit heights and speed (CelestialBody). Change a value there and here together.
+## Each planet or moon sets its own orbit line and speed (CelestialBody). Change a value there and here together.
 
 @export_group("Entering")
 ## The ship can enter orbit only below this speed (m/s): anything but cruising.
 @export var max_entry_speed: float = 250.0
 ## How hard (m/s²) the thrusters swing the ship's velocity onto the orbit, like a firm push from the side thrusters.
 @export var entry_accel: float = 25.0
-## The orbit refuses when the ship is heading down too fast to level out this far (m) above the surface.
-@export var entry_clearance: float = 100.0
+
+@export_group("Guide")
+## The orbit line and its insertion point show from this share of the orbit's height above the surface (so not on
+## take-off or landing) up to this many times it.
+@export var guide_floor: float = 0.25
+@export var guide_reach: float = 2.0
+## The line's plane follows the ship's heading, swinging no faster than this (degrees a second), so small turns and
+## wobbles leave it still and a real turn swings it smoothly round.
+@export var guide_swing: float = 15.0
+## The insertion point sits as far ahead along the orbit as a climb (or descent) this steep (degrees) would take to
+## reach the line, so flying at it is a gentle climb into orbit, like a launch.
+@export var insertion_climb: float = 30.0
+## And never nearer than this (m) ahead, so on the line it is still just ahead.
+@export var insertion_lead: float = 400.0
 
 @export_group("Holding")
 ## How quickly (s) the orbit closes a gap between the ship's height and the orbit's.

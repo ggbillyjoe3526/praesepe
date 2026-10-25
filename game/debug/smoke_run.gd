@@ -21,9 +21,11 @@ extends Node
 ## releases the lock, and steers there by hand. Last it cruises up into open space and drops out with F, then again with X, which
 ## also brings the ship to a stop.
 ##
-## Then it parks in orbit, lands, takes off, docks and undocks: it cruises to Calder, presses O and checks the ship
-## settles into orbit at the orbit's speed and holds its height and its view of the planet; O leaves orbit and flight
-## assist carries on. It cruises to Tollgate, slows down and heads for the pad until landing is offered, and G lands:
+## Then it parks in orbit, lands, takes off, docks and undocks: it cruises to Calder, arriving under its orbit line,
+## where O is refused and no orbit prompt shows but the line and its insertion point do; it climbs at the insertion
+## point until entering is offered, presses O and checks the ship settles onto the line at the orbit's speed and holds
+## its height and its view of the planet; O leaves orbit and flight assist carries on; O again re-enters it and X
+## leaves it at once. It cruises to Tollgate, slows down and heads for the pad until landing is offered, and G lands:
 ## the ship flies itself down onto the pad with no fade and no bump, is held still there, the HUD says so and the game
 ## is autosaved (to the smoke test's own file, read back to check). G takes off, the ship climbs clear of the base and
 ## cruises to Halfway Station, slows down, docks the same way, flying itself into the bay and settling onto its floor
@@ -71,14 +73,17 @@ const UNLOCK_AT := "Halfway Station"
 const LOCK_CHECK := 120
 const LOCK_NOSE := 2.0
 ## The same, cruising round a planet to a base beyond its horizon, where the course keeps curving and the nose trails it
-## a little more.
-const LOCK_NOSE_ROUND := 5.0
+## a little more (about 5 degrees setting off from a stop just above the orbit line).
+const LOCK_NOSE_ROUND := 6.0
 ## The autopilot asks for a turn rate that would close the angle in this long (s).
 const STEER_TIME := 0.6
 ## How long (ticks) to cruise into open space before dropping out by hand.
 const OPEN_CRUISE := 480
+## How long (ticks) the climb to the orbit line may take, and the speed (m/s) the autopilot climbs at.
+const ORBIT_CLIMB_LIMIT := 3600
+const CLIMB_SPEED := 120.0
 ## How long (ticks) the orbit may take to settle, and how long it is then watched.
-const ORBIT_SETTLE_LIMIT := 1800
+const ORBIT_SETTLE_LIMIT := 3600
 const ORBIT_WATCH := 900
 ## How long (ticks) the autopilot flies on after leaving orbit before checking flight assist has it.
 const AFTER_ORBIT := 300
@@ -308,19 +313,21 @@ func _physics_process(_delta: float) -> void:
 				_expect(height > _left_height - 1.0,
 						"no lower %.0f s after leaving orbit (%.0f m, from %.0f m)" % [AFTER_ORBIT / 60.0, height, _left_height])
 				_next()
-		15: # Cruise to Tollgate, and land there.
+		15: # O again re-enters orbit; X leaves it at once and stops.
+			_reenter_orbit(input)
+		16: # Cruise to Tollgate, and land there.
 			if _visit(input, system.landmark("Tollgate"), false, true):
 				_next()
-		16:
+		17:
 			_fly_in(input, system.port(&"tollgate"), FlightHud.Mode.LANDED, "G   Take off")
-		17: # Take off, then climb clear of the base's buildings.
+		18: # Take off, then climb clear of the base's buildings.
 			_take_off(input)
-		18: # Cruise to the station.
+		19: # Cruise to the station.
 			if _visit(input, system.landmark("Halfway Station")):
 				_next()
-		19:
-			_fly_in(input, system.port(&"halfway_station"), FlightHud.Mode.DOCKED, "G   Undock")
 		20:
+			_fly_in(input, system.port(&"halfway_station"), FlightHud.Mode.DOCKED, "G   Undock")
+		21:
 			_undock(input)
 
 
@@ -461,7 +468,7 @@ func _visit(input: ShipInput, place: Landmark, unlock: bool = false, round_plane
 		0: # Point at it, then press F.
 			if _aimed_at(place.marker_position()):
 				_expect(ship.cruise.aimed == place and ActionPrompts.cruise_text(ship.cruise.aimed)
-						== "F   Cruise to %s" % place.display_name, "is offered to cruise to %s (aimed at %s)"
+						== "F   Cruise", "is offered to cruise to %s (aimed at %s)"
 						% [place.display_name, ship.cruise.aimed.display_name if ship.cruise.aimed != null else "nothing"])
 				input.toggle_cruise = true
 				_event = CruiseDrive.Event.NONE
@@ -534,21 +541,44 @@ func _check_arrival(place: Landmark) -> void:
 	_arrivals.append("%s@%d" % [place.display_name.replace(" ", ""), _event_tick])
 
 
-## Into orbit round Calder with O: it settles at the orbit's speed, then holds its height, its speed and its view of
-## the planet (the nose keeps the same angle to the ground below) while going round, with no bump.
+## Into orbit round Calder: arriving under its orbit line, O is refused, so it climbs at the line's insertion point
+## until entering is offered and presses O. The ship settles onto the line at the orbit's speed, then holds its height,
+## its speed and its view of the planet (the nose keeps the same angle to the ground below) while going round, with no
+## bump.
 func _orbit_step(input: ShipInput) -> void:
 	var o := ship.orbit
 	var calder := system.landmark("Calder") as CelestialBody
 	match _stage:
 		0:
+			if o.offered == calder:
+				input.turn = _steer_toward(calder.global_position + o.insertion)
+			input.thrust.z = clampf((CLIMB_SPEED - ship.speed()) * 0.1, -1.0, 1.0)
+			if _phase_ticks == 1:
+				_check_under_orbit_line("arriving at Calder")
+				_expect(_orbit_line().visible and o.insertion.length() > calder.radius,
+						"shows Calder's orbit line and where to join it")
+				input.toggle_orbit = true
+				_orbit_event = Orbit.Event.NONE
+			elif _phase_ticks == 2:
+				_expect(_orbit_event == Orbit.Event.REFUSED and not o.active(), "won't enter orbit under the line")
+			elif o.refusal == Orbit.Refusal.NONE:
+				_stage = 1
+				_phase_ticks = 0
+				_arrivals.append("orbitline@%d" % _frames)
+			elif _phase_ticks >= ORBIT_CLIMB_LIMIT:
+				_expect(false, "climbs to Calder's orbit line in time (refusal %d, %.0f m to climb)" % [o.refusal,
+						o.to_climb])
+				_stage = 0
+				_next()
+		1:
 			_expect(o.offered == calder and o.refusal == Orbit.Refusal.NONE, "is offered an orbit round Calder")
 			_expect(ActionPrompts.orbit_text(o.phase, o.offered, o.refusal, o.tuning.max_entry_speed)
-					== "O   Enter orbit round Calder", "shows the prompt to enter orbit")
+					== "O   Enter orbit", "shows the prompt to enter orbit")
 			input.toggle_orbit = true
 			_orbit_event = Orbit.Event.NONE
-			_stage = 1
+			_stage = 2
 			_phase_ticks = 0
-		1:
+		2:
 			if _phase_ticks == 1:
 				_expect(_orbit_event == Orbit.Event.ENTERING and o.active() and o.body == calder,
 						"starts entering orbit round Calder")
@@ -557,33 +587,72 @@ func _orbit_step(input: ShipInput) -> void:
 				_expect(absf(ship.speed() - calder.orbit_speed) < 0.05, "goes round at the orbit's speed (%.2f m/s)"
 						% ship.speed())
 				var h := calder.surface_distance(ship.global_position)
-				_expect(h >= calder.orbit_min_altitude - 5.0 and h <= calder.orbit_max_altitude + 5.0,
-						"orbits between Calder's orbit heights (%.0f m up)" % h)
+				_expect(absf(h - calder.orbit_altitude) < o.tuning.settle_tolerance + 1.0,
+						"orbits on Calder's orbit line (%.0f m up)" % h)
 				_expect(Orbit.lined_up(ship.global_basis, o.facing(ship.global_position), deg_to_rad(1.0)),
 						"turns to face along the orbit with the planet below")
 				_orbit_height = h
 				_orbit_view = _view_angle(calder)
 				_orbit_start = ship.global_position - calder.global_position
 				_arrivals.append("orbit@%d" % _frames)
-				_stage = 2
+				_stage = 3
 				_phase_ticks = 0
 			elif _phase_ticks >= ORBIT_SETTLE_LIMIT:
 				_expect(false, "settles into orbit in time (phase %d, turning %s)" % [o.phase, o.turning])
 				_stage = 0
 				_next()
-		2:
+		3:
 			_expect(o.settled(), "stays in orbit")
 			var h := calder.surface_distance(ship.global_position)
-			_expect(absf(h - _orbit_height) < 1.0, "holds its orbit's height (%.2f m off)" % (h - _orbit_height))
+			# Settled within settle_tolerance of the line, the last few metres close gently.
+			_expect(absf(h - calder.orbit_altitude) <= absf(_orbit_height - calder.orbit_altitude) + 0.01,
+					"holds its orbit's height (%.2f m off the line)" % (h - calder.orbit_altitude))
 			_expect(absf(ship.speed() - calder.orbit_speed) < 0.05, "holds the orbit's speed (%.2f m/s)" % ship.speed())
 			var view := _view_angle(calder)
 			_expect(absf(view - _orbit_view) < 0.5, "keeps its view of the planet (%.2f degrees moved)"
 					% (view - _orbit_view))
 			if _phase_ticks >= ORBIT_WATCH:
 				var swept := rad_to_deg(_orbit_start.angle_to(ship.global_position - calder.global_position))
-				_expect(swept > 5.0, "goes round the planet (%.1f degrees)" % swept)
+				# Slowly: at the orbit's speed round its line.
+				var expected := rad_to_deg(calder.orbit_speed / calder.orbit_radius() * ORBIT_WATCH / 60.0)
+				_expect(absf(swept - expected) < expected * 0.02, "goes slowly round the planet (%.2f degrees in %d s, %.2f expected)"
+						% [swept, ORBIT_WATCH / 60, expected])
 				_stage = 0
 				_next()
+
+
+## O again from flying on just off the orbit line: the ship is back in orbit, then X leaves it and stops.
+func _reenter_orbit(input: ShipInput) -> void:
+	match _stage:
+		0:
+			input.toggle_orbit = true
+			_stage = 1
+			_phase_ticks = 0
+		1:
+			if _phase_ticks >= 30:
+				_expect(ship.orbit.active(), "re-enters orbit")
+				input.full_stop = true
+				_stage = 2
+				_phase_ticks = 0
+		2:
+			if (not ship.orbit.active() and ship.speed() < 0.05) or _phase_ticks >= STOP_LIMIT:
+				_expect(not ship.orbit.active() and ship.speed() < 0.05,
+						"X leaves orbit and stops (%.2f m/s)" % ship.speed())
+				_stage = 0
+				_next()
+
+
+## Under Calder's orbit line (`where`): the line shows above, but O is not offered, and no orbit prompt shows.
+func _check_under_orbit_line(where: String) -> void:
+	var o := ship.orbit
+	_expect(o.offered == system.landmark("Calder") and o.refusal == Orbit.Refusal.TOO_LOW and o.to_climb > 0.0,
+			"%s, is under Calder's orbit line (refusal %d, %.0f m to climb)" % [where, o.refusal, o.to_climb])
+	_expect(ActionPrompts.orbit_text(o.phase, o.offered, o.refusal, o.tuning.max_entry_speed).is_empty(),
+			"%s, offers no orbit" % where)
+
+
+func _orbit_line() -> OrbitLine:
+	return get_parent().get_node(^"OrbitLine") as OrbitLine
 
 
 ## The angle (degrees) between the ship's nose and straight down to `body`: steady while the view turns with the
@@ -658,6 +727,7 @@ func _take_off(input: ShipInput) -> void:
 	var tollgate := system.port(&"tollgate")
 	match _stage:
 		0:
+			_expect(not _orbit_line().visible and ship.orbit.offered == null, "shows no orbit line while landed")
 			input.dock = true
 			_stage = 1
 			_phase_ticks = 0
@@ -678,6 +748,8 @@ func _take_off(input: ShipInput) -> void:
 			input.thrust.y = 1.0
 			var base := system.landmark("Tollgate")
 			if ship.global_position.distance_to(base.global_position) > CLEAR_OF_BASE:
+				_check_under_orbit_line("just after taking off")
+				_expect(not ship.orbit.guiding, "shows no orbit guide this close to the ground")
 				input.thrust.y = 0.0
 				input.full_stop = true
 				_stage = 0
@@ -697,10 +769,9 @@ func _fly_in(input: ShipInput, port: Port, mode: FlightHud.Mode, leave_prompt: S
 			if ship.speed() > APPROACH_SPEED:
 				input.thrust.z = -1.0
 			if arrivals.nearest == port and arrivals.refusal == Arrivals.Refusal.NONE:
-				var verb := "Dock at" if port.kind == Port.Kind.DOCK else "Land at"
+				var verb := "Dock" if port.kind == Port.Kind.DOCK else "Land"
 				_expect(ActionPrompts.port_text(arrivals.stage, arrivals.nearest, arrivals.refusal,
-						arrivals.nearest_distance) == "G   %s %s" % [verb, port.place_name()], "shows the prompt to %s"
-						% verb.to_lower())
+						arrivals.nearest_distance) == "G   %s" % verb, "shows the prompt to %s" % verb.to_lower())
 				input.dock = true
 				_arrived_at = null
 				_stage = 1

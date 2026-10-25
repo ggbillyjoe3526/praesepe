@@ -359,8 +359,9 @@ func test_lands_from_low_and_far_without_climbing_higher_than_it_must() -> void:
 	var pad := _planet_pad()
 	var planet := pad.body
 	var base_height := pad.global_position.distance_to(planet.global_position)
-	# 60 m up, 3.5 km from the base, heading for it at 50 m/s.
-	var start := (pad.global_position + Vector3(3500, 0, 0)).normalized() * (base_height + 60.0)
+	# 60 m up, at the edge of the offer, heading for the base at 50 m/s.
+	var start := (pad.global_position + Vector3(580, 0, 0)).normalized() * (base_height + 60.0)
+	assert_lt(pad.distance(start), pad.offer_range, "landing is offered here")
 	var f := _fly(pad, start, (pad.global_position - start).normalized() * 50.0)
 	assert_true(f.done, "arrives within %.0f s" % LIMIT)
 	gut.p("landed from low and far in %.1f s, top %.0f m/s, highest %.0f m above the pad"
@@ -374,21 +375,11 @@ func test_lands_from_low_and_far_without_climbing_higher_than_it_must() -> void:
 
 func test_lands_from_the_edge_of_the_offer_at_rest() -> void:
 	var pad := _planet_pad()
-	var start := pad.global_position + Vector3(2800, 2800, 0)
+	var start := pad.global_position + Vector3(420, 420, 0)
 	assert_lt(pad.distance(start), pad.offer_range, "landing is offered here")
 	var f := _fly(pad, start)
 	assert_true(f.done, "arrives within %.0f s" % LIMIT)
 	gut.p("landed from rest %.1f km out in %.1f s" % [pad.distance(start) / 1000.0, f.time])
-	_check_final(pad, f)
-
-
-func test_lands_from_orbit_over_the_base() -> void:
-	var pad := _planet_pad()
-	# 1.5 km up, 2 km along the orbit from the base, going round at an orbit's speed.
-	var f := _fly(pad, pad.global_position + Vector3(2000, 1200, 0), Vector3(0, 0, 60))
-	assert_true(f.done, "arrives within %.0f s" % LIMIT)
-	gut.p("landed from orbit over the base in %.1f s, top %.0f m/s" % [f.time, f.top])
-	assert_lt(f.time, 60.0, "takes under a minute")
 	_check_final(pad, f)
 
 
