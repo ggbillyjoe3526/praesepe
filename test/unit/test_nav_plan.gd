@@ -139,9 +139,9 @@ func test_the_hud_strip_says_which_step_and_what_it_is_doing() -> void:
 	nav.plan.replace(NavPlan.options(_planet, _ports)[1].steps, _dock)
 	nav.plan.advance()
 	nav.state = NavComputer.State.RUNNING
-	assert_eq(NavStrip.line_for(nav), "NAV  2/3  ·  Cruise to Calder  ·  R  Pause")
+	assert_eq(NavStrip.line_for(nav), "NAV  2/3  ·  Cruise to Calder  ·  P  Pause")
 	nav.activity = "Lining up for Calder"
-	assert_eq(NavStrip.line_for(nav), "NAV  2/3  ·  Lining up for Calder  ·  R  Pause")
+	assert_eq(NavStrip.line_for(nav), "NAV  2/3  ·  Lining up for Calder  ·  P  Pause")
 	nav.state = NavComputer.State.PAUSED
 	nav.activity = "You took the controls"
-	assert_eq(NavStrip.line_for(nav), "NAV PAUSED  ·  2/3  ·  You took the controls  ·  R  Resume")
+	assert_eq(NavStrip.line_for(nav), "NAV PAUSED  ·  2/3  ·  You took the controls  ·  P  Resume")

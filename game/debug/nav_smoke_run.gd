@@ -5,7 +5,7 @@ extends Node
 ## them on its screen. It checks the screen opens in the cockpit and as a card in the chase view; heads to dock at
 ## Halfway Station from the start and, once the docking computer is taking the ship in, is told to land at Tollgate
 ## instead, so it finishes docking, undocks, cruises to Tollgate and lands there, carrying on after the pilot takes the
-## stick for a moment on the way (which pauses it) and R; takes off and settles into orbit round Mote; and queues a longer
+## stick for a moment on the way (which pauses it) and P; takes off and settles into orbit round Mote; and queues a longer
 ## plan, which puts the undocking between a docking and the cruise after it. Prints "SMOKE NAV: ok ..." and quits
 ## with 0, or pushes an error per failed check and quits with 1.
 
@@ -144,7 +144,7 @@ func _await_plan(what: String) -> bool:
 	return false
 
 
-## A while into the cruise to Tollgate, the pilot moves the stick: the plan pauses and the ship is theirs. R carries
+## A while into the cruise to Tollgate, the pilot moves the stick: the plan pauses and the ship is theirs. P carries
 ## on, and the computer takes the drive back.
 func _touch_on_the_way() -> void:
 	if _touched or (_cruise_ticks == 0 and not ship.cruise.locked()):
@@ -156,7 +156,7 @@ func _touch_on_the_way() -> void:
 		_expect(nav.state == NavComputer.State.PAUSED, "pauses when the pilot takes the stick")
 		_expect(not ship.cruise.locked(), "leaves the ship to the pilot")
 		nav.toggle_pause()
-		_expect(nav.state == NavComputer.State.RUNNING, "carries on with R")
+		_expect(nav.state == NavComputer.State.RUNNING, "carries on with P")
 		_touched = true
 
 

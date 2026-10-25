@@ -31,7 +31,7 @@ yet.
 | G | Dock at the station or land at the base when the HUD offers it: the ship flies itself in, and G (or X) on the way takes the controls back; G again undocks or takes off |
 | V | Cockpit or chase camera |
 | Tab | Nav computer: on the dashboard in the cockpit (click it with the mouse), a card in the chase view. Pick a place (Up / Down) and how to arrive (Left / Right: dock, land at a base, orbit, stop nearby); Enter goes, Shift+Enter adds it to the plan, Backspace clears the plan. The ship flies the plan itself; touching the controls pauses it |
-| R | Pause or resume the nav computer's plan |
+| P | Pause or resume the nav computer's plan |
 | Esc | Pause; the game also pauses when the window loses focus or lets go of the mouse. The pause screen's **Settings** opens the settings menu (Esc goes back); **Tow me to base** (press it twice) puts the ship straight back where it last docked or landed |
 | F11 or Alt+Enter | Fullscreen or a window |
 | Click | Capture the mouse again (not while the nav computer is open) |

@@ -7,11 +7,11 @@ extends Node
 ##
 ## It flies like a pilot would, through the ship's one input (ShipInput) and the same systems: it climbs clear of a
 ## station or base, lines the nose up with the cruise drive's course and presses F (locking the drive onto the place,
-## CruiseDrive.wanted), lines up level for an orbit and presses O, closes in on a dock or pad slowly enough and presses
+## CruiseDrive.wanted), flies to the orbit line's insertion point and presses O, closes in on a dock or pad slowly enough and presses
 ## G, or presses G to undock or take off. So docking still goes through Arrivals.arrive() and saves as ever.
 ##
 ## The pilot is always in charge: touching the controls (thrust, the mouse stick, F, O, G, X or Z) while it flies
-## pauses the plan and leaves the ship to them, as does anything that stops a step (a bump, the drive refusing). R
+## pauses the plan and leaves the ship to them, as does anything that stops a step (a bump, the drive refusing). P
 ## resumes or pauses it, and the screen says why it paused. Closing the screen doesn't stop the plan; a strip on the
 ## HUD (NavStrip) says what it is doing.
 
@@ -21,7 +21,7 @@ signal changed
 enum State {
 	IDLE, ## No plan, or it is done.
 	RUNNING, ## Flying the plan.
-	PAUSED, ## Holding the plan until R; the pilot flies.
+	PAUSED, ## Holding the plan until P; the pilot flies.
 }
 
 @export var ship: Ship
@@ -213,7 +213,7 @@ func add() -> void:
 		changed.emit()
 
 
-## R: pauses the plan, or carries on with it.
+## P: pauses the plan, or carries on with it.
 func toggle_pause() -> void:
 	if state == State.RUNNING:
 		_pause("Paused")

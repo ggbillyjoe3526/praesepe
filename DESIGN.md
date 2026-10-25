@@ -241,7 +241,7 @@ everything it does follows the same rules and messages as flying by hand.
   station: "Dock". A planet with a base: "Land" (with several bases, one button per base, named). A planet or moon:
   "Orbit". Anywhere: "Stop nearby" (cruise there and drop out).
 - **Go** (Enter) replaces the plan with that order and starts flying it. **Add** (Shift+Enter) puts it at the end of
-  the plan. Each button shows its key first: "Enter Go", "Shift+Enter Add", "R Pause", "Backspace Clear". An order becomes steps: "Cruise to Tollgate" then "Land at Tollgate"; "Cruise to Mote"
+  the plan. Each button shows its key first: "Enter Go", "Shift+Enter Add", "P Pause", "Backspace Clear". An order becomes steps: "Cruise to Tollgate" then "Land at Tollgate"; "Cruise to Mote"
   then "Enter orbit round Mote". Leaving a dock or pad comes first by itself ("Undock from Halfway Station", "Take
   off from Tollgate"), including between a docking and the next cruise in a queued plan. Ordered while the docking
   computer is taking the ship in, the plan lets it finish, then leaves. A plan holds up to 8 steps;
@@ -254,10 +254,10 @@ everything it does follows the same rules and messages as flying by hand.
   reaches the docking offer, presses G and lets the docking computer take it in.
 - **The plan:** the screen lists the steps, "NOW" on the one being flown, and says what it is doing ("Lining up for
   Tollgate", "Cruising to Tollgate", "Slowing down for Halfway Station"). With the screen closed, a strip at the top
-  of the HUD says the same: "NAV 1/2 · Cruising to Tollgate · R Pause".
+  of the HUD says the same: "NAV 1/2 · Cruising to Tollgate · P Pause".
 - **The pilot always wins:** any thrust key, moving the mouse (more than 15% of a full stick, as with orbit and the
   cruise lock), or F, O, G, X or Z pauses the plan and leaves the ship exactly as it is: "NAV PAUSED · You took the
-  controls · R Resume". Rolling with Q/E doesn't pause it. R pauses and resumes at any time, open or closed.
+  controls · P Resume". Rolling with Q/E doesn't pause it. P pauses and resumes at any time, open or closed.
   Something the ship can't get past (the cruise drive's safety drop or a bump, a refused cruise, a docking stopped by
   a bump, being knocked out of orbit) pauses it with the game's own message. It only presses G or O once docking or
   orbit is offered, so those are never refused. A step that gets nowhere for 90 s pauses with "taking too long · fly
@@ -515,7 +515,8 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 
 Newest first. Each line: date, the decision, who made it.
 
-- 2026-10-25: A nav computer to give the ship orders: William asked for "an on screen UI menu" that is "a cockpit instrument" in the cockpit and "a ui element but not too obtrusive" in the chase view, for "destinations, landing/take off assist, entering or leaving orbit", where "the player can queue orders/actions for the ship", and chose concept A (the nav computer screen) of three concepts (owner). Until the owner tunes it: behaviour and values as in "Nav computer"; Tab opens it, arrows pick, Enter goes, Shift+Enter adds to the plan, R pauses and resumes, Backspace clears; it flies only through the pilot's own controls (F, O, G, turn and thrust); any pilot input pauses the plan; landing at a base cruises to the base rather than going into orbit first; the ship keeps flying while it is open; the plan is not saved (default, Claude).
+- 2026-10-25: A nav computer to give the ship orders: William asked for "an on screen UI menu" that is "a cockpit instrument" in the cockpit and "a ui element but not too obtrusive" in the chase view, for "destinations, landing/take off assist, entering or leaving orbit", where "the player can queue orders/actions for the ship", and chose concept A (the nav computer screen) of three concepts (owner). Until the owner tunes it: behaviour and values as in "Nav computer"; Tab opens it, arrows pick, Enter goes, Shift+Enter adds to the plan, P pauses and resumes (R is rolling upright), Backspace clears; it flies only through the pilot's own controls (F, O, G, turn and thrust); any pilot input pauses the plan; landing at a base cruises to the base rather than going into orbit first; the ship keeps flying while it is open; the plan is not saved (default, Claude).
+- 2026-10-25: Version names and tags: players see "0.1 Dev 1", "0.1 Beta 2", then "0.1", tagged `v0.1-dev.1`, `v0.1-beta.2` and `v0.1`, like the owner's katanashotgun; Dev and Beta are GitHub pre-releases. William chose this on 2026-10-25 (owner). A tag on main (or the Release workflow's button) publishes a Windows installer and a portable zip; steps in `RELEASING.md` (default, Claude).
 - 2026-10-25: Autosave every few minutes in flight as well as on docking and landing, and a "Tow me to base" button on the pause screen, free until money exists and then the towing fee (owner approved both, 2026-10-25). Until the owner tunes them: every 3 minutes of in-game time; the tow goes to the last port the ship arrived at, or the nearest if none, asks for a second press, and is not offered while docked; the save file goes to version 2 (old saves are brought up to date when read) (default, Claude).
 - 2026-10-25: Orbit is up in space and slow: William asked that the orbit prompt "only appear while in space near the orbital trajectory", that orbit be "as realistic as possible while keeping the game simple and easy to control", maybe with "a visual indicator ... that shows the player an orbital insertion route or point", and said orbiting "feels way too fast ... orbiting should feel like the ship is slowly moving around the planet" (owner). Until the owner tunes it: each body has one orbit line (Calder 3 km up at 45 m/s, Mote 1.2 km at 20 m/s), entering is offered only within 600 m (Mote 300 m) of it, a faint lane and an insertion ring show the way there from a quarter of the line's height up, and the ship settles onto the line; the cause of "too fast" was the low height and speed, not the animation, so the planets keep their size (values and reasons in "How orbit works") (default, Claude).
 - 2026-10-25: Place names and markers can be hidden: William said the names "are cluttering up the screen too much" and asked for two separate settings and a proximity or look-direction mode (owner). Until the owner tunes it: values as in "How the cruise drive works" (Which markers show); markers default to Always so every place can still be found, names to Near or looked at; with markers Off the place aimed at keeps its corner brackets and the place the drive is locked onto its blue brackets, since they say what F does; a change in the settings menu shows at once behind it, with no fade; the two settings sit on the settings menu's Interface page (default, Claude).
@@ -551,7 +552,6 @@ Questions for the owner. Nothing here is built until it is decided.
 - Double-precision build or floating origin only.
 - Target loan payoff time (how many hours of play).
 - Respawn rules after losing the ship.
-- Version names and release tags (the other games use "0.1 Dev 1" with tags like `v0.1-dev.1`).
 
 ## Naming list
 

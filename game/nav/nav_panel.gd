@@ -293,7 +293,7 @@ func _build_plan(parent: Control) -> void:
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", _size(0.4))
 	side.add_child(buttons)
-	_pause = _action_button(buttons, "Pause   R", false)
+	_pause = _action_button(buttons, "P  Pause", false)
 	_pause.pressed.connect(computer.toggle_pause)
 	_clear = _action_button(buttons, "Backspace  Clear", false)
 	_clear.pressed.connect(computer.clear)
@@ -370,7 +370,7 @@ func _refresh_plan() -> void:
 	_activity.text = computer.activity
 	_activity.visible = not computer.activity.is_empty()
 	_activity.add_theme_color_override("font_color", PAUSED_COLOUR if paused else DIM_COLOUR)
-	_pause.text = "R  Resume" if paused else "R  Pause"
+	_pause.text = "P  Resume" if paused else "P  Pause"
 	_pause.disabled = plan.is_empty()
 	_clear.disabled = plan.is_empty()
 

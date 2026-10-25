@@ -1,7 +1,7 @@
 class_name NavStrip
 extends PanelContainer
 ## One line on the HUD while the nav computer flies a plan with its screen shut (design doc, "Nav computer"): which
-## step of how many, what it is doing, and the key that matters ("NAV  2/3  ·  Cruise to Calder  ·  R  Pause"); amber,
+## step of how many, what it is doing, and the key that matters ("NAV  2/3  ·  Cruise to Calder  ·  P  Pause"); amber,
 ## saying why, when the plan is paused. Hidden otherwise. It sits at the top of the view, centred, and is rebuilt only
 ## when the nav computer says something changed. Placeholder look until the art style is chosen.
 
@@ -63,6 +63,6 @@ static func line_for(nav: NavComputer) -> String:
 		return ""
 	var count := "%d/%d" % [nav.plan.done_count + 1, nav.plan.total()]
 	if nav.state == NavComputer.State.PAUSED:
-		return "NAV PAUSED  ·  %s  ·  %s  ·  R  Resume" % [count, nav.activity]
+		return "NAV PAUSED  ·  %s  ·  %s  ·  P  Resume" % [count, nav.activity]
 	var doing := nav.activity if not nav.activity.is_empty() else step.text()
-	return "NAV  %s  ·  %s  ·  R  Pause" % [count, doing]
+	return "NAV  %s  ·  %s  ·  P  Pause" % [count, doing]
