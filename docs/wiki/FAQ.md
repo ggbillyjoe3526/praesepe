@@ -5,13 +5,12 @@
 Not yet. The game is in early development. Each version will come as a Windows installer (`Windows-Setup.exe`, with
 a Start menu shortcut and an uninstaller) and a portable zip to play without installing, on the
 [Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases). The first one comes when the owner
-decides it's ready. Installing a newer version updates the game in place and never touches your saved game.
+decides it's ready; the [Patch Notes](Patch-Notes) will say when. Installing a newer version updates the game in place and never touches your saved game.
 
 ## Windows says "Windows protected your PC"
 
 The game isn't code-signed, so Windows SmartScreen warns you the first time you run the installer or the game. Click
-**More info**, then **Run anyway**. The
-[Patch Notes](Patch-Notes) will say when.
+**More info**, then **Run anyway**.
 
 ## What can I do in the game right now?
 
