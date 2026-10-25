@@ -137,6 +137,8 @@ func test_the_controls_page_lists_the_keys() -> void:
 	assert_eq(shown["Dock, land, undock or take off"], "G")
 	assert_eq(shown["Pause, settings and controls"], "Esc")
 	assert_eq(shown["Steer (pitch and yaw)"], "Mouse")
+	assert_eq(shown["Nav computer: open or close"], "Tab")
+	assert_eq(shown["Nav computer: add to the plan"], "Shift+Enter or Shift+Keypad Enter")
 	for words: String in shown:
 		assert_ne(shown[words], KeyNames.NO_KEY, "%s has a key" % words)
 

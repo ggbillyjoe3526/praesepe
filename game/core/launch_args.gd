@@ -9,6 +9,7 @@ const NO_SEED := -1
 const SEED := "--seed"
 const SMOKE := "--smoke"
 const PERF := "--perf"
+const NAV := "--nav"
 
 ## The world seed asked for, or NO_SEED.
 var seed_value: int = NO_SEED
@@ -16,12 +17,15 @@ var seed_value: int = NO_SEED
 var smoke: bool = false
 ## Log performance counters every 2 s and a summary at exit (game/debug/debug_perf.gd).
 var perf: bool = false
+## With --smoke: the nav computer flies the smoke run instead (game/debug/nav_smoke_run.gd).
+var nav: bool = false
 
 
 static func parse(args: PackedStringArray) -> LaunchArgs:
 	var out := LaunchArgs.new()
 	out.smoke = args.has(SMOKE)
 	out.perf = args.has(PERF)
+	out.nav = args.has(NAV)
 	out.seed_value = _parse_seed(args)
 	return out
 

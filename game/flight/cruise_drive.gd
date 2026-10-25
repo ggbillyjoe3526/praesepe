@@ -64,6 +64,9 @@ var nearest_distance: float = INF
 var target: Landmark = null
 ## While off: the place the nose is aimed at, which F would lock onto, or null.
 var aimed: Landmark = null
+## A place for the next F to lock onto instead of the aimed one, wherever the nose points: the nav computer
+## (NavComputer) sets it with the F it presses for the pilot. Used once.
+var wanted: Landmark = null
 
 var _charge_left: float = 0.0
 ## Per landmark: 1 when arriving there drops the drive out, 0 until the ship has left it.
@@ -101,7 +104,8 @@ func step(at: Vector3, ship_velocity: Vector3, nose: Vector3, toggle: bool, stop
 			if toggle:
 				phase = Phase.CHARGING
 				_charge_left = tuning.charge_time
-				target = aimed
+				target = wanted if wanted != null else aimed
+				wanted = null
 				aimed = null
 				event = Event.CHARGING
 				place = target
@@ -139,6 +143,7 @@ func stop() -> void:
 	phase = Phase.OFF
 	target = null
 	aimed = null
+	wanted = null
 	speed = 0.0
 	velocity = Vector3.ZERO
 	nearest = null
@@ -249,11 +254,16 @@ static func time_to_reach(l: Landmark, at: Vector3, moving: Vector3) -> float:
 ## it is going, closing the angle in CruiseTuning.lock_turn_time as a share of the full-stick `rates`; `roll` is the
 ## pilot's own roll, which the lock leaves alone.
 func turn_for(ship_basis: Basis, roll: float, rates: Vector3) -> Vector3:
-	var local := ship_basis.inverse() * direction
+	return CruiseDrive.turn_towards(ship_basis, direction, roll, rates, tuning.lock_turn_time)
+
+
+## The turn (ShipInput.turn) that brings the nose of a ship whose attitude is `ship_basis` round to `way` (world space),
+## closing the angle in `time` seconds as a share of the full-stick `rates`, with `roll` as given.
+static func turn_towards(ship_basis: Basis, way: Vector3, roll: float, rates: Vector3, time: float) -> Vector3:
+	var local := ship_basis.inverse() * way
 	var yaw := atan2(local.x, -local.z)
 	var pitch := atan2(local.y, Vector2(local.x, local.z).length())
-	var t := tuning.lock_turn_time
-	return Vector3(clampf(pitch / (rates.x * t), -1.0, 1.0), clampf(yaw / (rates.y * t), -1.0, 1.0), roll)
+	return Vector3(clampf(pitch / (rates.x * time), -1.0, 1.0), clampf(yaw / (rates.y * time), -1.0, 1.0), roll)
 
 
 ## Which way (unit) a ship at `at` locked onto `target` goes: straight at its marker, unless a planet, moon or station
@@ -262,7 +272,13 @@ func turn_for(ship_basis: Basis, roll: float, rates: Vector3) -> Vector3:
 ## CruiseTuning.approach_angle over its horizon, so the drive goes round to come down at it from above. `fallback` is
 ## the way to go when the ship is at the marker already.
 func course(at: Vector3, fallback: Vector3) -> Vector3:
-	var goal := target.marker_position()
+	return course_to(target, at, fallback)
+
+
+## The way (unit) course() would go to `to`, for a ship at `at` (the nav computer lines the nose up with it before
+## starting the drive).
+func course_to(to: Landmark, at: Vector3, fallback: Vector3) -> Vector3:
+	var goal := to.marker_position()
 	var to_goal := goal - at
 	var length := to_goal.length()
 	if length < 1.0:
@@ -272,7 +288,7 @@ func course(at: Vector3, fallback: Vector3) -> Vector3:
 	var first := INF
 	var low := sin(deg_to_rad(tuning.approach_angle))
 	for l: Landmark in landmarks:
-		if l == target or not l.obstacle or l.radius <= 0.0:
+		if l == to or not l.obstacle or l.radius <= 0.0:
 			continue
 		var centre := l.global_position
 		var r := l.radius + maxf(l.drop_distance, l.radius * tuning.clearance)

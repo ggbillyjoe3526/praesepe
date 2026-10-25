@@ -6,8 +6,9 @@ extends Control
 ## hollow diamond. Labels that would cover each other stack instead. The place the ship is docked or landed at (and
 ## the planet under it) has no marker until it leaves. The place the nose is aimed at, which F would lock the cruise
 ## drive onto (CruiseDrive.aimed), is framed in corner brackets; the place the drive is locked onto is framed and drawn
-## in the cruise colour. A label is rebuilt only when its distance, as shown, changes. A placeholder look until the art
-## style is chosen.
+## in the cruise colour. While the nav computer's dashboard screen (NavScreen) is lit, markers that fall on it are left
+## off so they don't cover it. A label is rebuilt only when its distance, as shown, changes. A placeholder look until the
+## art style is chosen.
 ##
 ## The diamonds and the names each show always, only for places the player has noticed, or never (the player's
 ## settings, Settings.marker_icons and marker_names; names default to noticed, so the screen stays clear). A place is
@@ -46,6 +47,8 @@ const FADE_TIME := 0.25
 @export var icons: Show = Show.ALWAYS
 @export var names: Show = Show.NEARBY
 @export var follow_settings: bool = true
+## The nav computer's dashboard screen, which markers keep off while it is lit.
+var cover: NavScreen = null
 
 var _places: Array[Landmark] = []
 var _labels: PackedStringArray = PackedStringArray()
@@ -197,6 +200,7 @@ func _draw() -> void:
 	var under: Landmark = ship.berth.body if ship.berth != null else null
 	var aimed := ship.cruise.aimed
 	var locked := FlightHud.target_of(ship)
+	var covered := _covered(view, camera.fov, screen)
 	for i in _places.size():
 		var framed := _places[i] == locked or _places[i] == aimed
 		var hidden := _icon_alpha[i] <= 0.0 and _name_alpha[i] <= 0.0 and not framed
@@ -209,8 +213,32 @@ func _draw() -> void:
 			var off := centre - point
 			point = centre + (off.normalized() if off.length_squared() > 1.0 else Vector2.DOWN) * screen.length()
 		var clamped := ScreenMarker.clamp_to_screen(point, screen, EDGE)
+		if covered.has_area() and _covers(covered, clamped, _label_sizes[i]):
+			continue
 		var colour := FlightHud.CRUISE_COLOUR if _places[i] == locked else COLOUR
 		_draw_marker(clamped, clamped == point, i, screen, colour, framed)
+
+
+## Where on the screen the nav computer's dashboard screen is, while it is lit (an empty rect otherwise).
+func _covered(view: Transform3D, fov: float, screen: Vector2) -> Rect2:
+	if cover == null or not cover.is_visible_in_tree():
+		return Rect2()
+	var out := Rect2()
+	var first := true
+	for corner: Vector3 in cover.corners():
+		var at := ScreenMarker.project(view, fov, screen, corner - view.origin)
+		if at.z <= 0.0:
+			return Rect2()
+		var point := Vector2(at.x, at.y)
+		out = Rect2(point, Vector2.ZERO) if first else out.expand(point)
+		first = false
+	return out
+
+
+## Whether a marker at `p`, or the label under it, would fall on `covered`.
+func _covers(covered: Rect2, p: Vector2, label_size: Vector2) -> bool:
+	var side := label_size.x * 0.5 + PAD.x
+	return covered.grow_individual(side, DIAMOND + LABEL_GAP + label_size.y + PAD.y * 2.0, side, DIAMOND).has_point(p)
 
 
 ## The marker for place `i` at `p`: its diamond (filled when `ahead` on the screen, hollow at the edge) and its name

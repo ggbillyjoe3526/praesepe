@@ -29,12 +29,14 @@ yet.
 | O | Enter orbit round the planet or moon you're near, and stay there; O again or any thrust key levels the nose out and leaves; X or Z leave at once |
 | G | Dock at the station or land at the base when the HUD offers it: the ship flies itself in, and G (or X) on the way takes the controls back; G again undocks or takes off |
 | V | Cockpit or chase camera |
+| Tab | Nav computer: on the dashboard in the cockpit (click it with the mouse), a card in the chase view. Pick a place (Up / Down) and how to arrive (Left / Right: dock, land at a base, orbit, stop nearby); Enter goes now, Shift+Enter adds it to the plan, Backspace clears the plan. The ship flies the plan itself; touching the controls pauses it |
+| R | Pause or carry on the nav computer's plan |
 | Esc | Pause; the game also pauses when the window loses focus or lets go of the mouse. The pause screen's **Settings** opens the settings menu (Esc goes back) |
 | F11 or Alt+Enter | Fullscreen or a window |
-| Click | Capture the mouse again |
+| Click | Capture the mouse again (not while the nav computer is open) |
 | F3 | Debug overlay: frame rate, draw calls, nodes, seed, speed and true position |
 
-How flying, the cruise drive, orbit and the cameras work, and their tuning values, are in [DESIGN.md](DESIGN.md)
+How flying, the cruise drive, orbit, the nav computer and the cameras work, and their tuning values, are in [DESIGN.md](DESIGN.md)
 ("Flight and camera"); the places in the solar system, docking and landing are in "World".
 
 ## Settings
@@ -57,6 +59,7 @@ Given after `--`, for example `godot --path . -- --seed 1234`.
 | --- | --- |
 | `--seed <n>` (or `--seed=<n>`) | Starts the world on seed `n` (0 to 4294967295). The same seed gives the same world. Without it, each launch picks a fresh seed, shown on screen. |
 | `--smoke` | Runs the headless smoke test: an autopilot flies the ship (speeds up, turns, drifts with assist off, stops, pauses and opens each page of the settings menu), checking it and both cameras at every step (the chase camera's lag and lean, and that it never goes through a wall), then cruises to the belt, the station, the moon and the base locked onto each (checking the HUD offers it, the nose follows the course and the dashboard names the place; on the way to the station it moves the stick to release the lock), checking the drive drops out on arriving at each, then parks in orbit round the planet (checking it holds its height, speed and view), leaves it (checking it levels out and doesn't sink), re-enters it, lands at the base from orbit, takes off, cruises to the station, docks and undocks, checking the ship flies itself in without a bump, then the berth and the autosave each time; prints `SMOKE: ok` with the belt's fingerprint and when each arrival came, then quits. It never reads or writes your settings or your saved game (its autosaves go to `smoke_savegame.json`). Use with `--fixed-fps 60` before `--`. |
+| `--nav` | With `--smoke`: the nav computer flies instead (`game/debug/nav_smoke_run.gd`). It checks the screen opens on the dashboard and as the chase view's card, then gives it orders the way a player would: dock at the station, undock, cruise to and land at the base (moving the stick on the way, checking that pauses the plan, then carrying on), take off and orbit the moon, and a queued plan; prints `SMOKE NAV: ok` with when each plan finished, then quits. |
 | `--perf` | Logs draw calls and node counts every 2 s and a summary at exit (the F3 overlay's numbers). |
 
 ## Tests

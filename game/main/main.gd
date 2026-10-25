@@ -2,9 +2,10 @@ extends Node3D
 ## The first scene: the tiny solar system (game/system/solar_system.tscn) with the player's greybox ship, seen from the
 ## cockpit or the chase camera (ShipCameras), with HUD markers on every place. The ship starts at the system's start
 ## point next to the station, and the floating origin is centred on it from the first tick, so true positions are the
-## system's own (the planet's centre is 0, 0, 0). Docking and landing (Arrivals) and the autosave (Autosave) are
-## nodes of their own beside it. Launched with `-- --smoke`, the autopilot flies it instead of the player
-## (game/debug/smoke_run.gd).
+## system's own (the planet's centre is 0, 0, 0). Docking and landing (Arrivals), the autosave (Autosave) and the nav
+## computer (NavComputer, shown on the dashboard and as a card in the chase view) are nodes of their own beside it.
+## Launched with `-- --smoke`, the autopilot flies it instead of the player (game/debug/smoke_run.gd); with `-- --smoke
+## --nav`, the nav computer does, given orders by game/debug/nav_smoke_run.gd.
 
 @onready var _ship: Ship = $World/Ship
 @onready var _origin: FloatingOrigin = $FloatingOrigin
@@ -16,6 +17,9 @@ extends Node3D
 @onready var _markers: LandmarkMarkers = $Hud/LandmarkMarkers
 @onready var _arrivals: Arrivals = $Arrivals
 @onready var _autosave: Autosave = $Autosave
+@onready var _nav: NavComputer = $NavComputer
+@onready var _nav_card: NavPanel = $Hud/NavCard
+@onready var _nav_strip: NavStrip = $Hud/NavStrip
 
 
 func _ready() -> void:
@@ -26,6 +30,13 @@ func _ready() -> void:
 	_arrivals.ports = _system.ports
 	_system.track(_ship)
 	_markers.show_places(_system.landmarks)
+	_nav.setup(_system.landmarks, _system.ports)
+	var dashboard := _ship.get_node(^"Cockpit/NavScreen") as NavScreen
+	dashboard.attach(_nav)
+	_markers.cover = dashboard
+	_nav_card.attach(_nav)
+	_nav_strip.attach(_nav)
+	_nav.attach(dashboard, _nav_card)
 	if not Game.launch_args.smoke:
 		return
 	# Nobody at the controls: the autopilot fills the ship's input, and losing the mouse never pauses. Its saves go to
@@ -33,8 +44,20 @@ func _ready() -> void:
 	_autosave.path = SmokeRun.SAVE_PATH
 	_pause.controls = null
 	_hud.controls = null
+	_nav.controls = null
 	_pilot.queue_free()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if Game.launch_args.nav:
+		var orders := NavSmokeRun.new()
+		orders.ship = _ship
+		orders.nav = _nav
+		orders.system = _system
+		orders.arrivals = _arrivals
+		orders.cameras = _cameras
+		orders.screen = dashboard
+		orders.card = _nav_card
+		add_child(orders)
+		return
 	var smoke := SmokeRun.new()
 	smoke.ship = _ship
 	smoke.origin = _origin

@@ -4,13 +4,17 @@ extends Node
 ## ShipInput every physics tick, before the ship acts on it (FlightOrder). The mouse moves a stick that springs back
 ## to the centre (FlightControls), so moving the mouse turns the ship and stopping lets the turn settle. The player's
 ## mouse sensitivity and invert (Settings › Controls) scale and flip it.
-## Captures the mouse while flying; a click captures it again if it was let go.
+## Captures the mouse while flying; a click captures it again if it was let go, unless it was let go on purpose
+## (release_mouse(), for clicking the nav computer's screen).
 
 @export var ship: Ship
 @export var controls: FlightControls
 
 ## The mouse stick, each axis -1 to 1: x right, y down (screen directions). The HUD draws it.
 var stick: Vector2 = Vector2.ZERO
+## The mouse is free on purpose (release_mouse()): it doesn't steer, a click doesn't take it back, and losing it
+## doesn't pause.
+var mouse_free: bool = false
 var _mouse: Vector2 = Vector2.ZERO
 var _toggle_assist: bool = false
 var _toggle_cruise: bool = false
@@ -25,7 +29,14 @@ func _ready() -> void:
 
 
 func capture_mouse() -> void:
+	mouse_free = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## Lets the mouse go to click something on screen (the nav computer); capture_mouse() takes it back.
+func release_mouse() -> void:
+	mouse_free = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -35,7 +46,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_mouse += motion.screen_relative
 		return
 	var click := event as InputEventMouseButton
-	if click != null and click.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+	if click != null and click.pressed and not mouse_free and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		capture_mouse()
 		get_viewport().set_input_as_handled()
 		return
