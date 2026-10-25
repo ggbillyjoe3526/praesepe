@@ -1,15 +1,18 @@
 # Ships
 
-## The test ship
+## The Hauler
 
-For now you fly one simple test ship (a stand-in model, with no name yet) while the flying is tuned. It has a
-cockpit with a dashboard screen, two engines and short wings. It can't carry cargo or take damage yet.
+**Great for:** porters and miners. A steady workhorse with room for cargo, and the one ship a new game offers for now.
 
-![The test ship, docked at Halfway Station](images/docked-chase.jpg)
+For now a simple test model stands in for the Hauler while the flying is tuned: a cockpit with a dashboard screen,
+two engines and short wings. Its own model, cargo hold and handling come later, and it can't carry cargo or take
+damage yet. The flight numbers below are the test model's.
+
+![The Hauler (its stand-in model), docked at Halfway Station](images/docked-chase.jpg)
 
 ### Flight
 
-| | Test ship |
+| | Hauler (stand-in) |
 | --- | --- |
 | Top speed (normal flight) | 200 m/s |
 | Top speed backwards (flight assist on) | 50 m/s |
@@ -21,7 +24,7 @@ cockpit with a dashboard screen, two engines and short wings. It can't carry car
 
 ### Cruise drive
 
-| | Test ship |
+| | Hauler (stand-in) |
 | --- | --- |
 | Charge time | 2 s |
 | Cruise speed | 300 m/s to 5 km/s |
@@ -29,7 +32,8 @@ cockpit with a dashboard screen, two engines and short wings. It can't carry car
 
 How these feel in practice is on the [Flying](Flying) and [Cruise Drive](Cruise-Drive) pages.
 
-## The starter ships (not in the game yet)
+## Choosing your ship
 
-The finished game will let you pick one of three starter ships, all at the same price, each with a "Great for" hint.
-They are planned, not playable: see the [Roadmap](Roadmap#the-core-game).
+**New game** on the start menu shows the ships you can start with, each with a "Great for" hint, its strengths and
+its trade-offs. Today that is the Hauler. The finished game offers three starter ships at the same price; the other
+two, the Interceptor and the Surveyor, are planned, not playable: see the [Roadmap](Roadmap#the-core-game).

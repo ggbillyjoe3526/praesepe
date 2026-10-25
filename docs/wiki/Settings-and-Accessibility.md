@@ -1,6 +1,6 @@
 # Settings and Accessibility
 
-Press **Esc** to pause, then **Settings**. The menu has four pages. Every change shows at once and is kept for next
+Press **Esc** to pause, then **Settings** (or **Settings** on the start menu). The menu has four pages. Every change shows at once and is kept for next
 time. Each page has a button that puts its own settings back to their defaults. **Esc** goes back.
 
 ![The pause screen, with Settings and the tow home](images/pause.jpg)

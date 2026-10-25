@@ -58,7 +58,7 @@ straight away from it, every roll is as level as any other, so it asks you to pi
 Nothing in the game damages your ship yet. You can bump into the station, the base and the nearby rocks of The
 Shingle; you bounce off and the camera shakes.
 
-## How the test ship flies
+## How the Hauler flies
 
 The numbers are on the [Ships](Ships) page: top speed 200 m/s in normal flight, 0 to top speed in about 5 seconds.
 For longer trips use the [Cruise Drive](Cruise-Drive).

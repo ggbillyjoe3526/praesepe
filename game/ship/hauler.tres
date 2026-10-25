@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ShipClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/ship/ship_class.gd" id="1_class"]
+
+[resource]
+script = ExtResource("1_class")
+id = &"hauler"
+display_name = "Hauler"
+great_for = "Porters and miners"
+summary = "A steady workhorse with room for cargo. A good first ship for deliveries and mining.
+
+For now a greybox stands in for it: its own model, hold and handling come later."
+strengths = "Large cargo hold, tough hull"
+trade_offs = "Slow, less agile"

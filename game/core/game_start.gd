@@ -1,0 +1,161 @@
+class_name GameStart
+## How a game starts (design doc, "Starting a game"). The title screen (game/ui/title_screen.gd) picks new game or
+## continue and opens the main scene, which then puts the ship where this says (begin()). Kept in static variables,
+## so the choice survives the change of scene.
+##
+## A new game starts on a fresh world (or the `--seed` one), docked at Halfway Station in the ship the player chose.
+## Continuing puts back the saved game exactly as it was saved: the world (seed, clock, random streams), and the ship
+## docked or landed where it was, or out in space at the same place, heading and speed, never moved to a station.
+
+enum Mode {
+	NEW, ## A new game: docked at START_PORT in `ship_id`.
+	CONTINUE, ## The saved game in `saved`.
+}
+
+enum Began {
+	DOCKED_NEW, ## A new game, docked at Halfway Station (and saved).
+	DOCKED, ## Continued at the saved berth (or Halfway Station when the save held no usable place).
+	IN_SPACE, ## Continued out in space where it was saved.
+	NOWHERE, ## No port to start at (a broken scene): the ship stays where it was.
+}
+
+## Where a new game starts (the port's id: Halfway Station's docking bay).
+const START_PORT := &"halfway_station"
+## The ship a game flies when nothing else was chosen.
+const DEFAULT_SHIP := &"hauler"
+## A saved place (m from the planet's centre), speed (m/s) or spin (rad/s) beyond these is not from real play: the
+## place makes the save unusable, a speed or spin is cut down to them.
+const FARTHEST := 10000000.0
+const FASTEST := 8000.0
+const FASTEST_SPIN := 10.0
+
+static var mode: Mode = Mode.NEW
+## Whether the title screen asked for a start. Opening the game scene on its own (F6 in the editor) starts in flight
+## at the system's start point instead, and never writes the player's save.
+static var pending: bool = false
+## The ship this game is flown in (ShipClass.id). Saved with the game.
+static var ship_id: StringName = DEFAULT_SHIP
+## The saved game being continued (SaveGame's data), while mode is CONTINUE.
+static var saved: Dictionary = {}
+
+
+## Starts a new game in `ship`, on the world `seed_value`: the main scene starts it docked at Halfway Station.
+static func new_game(ship: StringName, seed_value: int) -> void:
+	mode = Mode.NEW
+	pending = true
+	ship_id = ship
+	saved = {}
+	Game.start_world(seed_value)
+
+
+## Continues the saved game `data` (SaveGame's data): its world now, its ship once the main scene opens.
+static func continue_game(data: Dictionary) -> void:
+	mode = Mode.CONTINUE
+	pending = true
+	saved = data
+	var world: Variant = data.get("world", {})
+	Game.restore(world if world is Dictionary else {})
+	var ship: Variant = data.get("ship", {})
+	var model: Variant = ship.get("model", "") if ship is Dictionary else ""
+	ship_id = StringName(model) if model is String and not model.is_empty() else DEFAULT_SHIP
+
+
+## Puts `ship` where the game starts, with the floating origin centred on it, and says what happened (BEGAN_...). A
+## new game docks it at Halfway Station through the arrival function, which autosaves straight away. Continuing
+## places it as saved, resumed rather than arriving (no autosave, no payout): at its berth when it was docked or
+## landed; otherwise at its saved place, heading, velocity and spin, with flight assist as it was, and back into
+## orbit when it was orbiting (O pressed for the pilot, so the orbit is entered the usual way). A save that names a
+## port that no longer exists, or holds no usable place, docks it at Halfway Station instead, quietly.
+static func begin(ship: Ship, origin: FloatingOrigin, arrivals: Arrivals) -> Began:
+	pending = false
+	if mode == Mode.NEW:
+		return _dock(GameStart.port(arrivals, START_PORT), origin, arrivals, false)
+	var berth := GameStart.port(arrivals, StringName(str(saved.get("berth", ""))))
+	if berth != null:
+		return _dock(berth, origin, arrivals, true)
+	var block: Variant = saved.get("ship", null)
+	if block is Dictionary and _place_in_space(block, ship, origin):
+		# The tow goes back to the last port it arrived at, as before the save.
+		var home := GameStart.port(arrivals, StringName(str(saved.get("home", ""))))
+		if home != null:
+			arrivals.home = home
+		return Began.IN_SPACE
+	return _dock(GameStart.port(arrivals, START_PORT), origin, arrivals, true)
+
+
+## The port among `arrivals`' whose id is `id`, or null.
+static func port(arrivals: Arrivals, id: StringName) -> Port:
+	if id.is_empty():
+		return null
+	for p: Port in arrivals.ports:
+		if p.id == id:
+			return p
+	return null
+
+
+static func _dock(at: Port, origin: FloatingOrigin, arrivals: Arrivals, resumed: bool) -> Began:
+	if at == null:
+		push_error("GameStart: no port '%s' to start at" % START_PORT)
+		return Began.NOWHERE
+	origin.shift(at.global_position)
+	arrivals.arrive(at, resumed)
+	return Began.DOCKED if resumed else Began.DOCKED_NEW
+
+
+## Places the ship out in space as `block` says. False when its place is missing or unreadable.
+static func _place_in_space(block: Dictionary, ship: Ship, origin: FloatingOrigin) -> bool:
+	var at := GameStart.numbers(block.get("at"), 3)
+	if at.is_empty() or GameStart.length_of(at) > FARTHEST:
+		return false
+	var turn := GameStart.numbers(block.get("turn"), 4)
+	var facing := Quaternion(turn[0], turn[1], turn[2], turn[3]).normalized() if not turn.is_empty() \
+			else Quaternion.IDENTITY
+	if not facing.is_normalized():
+		facing = Quaternion.IDENTITY
+	# The saved place is a true position (the planet's centre is 0, 0, 0); the world is re-centred on it.
+	var local := Vector3(at[0] - origin.offset_x, at[1] - origin.offset_y, at[2] - origin.offset_z)
+	var assist: Variant = block.get("assist", true)
+	var held: Variant = block.get("held", 0.0)
+	ship.resume_flight(Transform3D(Basis(facing), local), GameStart.vector(block.get("velocity"), FASTEST),
+			GameStart.vector(block.get("spin"), FASTEST_SPIN), assist if assist is bool else true,
+			float(held) if held is float or held is int else 0.0)
+	origin.shift(local)
+	# In orbit when saved: {"body": ..., "radius": ..., "axis": [...]}, {} when not.
+	var orbit: Variant = block.get("orbit", {})
+	if orbit is Dictionary and not orbit.is_empty():
+		ship.input.toggle_orbit = true
+	return true
+
+
+## `value` as a list of `count` finite numbers, or empty when it isn't one.
+static func numbers(value: Variant, count: int) -> PackedFloat64Array:
+	var out := PackedFloat64Array()
+	if not value is Array or value.size() != count:
+		return out
+	for n: Variant in value:
+		if not (n is float or n is int) or not is_finite(float(n)):
+			return PackedFloat64Array()
+		out.append(float(n))
+	return out
+
+
+## `value` as a Vector3 no longer than `longest`, or zero when it isn't three finite numbers. Shortened in 64-bit, so
+## a number too big for a Vector3 is cut down rather than turned into infinity.
+static func vector(value: Variant, longest: float = INF) -> Vector3:
+	var n := GameStart.numbers(value, 3)
+	if n.is_empty():
+		return Vector3.ZERO
+	var length := GameStart.length_of(n)
+	var scale := longest / length if length > longest else 1.0
+	return Vector3(n[0] * scale, n[1] * scale, n[2] * scale)
+
+
+## The length of the vector `n` (three numbers), worked out without squaring huge numbers into infinity.
+static func length_of(n: PackedFloat64Array) -> float:
+	var biggest := maxf(absf(n[0]), maxf(absf(n[1]), absf(n[2])))
+	if biggest == 0.0:
+		return 0.0
+	var x := n[0] / biggest
+	var y := n[1] / biggest
+	var z := n[2] / biggest
+	return biggest * sqrt(x * x + y * y + z * z)

@@ -19,9 +19,12 @@ Fly, cruise between five places, dock, land and park in orbit. There are no jobs
 
 ## Does the game save?
 
-Yes: it saves itself every time you dock or land ("Game saved" on screen), and every 3 minutes while you fly
-(paused time doesn't count), so quitting or a crash never loses more than that. Loading that save isn't in the game yet, so
-each launch still starts a fresh flight next to Halfway Station. Your settings are saved separately.
+Yes: it saves itself every time you dock or land ("Game saved" on screen), every 3 minutes while you fly (paused time
+doesn't count), and when you choose **Quit to title** or **Quit to desktop** on the pause screen, so a crash never
+loses more than a few minutes. (While the cruise drive is on, or the ship is flying itself in or out of a dock, quitting
+keeps your last save instead.) Press **Continue** on the start menu to carry on exactly where you saved: docked,
+landed, in orbit or out in space, facing the same way. You have one saved game; **New game** asks before replacing it.
+Your settings are saved separately.
 
 ## Where are my saves, settings and screenshots?
 

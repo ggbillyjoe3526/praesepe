@@ -279,10 +279,11 @@ script = ExtResource("28_nav_panel")
 compact = true
 font_size = 22
 
-[node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls", "arrivals")]
+[node name="PauseScreen" type="CanvasLayer" parent="." node_paths=PackedStringArray("controls", "arrivals", "autosave")]
 script = ExtResource("11_pause")
 controls = NodePath("../PilotControls")
 arrivals = NodePath("../Arrivals")
+autosave = NodePath("../Autosave")
 
 [node name="Screenshots" type="CanvasLayer" parent="."]
 script = ExtResource("25_screenshots")

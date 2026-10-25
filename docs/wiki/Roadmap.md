@@ -5,10 +5,7 @@ change. What you can already play is on the other pages; what changed recently i
 
 ## Being built now
 
-Work already under way, which should arrive soon:
-
-- **A start menu and choosing your ship:** Continue, New game, Settings and Quit. A new game starts with choosing a
-  ship, then docked at Halfway Station. Continue puts you back exactly where you saved, even out in space.
+Nothing is under way right now. Next up is the first playable, below.
 
 ## Next: the first playable
 
@@ -21,7 +18,6 @@ The first complete loop of the game: take a job, fly it, get paid, pay off your 
 - **The ship loan:** your first ship is bought on a loan with no interest and no repossession. Pay it off at any base,
   whenever you like.
 - **A shop with three or four upgrades.**
-- **Loading your saved game.**
 
 ## Contracts and jobs
 

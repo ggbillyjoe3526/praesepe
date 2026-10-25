@@ -48,6 +48,16 @@ Three starter ships share a price and tier. Each leans toward a play style, but 
 
 Upgrades (cargo, engines, scanners, shields, mining laser) let any ship cover its weak spots. Names and exact stats are placeholders.
 
+## Starting a game
+
+The game opens on a title screen: the game's name over a slowly turning starfield, and a start menu.
+
+- **Continue** puts back the saved game exactly as it was saved: the same world (seed, clock, random streams), and the ship docked or landed where it was, or out in space at the same place, heading and speed, with flight assist as it was. A ship saved in orbit goes back into orbit. Loading never moves the ship to a station. Continue only shows when there is a saved game that can be read; one that can't be read is kept in the save folder and the menu says so.
+- **New game** opens "Choose your ship": a card for each starter ship with its "Great for:" hint, strengths and trade-offs. The first playable has one, the Hauler (the greybox ship stands in for it); the Interceptor and the Surveyor join the list when they are built. The game starts on a fresh world (or the `--seed` one), docked at Halfway Station, and saves straight away. Over an existing save the menu asks first: "This replaces your saved game".
+- **Settings** opens the settings menu. **Quit** closes the game.
+- Esc goes back a page. The pause screen has **Quit to title**. Quitting to the title or the desktop saves first, except while cruising or flying itself in or out, when the last save stands.
+- The ships offered live in `game/ship/starter_ships.tres`, one file per ship (`game/ship/hauler.tres`).
+
 ## Flight and camera
 
 Flight uses one Newtonian physics model with a flight assist toggle. It should never feel arcade-like.
@@ -370,7 +380,7 @@ One self-contained scene, `game/system/solar_system.tscn`, compressed to these s
 | Mote | The moon: grey, airless | 1.5 km radius, 31 km from Calder, above the belt's plane | 1.5 km above the surface |
 | The Shingle | The asteroid belt: a ring of rocks round Calder | 50 km radius, 6 km wide, 800 m thick | 1.5 km from the band |
 
-- The player starts 2 km from Halfway Station with Calder ahead, next to three buoys marking the way to the station.
+- The player starts 2 km from Halfway Station with Calder ahead.
 - The Shingle's rocks come from the world seed: 3000 scattered round the ring and 10 dense pockets of 220, each rock 15 to 110 m in radius (small ones commonest). The first pocket is authored: on the band's inner edge, the one its HUD marker points to. Values in `game/system/shingle_belt.tres`.
 - Only the rocks within 2.5 km of the ship are solid (a pool of 48 spheres, picked again every 10 ticks; a sphere stays on its rock while that rock stays near); all are drawn, in 64 pieces round the ring, as lumpy rocks within 9 km and simple shapes out to 70 km, with a faint haze along the band beyond that.
 - Calder and Mote are drawn as fine spheres close up and coarse ones from far away (past 40 km and 15 km). The station and base lose their detail at 12 km and 20 km. Everything is visible to 150 km.
@@ -580,6 +590,8 @@ The core game comes first. These ideas follow once the first playable is fun, ro
 Newest first. Each line: date, the decision, who made it.
 
 - 2026-10-25: A nav computer to give the ship orders: William asked for "an on screen UI menu" that is "a cockpit instrument" in the cockpit and "a ui element but not too obtrusive" in the chase view, for "destinations, landing/take off assist, entering or leaving orbit", where "the player can queue orders/actions for the ship", and chose concept A (the nav computer screen) of three concepts (owner). Until the owner tunes it: behaviour and values as in "Nav computer"; Tab opens it, arrows pick, Enter goes, Shift+Enter adds to the plan, P pauses and resumes (R is rolling upright), Backspace clears; it flies only through the pilot's own controls (F, O, G, turn and thrust); any pilot input pauses the plan; landing at a base cruises to the base rather than going into orbit first; the ship keeps flying while it is open; the plan is not saved (default, Claude).
+- 2026-10-25: A title screen with a start menu (Continue, New game, Settings, Quit), and a new game starts by choosing the ship, then docked at Halfway Station; loading a save puts the ship back where it was saved, even out in space ("if a player saves out in space then they return to those coordinates and not back at a station") (owner). Until the owner says otherwise: the one ship of the first playable is the Hauler, because its jobs are deliveries and mining; a new game saves at once; a new game over a saved game asks first (and isn't offered over a save another program holds or a newer version's); quitting to the title or the desktop saves first; a ship continued out in space carries on at its saved speed and spin; the title screen is a starfield, not the solar system (default, Claude).
+- 2026-10-25: The three buoys (grey posts with an orange lamp) between the start and Halfway Station are gone: they were left over from the first flight test, when the sky was empty and they showed movement; the planets, station, belt and space dust do that now. William asked for them to be removed (owner).
 - 2026-10-25: Four conveniences join the first playable: the time to arrival next to the distance while the cruise
   drive is locked on, an F12 screenshot key, holding the right mouse button to look round the cockpit without steering,
   and a key that rolls the ship upright against the nearest planet or moon. William approved them from a list of

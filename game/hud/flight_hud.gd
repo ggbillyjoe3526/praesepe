@@ -349,6 +349,19 @@ static func arrival_message(port: Port, saved: int) -> String:
 	return words
 
 
+## The message on continuing a saved game: where the ship is, docked or landed at `berth`, or null out in space.
+static func welcome_message(berth: Port) -> String:
+	if berth == null:
+		return "Welcome back  ·  Game loaded"
+	return "Welcome back  ·  " + ("Docked at %s" if berth.kind == Port.Kind.DOCK else "Landed at %s") \
+			% berth.place_name()
+
+
+## Says the saved game was loaded (GameStart), where the ship is: docked or landed at `berth`, or null out in space.
+func welcome_back(berth: Port) -> void:
+	_show_toast(FlightHud.welcome_message(berth), SAVED_COLOUR, ARRIVAL_TOAST_TIME)
+
+
 ## The message on screen now, or empty when none is up (for the smoke test).
 func toast_text() -> String:
 	return _toast.text if _toast_plate.visible else ""
