@@ -526,20 +526,20 @@ The goal of the first playable is to prove that flying, delivering and mining ar
 
 **In scope**
 
-- [ ] One planet with a base, one moon, one space station, one asteroid belt
-- [ ] One ship with a first-person cockpit
-- [ ] Newtonian flight with flight assist on/off and a velocity marker
-- [ ] Third-person chase camera while flying
-- [ ] Cruise drive between locations
-- [ ] Docking at the base and station
-- [ ] Seamless docking and landing: a prompt, then the ship flies itself in, with no transition or loading screen (the owner's call, 2026-10-25)
-- [ ] Parking in orbit round a planet or moon with an "Enter orbit" prompt (added by the owner, 2026-10-24)
+- [x] One planet with a base, one moon, one space station, one asteroid belt
+- [x] One ship with a first-person cockpit
+- [x] Newtonian flight with flight assist on/off and a velocity marker
+- [x] Third-person chase camera while flying
+- [x] Cruise drive between locations
+- [x] Docking at the base and station
+- [x] Seamless docking and landing: a prompt, then the ship flies itself in, with no transition or loading screen (the owner's call, 2026-10-25)
+- [x] Parking in orbit round a planet or moon with an "Enter orbit" prompt (added by the owner, 2026-10-24)
 - [ ] Contract board with two job types: delivery and asteroid mining
 - [ ] Ship mining laser for blasting asteroids
 - [ ] On-foot controller: walking into the base and mining on an asteroid's surface
 - [ ] Loan with payments at the base
 - [ ] Shop with 3–4 upgrades
-- [ ] Save and load
+- [x] Save and load
 
 **Out of scope for now:** the other two starter ships, combat, taxi, science, reputation, radio, random events, photo mode.
 
@@ -557,7 +557,7 @@ A few early decisions avoid costly rework later.
 
 ## Player wiki
 
-The GitHub wiki (<https://github.com/ggbillyjoe3526/project-praesepe/wiki>) documents the full game for players. It is
+The GitHub wiki (<https://github.com/ggbillyjoe3526/praesepe/wiki>) documents the full game for players. It is
 written for players, not developers, and kept current as the game changes.
 
 - **Home:** what the game is and what the current build lets you do.

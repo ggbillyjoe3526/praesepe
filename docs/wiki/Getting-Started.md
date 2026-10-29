@@ -2,7 +2,7 @@
 
 ## Installing
 
-Open the [Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases), download the
+Open the [Releases page](https://github.com/ggbillyjoe3526/praesepe/releases), download the
 `Windows-Setup.exe` from the newest version and run it. Windows may say "Windows protected your PC" because the game
 isn't code-signed yet: click **More info**, then **Run anyway** ([FAQ](FAQ#windows-says-windows-protected-your-pc)).
 The installer adds Project Praesepe to the Start menu. To play without installing, download the
