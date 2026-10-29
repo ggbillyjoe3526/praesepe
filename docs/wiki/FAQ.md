@@ -3,7 +3,7 @@
 ## Is there a download?
 
 Yes, for Windows (64-bit). The first one is **0.1 Dev 1**, an early development build. Each version is on the
-[Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases) as a Windows installer (`Windows-Setup.exe`, with a Start menu shortcut and an uninstaller) and
+[Releases page](https://github.com/ggbillyjoe3526/praesepe/releases) as a Windows installer (`Windows-Setup.exe`, with a Start menu shortcut and an uninstaller) and
 a portable zip to play without installing: unzip it anywhere and run `ProjectPraesepe.exe`. Installing a newer version
 updates the game in place and never touches your saved game. The [Patch Notes](Patch-Notes) say what's in each
 version.

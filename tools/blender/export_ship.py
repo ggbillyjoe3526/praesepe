@@ -1,7 +1,7 @@
 """Exports a ship's "Exterior" and "Cockpit" collections from Blender as the glTF files the game loads.
 
 Run it inside Blender with the ship's .blend open, or from Python with Blender's `bpy` module:
-	export_ship.export("C:/path/to/project-praesepe/game/ship/models", "hauler")
+	export_ship.export("C:/path/to/praesepe/game/ship/models", "hauler")
 writes hauler_exterior.glb and hauler_cockpit.glb there. Only those two collections go out (never "Reference"),
 with modifiers applied, Y up and the nose along -Z as Godot expects, and no cameras or lights.
 Parts are joined into one mesh per material on the way out (named after the collection and the material, like Exterior_Glass), so the game draws each

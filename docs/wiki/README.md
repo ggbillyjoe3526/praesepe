@@ -1,7 +1,7 @@
 # The player wiki
 
 This folder is the source of the game's GitHub wiki
-(<https://github.com/ggbillyjoe3526/project-praesepe/wiki>). Each `.md` file is one page, named like
+(<https://github.com/ggbillyjoe3526/praesepe/wiki>). Each `.md` file is one page, named like
 `Docking-and-Landing.md` (dashes become spaces in the page title). `Home.md` is the front page, `_Sidebar.md` the menu
 on every page and `_Footer.md` the line under it. This README is never published. The layout follows `DESIGN.md`,
 "Player wiki". Ported from katanashotgun's `docs/wiki/`.

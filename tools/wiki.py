@@ -160,7 +160,7 @@ def patch_notes() -> str:
     parts = [
         "# Patch Notes",
         "What changed in each version of Project Praesepe, newest first. Downloads are on the "
-        "[Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases). "
+        "[Releases page](https://github.com/ggbillyjoe3526/praesepe/releases). "
         "What's planned next is on the [Roadmap](Roadmap).",
         "## Coming in the next update",
         "Already in the development build and on its way in the next download:",
@@ -180,7 +180,7 @@ def stamp() -> str:
     version = m.group(1) if m else "unknown version"
     log = subprocess.run(["git", "log", "-1", "--format=%h %cs"], cwd=ROOT, capture_output=True, text=True)
     commit, _, day = log.stdout.strip().partition(" ") if log.returncode == 0 else ("", "", "")
-    where = f" from commit [{commit}](https://github.com/ggbillyjoe3526/project-praesepe/commit/{commit}), {day}" if commit else ""
+    where = f" from commit [{commit}](https://github.com/ggbillyjoe3526/praesepe/commit/{commit}), {day}" if commit else ""
     return f"<sub>Describes the development build {version}{where}.</sub>"
 
 

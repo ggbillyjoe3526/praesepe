@@ -4,7 +4,7 @@ How a version of Project Praesepe reaches players. Only the owner decides to rel
 starts a release without the owner's explicit yes for that version.
 
 ## What a release gives players
-Each release on the [Releases page](https://github.com/ggbillyjoe3526/project-praesepe/releases) has:
+Each release on the [Releases page](https://github.com/ggbillyjoe3526/praesepe/releases) has:
 - `ProjectPraesepe-v0.1-dev.1-Windows-Setup.exe`: the installer. It installs for the current player only (no
   administrator prompt), adds a Start menu shortcut and optionally a desktop one, and has an uninstaller. Installing a
   newer version over an older one updates it in place.

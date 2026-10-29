@@ -9,6 +9,6 @@ display_name = "Hauler"
 great_for = "Porters and miners"
 summary = "A steady workhorse with room for cargo. A good first ship for deliveries and mining.
 
-For now a greybox stands in for it: its own model, hold and handling come later."
+For now it flies with a simple placeholder model: its own cargo hold and handling come later."
 strengths = "Large cargo hold, tough hull"
 trade_offs = "Slow, less agile"

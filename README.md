@@ -97,7 +97,7 @@ CI runs all five on every pull request (the wiki check in the Wiki workflow, whi
 | `test/unit/` | Unit tests. |
 | `tools/` | Test, changelog and wiki scripts; `blender/` builds and exports the ship models in Blender (its `README.md` says how). |
 | `addons/gut/` | The Gut test framework (tests only, never shipped). |
-| `docs/wiki/` | The player wiki, one page per file, published to the [GitHub wiki](https://github.com/ggbillyjoe3526/project-praesepe/wiki) on every merge to `main`. Its `README.md` has the conventions. |
+| `docs/wiki/` | The player wiki, one page per file, published to the [GitHub wiki](https://github.com/ggbillyjoe3526/praesepe/wiki) on every merge to `main`. Its `README.md` has the conventions. |
 | `changelog.d/` | One changelog note per pull request, gathered into `CHANGELOG.md` at release. |
 
 Saves (`savegame.json`, written on every docking and landing), settings (`settings.json`) and screenshots (`screenshots/`) go to the user folder `ProjectPraesepe` (on Windows, `%APPDATA%\ProjectPraesepe`).

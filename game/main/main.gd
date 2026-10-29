@@ -1,6 +1,6 @@
 extends Node3D
 ## The game scene, opened from the title screen (game/ui/title_screen.gd): the tiny solar system
-## (game/system/solar_system.tscn) with the player's greybox ship, seen from the cockpit or the chase camera
+## (game/system/solar_system.tscn) with the player's ship, seen from the cockpit or the chase camera
 ## (ShipCameras), with HUD markers on every place. The ship starts where GameStart says: docked at Halfway Station for
 ## a new game, or where it was saved when continuing. The floating origin is centred on it from the first tick; true
 ## positions are the system's own (the planet's centre is 0, 0, 0). Docking and landing (Arrivals), the autosave
